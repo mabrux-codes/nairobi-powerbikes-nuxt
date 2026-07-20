@@ -1,0 +1,20 @@
+{
+  "date": "2026-07-20T10:14:30.084Z",
+  "preset": "vercel",
+  "framework": {
+    "name": "nuxt",
+    "version": "4.5.0"
+  },
+  "versions": {
+    "nitro": "2.13.4"
+  },
+  "commands": {
+    "preview": "",
+    "deploy": "npx vercel deploy --prebuilt"
+  },
+  "config": {
+    "vercel": {
+      "skewProtection": false
+    }
+  }
+}

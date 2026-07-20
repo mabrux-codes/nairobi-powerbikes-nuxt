@@ -10,7 +10,7 @@
           <div>
             <p class="font-display text-sm tracking-display text-brand-red uppercase">{{ item.category }}</p>
             <h1 class="font-display text-display-xl leading-[var(--leading-display)] text-white">{{ item.name }}</h1>
-            <p class="mt-4 font-display text-3xl text-brand-red">KES {{ Number(item.price).toLocaleString() }}</p>
+            <p class="mt-4 text-3xl font-bold text-brand-red">KES {{ Number(item.price).toLocaleString() }}</p>
             <p v-if="item.original_price" class="mt-1 text-sm text-brand-grey/60 line-through">KES {{ Number(item.original_price).toLocaleString() }}</p>
             <p v-if="item.description" class="mt-6 leading-relaxed text-brand-grey">{{ item.description }}</p>
             <div v-if="item.features?.length" class="mt-6"><h3 class="font-display text-lg text-white">Features</h3><ul class="mt-2 space-y-1.5"><li v-for="(f, i) in item.features" :key="i" class="flex items-start gap-2 text-sm text-brand-grey"><Check class="mt-0.5 h-4 w-4 shrink-0 text-brand-red" />{{ f }}</li></ul></div>

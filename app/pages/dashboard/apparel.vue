@@ -38,7 +38,7 @@
           <h3 class="font-display text-lg tracking-display text-white truncate">{{ a.name }}</h3>
           <p class="text-sm text-brand-grey">{{ a.type || 'General' }} &middot; {{ a.size || 'N/A' }}</p>
           <div class="mt-3 flex items-center justify-between">
-            <span class="font-display text-lg tracking-display text-brand-red">KSh {{ formatPrice(a.price) }}</span>
+            <span class="text-lg font-bold text-brand-red">KSh {{ formatPrice(a.price) }}</span>
             <Badge :variant="a.in_stock ? 'success' : 'danger'">{{ a.in_stock ? 'In Stock' : 'Out of Stock' }}</Badge>
           </div>
           <div class="mt-3 flex gap-2">

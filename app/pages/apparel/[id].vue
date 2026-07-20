@@ -10,7 +10,7 @@
           <div>
             <p class="font-display text-sm tracking-display text-brand-red uppercase">{{ item.category }}</p>
             <h1 class="font-display text-display-xl leading-[var(--leading-display)] text-white">{{ item.name }}</h1>
-            <p class="mt-4 font-display text-3xl text-brand-red">KES {{ Number(item.price).toLocaleString() }}</p>
+            <p class="mt-4 text-3xl font-bold text-brand-red">KES {{ Number(item.price).toLocaleString() }}</p>
             <p v-if="item.original_price" class="mt-1 text-sm text-brand-grey/60 line-through">KES {{ Number(item.original_price).toLocaleString() }}</p>
             <p v-if="item.description" class="mt-6 leading-relaxed text-brand-grey">{{ item.description }}</p>
             <div v-if="item.sizes?.length" class="mt-6"><h3 class="font-display text-lg text-white">Sizes</h3><div class="mt-2 flex flex-wrap gap-2"><button v-for="s in item.sizes" :key="s" class="rounded-sm border border-brand-grey/20 px-4 py-2 text-sm text-brand-grey transition-all hover:border-brand-red hover:text-brand-red" :class="{ 'border-brand-red bg-brand-red/10 text-brand-red': selectedSize === s }" @click="selectedSize = s">{{ s }}</button></div></div>

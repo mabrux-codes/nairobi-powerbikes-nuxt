@@ -18,6 +18,9 @@ logs
 .fleet
 .idea
 
+# PocketBase local data
+pb_data/
+
 # Local env files
 .env
 .env.*

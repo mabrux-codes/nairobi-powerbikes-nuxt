@@ -17,9 +17,9 @@
           :transition="{ type: 'spring', damping: 30, stiffness: 300 }"
         >
           <div class="flex items-center justify-between border-b border-brand-grey/20 px-6 py-4">
-            <span class="font-display text-xl tracking-display text-white">
-              <span class="text-brand-red">NP</span> MENU
-            </span>
+            <NuxtLink to="/" class="flex items-center" @click="close">
+              <img src="/NPB Logo.png" alt="Nairobi Powerbikes" class="h-10 w-auto" />
+            </NuxtLink>
             <button
               class="flex h-10 w-10 items-center justify-center text-brand-grey hover:text-white transition-colors"
               @click="close"

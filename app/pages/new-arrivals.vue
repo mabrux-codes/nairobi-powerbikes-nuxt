@@ -11,7 +11,7 @@
         <div v-for="i in 8" :key="i" class="animate-pulse rounded-sm border border-brand-grey/10 p-4"><div class="aspect-[4/3] w-full rounded-sm bg-brand-grey/10" /><div class="mt-4 h-5 w-3/4 rounded bg-brand-grey/10" /><div class="mt-2 h-4 w-1/2 rounded bg-brand-grey/10" /></div>
       </div>
       <div v-else-if="motorcycles.length" class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <NuxtLink v-for="(bike, i) in motorcycles" :key="bike.id" :to="`/motorcycles/${bike.id}`">
+        <NuxtLink v-for="(bike, i) in motorcycles" :key="bike.id" :to="bikePath(bike)">
           <motion.div class="group rounded-sm border border-brand-grey/10 bg-brand-black/60 overflow-hidden transition-all duration-300 hover:border-brand-red/40"
             :initial="{ opacity: 0, y: 24 }" :animate="{ opacity: 1, y: 0 }" :transition="{ delay: i * 0.05, duration: 0.4 }">
             <div class="aspect-[4/3] overflow-hidden bg-brand-black relative">
@@ -22,7 +22,7 @@
               <p class="text-[10px] font-display tracking-display text-brand-grey/60 uppercase">{{ bike.brand_name }}</p>
               <h3 class="font-display text-lg tracking-[var(--tracking-display)] text-white">{{ bike.name }}</h3>
               <p class="text-xs text-brand-grey">{{ bike.year }} · {{ bike.engine_cc }}cc</p>
-              <p class="mt-2 font-display text-xl text-brand-red">KES {{ Number(bike.price).toLocaleString() }}</p>
+              <p class="mt-2 text-xl font-bold text-brand-red">KES {{ Number(bike.price).toLocaleString() }}</p>
             </div>
           </motion.div>
         </NuxtLink>
@@ -43,6 +43,7 @@ interface Motorcycle { id: string; name: string; brand: string; brand_name?: str
 
 useHead({ title: 'New Arrivals - Nairobi Powerbikes', meta: [{ name: 'description', content: 'Check out the latest motorcycle arrivals at Nairobi Powerbikes. Be the first to ride the newest models.' }] })
 
+function bikePath(b: any) { return `/motorcycles/${b.slug || encodeURIComponent(b.name)}` }
 const pb = usePB()
 const loading = ref(true); const motorcycles = ref<Motorcycle[]>([])
 

@@ -187,8 +187,12 @@ async function saveStaff() {
 
 async function toggleStatus(s: any) {
   const newStatus = s.status === 'active' ? 'inactive' : 'active'
-  await pb.collection('users').update(s.id, { status: newStatus })
-  s.status = newStatus
+  try {
+    await pb.collection('users').update(s.id, { status: newStatus })
+    s.status = newStatus
+  } catch (e: any) {
+    console.error('Status toggle failed:', e?.data?.message || e?.message || e)
+  }
 }
 
 async function loadStaff() {

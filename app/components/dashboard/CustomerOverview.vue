@@ -6,43 +6,77 @@
     </div>
 
     <div v-if="loading" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      <div v-for="i in 4" :key="i" class="animate-pulse rounded-sm border border-brand-grey/20 p-6"><div class="h-4 w-24 rounded bg-brand-grey/10" /><div class="mt-2 h-8 w-16 rounded bg-brand-grey/10" /></div>
+      <div v-for="i in 4" :key="i" class="animate-pulse rounded-sm border border-brand-grey/20 p-6">
+        <div class="h-4 w-24 rounded bg-brand-grey/10" />
+        <div class="mt-2 h-8 w-16 rounded bg-brand-grey/10" />
+      </div>
     </div>
 
     <div v-else>
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div v-for="s in stats" :key="s.label" class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6">
-          <p class="text-xs font-display tracking-display text-brand-grey uppercase">{{ s.label }}</p>
-          <p class="mt-2 font-display text-3xl tracking-display text-white">{{ s.value }}</p>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6 transition-all hover:border-brand-red/30">
+          <p class="text-xs font-display tracking-display text-brand-grey uppercase">Total Test Rides</p>
+          <p class="mt-2 font-display text-3xl tracking-display text-white">{{ stats.testRides }}</p>
+        </div>
+        <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6 transition-all hover:border-brand-red/30">
+          <p class="text-xs font-display tracking-display text-brand-grey uppercase">Total Service Bookings</p>
+          <p class="mt-2 font-display text-3xl tracking-display text-white">{{ stats.serviceBookings }}</p>
+        </div>
+        <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6 transition-all hover:border-brand-red/30">
+          <p class="text-xs font-display tracking-display text-brand-grey uppercase">Favourites / Wishlist</p>
+          <p class="mt-2 font-display text-3xl tracking-display text-white">{{ stats.favorites }}</p>
         </div>
       </div>
 
-      <div class="mt-8">
+      <div class="mt-8 grid gap-6 lg:grid-cols-2">
         <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6">
           <div class="flex items-center justify-between">
-            <h2 class="font-display text-lg tracking-display text-white">My Bookings &amp; Services</h2>
-            <span class="text-xs text-brand-grey">Live updates enabled</span>
+            <h2 class="font-display text-lg tracking-display text-white">My Test Rides</h2>
+            <span class="text-xs text-brand-grey">Live</span>
           </div>
 
-          <div v-if="allBookings.length === 0" class="mt-4 rounded-sm border border-dashed border-brand-grey/20 p-8 text-center">
-            <Calendar class="mx-auto h-12 w-12 text-brand-grey/40" />
-            <p class="mt-4 font-display text-xl tracking-display text-brand-grey">No Bookings Yet</p>
-            <p class="mt-2 text-sm text-brand-grey/60">Your test ride and service bookings will appear here</p>
+          <div v-if="testRides.length === 0" class="mt-4 rounded-sm border border-dashed border-brand-grey/20 p-8 text-center">
+            <Calendar class="mx-auto h-10 w-10 text-brand-grey/40" />
+            <p class="mt-3 font-display text-base tracking-display text-brand-grey">No Test Rides</p>
+            <NuxtLink to="/service/test-ride" class="mt-3 inline-block"><Button size="sm">Book a Test Ride</Button></NuxtLink>
           </div>
 
-          <div v-else class="mt-4 space-y-6">
-            <div v-for="b in allBookings" :key="b.id" class="border-b border-brand-grey/10 pb-5 last:border-0 last:pb-0">
-              <div class="flex flex-wrap items-start justify-between gap-2">
+          <div v-else class="mt-4 space-y-3">
+            <div v-for="b in testRides" :key="b.id" class="border-b border-brand-grey/10 pb-3 last:border-0 last:pb-0">
+              <div class="flex items-start justify-between gap-2">
                 <div>
-                  <p class="font-display text-base tracking-display text-white">
-                    {{ b.type === 'test_ride' ? 'Test Ride' : (b.service_type || 'Service Booking') }}
-                  </p>
-                  <p class="text-xs text-brand-grey">{{ formatDate(b.created) }} &middot; {{ b.branch || 'N/A' }}</p>
+                  <p class="text-sm text-white">{{ b.motorcycle || 'Motorcycle' }}</p>
+                  <p class="text-xs text-brand-grey">{{ formatDate(b.preferred_date) }} &middot; {{ b.preferred_time || 'N/A' }}</p>
                 </div>
-                <Badge :variant="statusVariant(b.status)">{{ b.status }}</Badge>
+                <Badge :variant="testRideStatusVariant(b.status)">{{ b.status }}</Badge>
               </div>
+              <p v-if="b.notes" class="mt-1 text-xs text-brand-grey/60 italic">{{ b.notes }}</p>
+            </div>
+          </div>
+        </div>
 
-              <div v-if="b.type === 'service'" class="mt-3">
+        <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6">
+          <div class="flex items-center justify-between">
+            <h2 class="font-display text-lg tracking-display text-white">My Service Bookings</h2>
+            <span class="text-xs text-brand-grey">Live</span>
+          </div>
+
+          <div v-if="serviceBookings.length === 0" class="mt-4 rounded-sm border border-dashed border-brand-grey/20 p-8 text-center">
+            <Wrench class="mx-auto h-10 w-10 text-brand-grey/40" />
+            <p class="mt-3 font-display text-base tracking-display text-brand-grey">No Service Bookings</p>
+            <NuxtLink to="/service/booking" class="mt-3 inline-block"><Button size="sm">Book a Service</Button></NuxtLink>
+          </div>
+
+          <div v-else class="mt-4 space-y-4">
+            <div v-for="b in serviceBookings" :key="b.id" class="border-b border-brand-grey/10 pb-4 last:border-0 last:pb-0">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p class="text-sm text-white">{{ b.service_type || 'Service' }}</p>
+                  <p class="text-xs text-brand-grey">{{ b.motorcycle || 'N/A' }} &middot; {{ formatDate(b.preferred_date) }}</p>
+                </div>
+                <Badge :variant="serviceStatusVariant(b.status)">{{ b.status }}</Badge>
+              </div>
+              <div class="mt-2">
                 <div class="flex items-center gap-1 text-xs text-brand-grey/60">
                   <div v-for="(step, i) in serviceSteps" :key="step.key" class="flex items-center gap-1">
                     <div class="flex items-center gap-1.5">
@@ -57,8 +91,8 @@
                     <ChevronRight v-if="i < serviceSteps.length - 1" class="mx-1 h-3 w-3 text-brand-grey/30" />
                   </div>
                 </div>
-                <p v-if="b.notes" class="mt-2 text-xs text-brand-grey/60 italic">Notes: {{ b.notes }}</p>
               </div>
+              <p v-if="b.notes" class="mt-1 text-xs text-brand-grey/60 italic">Notes: {{ b.notes }}</p>
             </div>
           </div>
         </div>
@@ -68,15 +102,16 @@
 </template>
 
 <script setup lang="ts">
-import { Calendar, Check, ChevronRight } from 'lucide-vue-next'
+import { Calendar, Check, ChevronRight, Wrench } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
 
 const pb = usePB()
 const auth = useAuthStore()
 const loading = ref(true)
-const stats = ref<any[]>([])
-const allBookings = ref<any[]>([])
+const stats = ref({ testRides: 0, serviceBookings: 0, favorites: 0 })
+const testRides = ref<any[]>([])
+const serviceBookings = ref<any[]>([])
 
 const serviceSteps = [
   { key: 'pending', label: 'Booked' },
@@ -99,7 +134,12 @@ function stepStyle(stepKey: string, bookingStatus: string) {
 
 function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : 'N/A' }
 
-function statusVariant(s: string) {
+function testRideStatusVariant(s: string) {
+  const map: Record<string, string> = { pending: 'warning', confirmed: 'secondary', completed: 'success', cancelled: 'danger' }
+  return map[s] || 'outline'
+}
+
+function serviceStatusVariant(s: string) {
   const map: Record<string, string> = { pending: 'warning', diagnosed: 'default', in_progress: 'secondary', completed: 'success', cancelled: 'danger' }
   return map[s] || 'outline'
 }
@@ -107,21 +147,69 @@ function statusVariant(s: string) {
 async function loadData() {
   const userId = auth.user?.id
   if (!userId) return
-  const [bookingsRes, favorites, notifications] = await Promise.all([
-    pb.collection('service_bookings').getList(1, 100, { filter: `user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
-    pb.collection('favorites').getList(1, 100, { filter: `user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
-    pb.collection('notifications').getList(1, 100, { filter: `user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
+
+  const [testRidesRes, serviceRes, favRes] = await Promise.all([
+    pb.collection('service_bookings').getList(1, 100, { filter: `type="test_ride" && user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
+    pb.collection('service_bookings').getList(1, 100, { filter: `type="service" && user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
+    pb.collection('favorites').getList(1, 1, { filter: `user = "${userId}"` }).catch(() => ({ totalItems: 0 })),
   ])
 
-  stats.value = [
-    { label: 'Total Bookings', value: bookingsRes.totalItems },
-    { label: 'Favorites', value: favorites.totalItems },
-    { label: 'Notifications', value: notifications.totalItems },
-  ]
+  stats.value = {
+    testRides: testRidesRes.totalItems,
+    serviceBookings: serviceRes.totalItems,
+    favorites: favRes.totalItems,
+  }
 
-  allBookings.value = (bookingsRes.items as any[]).sort(
+  testRides.value = (testRidesRes.items as any[]).sort(
     (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
   )
+  serviceBookings.value = (serviceRes.items as any[]).sort(
+    (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
+  )
+}
+
+function handleRealtime(e: any) {
+  const record = e.record as any
+  const userId = auth.user?.id
+  if (record.user !== userId) return
+
+  if (record.type === 'test_ride') {
+    if (e.action === 'delete') {
+      testRides.value = testRides.value.filter(b => b.id !== record.id)
+    } else {
+      const idx = testRides.value.findIndex(b => b.id === record.id)
+      if (idx >= 0) {
+        testRides.value[idx] = { ...testRides.value[idx], ...record }
+        testRides.value = [...testRides.value]
+      } else {
+        testRides.value = [record as any, ...testRides.value]
+      }
+    }
+    stats.value.testRides = testRides.value.length
+  } else if (record.type === 'service') {
+    if (e.action === 'delete') {
+      serviceBookings.value = serviceBookings.value.filter(b => b.id !== record.id)
+    } else {
+      const idx = serviceBookings.value.findIndex(b => b.id === record.id)
+      if (idx >= 0) {
+        serviceBookings.value[idx] = { ...serviceBookings.value[idx], ...record }
+        serviceBookings.value = [...serviceBookings.value]
+      } else {
+        serviceBookings.value = [record as any, ...serviceBookings.value]
+      }
+    }
+    stats.value.serviceBookings = serviceBookings.value.length
+  }
+}
+
+function handleFavRealtime(e: any) {
+  const record = e.record as any
+  if (record.user !== auth.user?.id) return
+  if (e.action === 'delete') {
+    stats.value.favorites = Math.max(0, stats.value.favorites - 1)
+  } else {
+    stats.value.favorites += 1
+  }
 }
 
 onMounted(async () => {
@@ -131,25 +219,12 @@ onMounted(async () => {
   const userId = auth.user?.id
   if (!userId) return
 
-  pb.collection('service_bookings').subscribe('*', (e) => {
-    const record = e.record as any
-    if (record.user !== userId) return
-    if (e.action === 'delete') {
-      allBookings.value = allBookings.value.filter(b => b.id !== record.id)
-    } else {
-      const idx = allBookings.value.findIndex(b => b.id === record.id)
-      if (idx >= 0) {
-        allBookings.value[idx] = { ...allBookings.value[idx], ...record }
-        allBookings.value = [...allBookings.value]
-      } else {
-        allBookings.value = [record as any, ...allBookings.value]
-      }
-    }
-    stats.value[0].value = allBookings.value.length
-  }, { filter: `user = "${userId}"` })
+  pb.collection('service_bookings').subscribe('*', handleRealtime, { filter: `user = "${userId}"` })
+  pb.collection('favorites').subscribe('*', handleFavRealtime)
 })
 
 onUnmounted(() => {
   pb.collection('service_bookings').unsubscribe('*')
+  pb.collection('favorites').unsubscribe('*')
 })
 </script>

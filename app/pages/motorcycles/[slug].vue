@@ -16,11 +16,11 @@
             </div>
             <div>
               <p class="font-display text-sm tracking-display text-brand-red uppercase">{{ bike.brand_name }}</p>
-              <h1 class="font-display text-display-xl leading-[var(--leading-display)] text-white">{{ bike.name }}</h1>
+              <h1 class="font-bold text-5xl leading-[1.1] text-white">{{ bike.name }}</h1>
               <p class="mt-1 text-sm text-brand-grey">{{ bike.year }} · {{ bike.engine_cc }}cc · {{ bike.type }}</p>
               <div class="mt-4 flex items-baseline gap-3">
-                <p class="font-display text-3xl text-brand-red">KES {{ (bike.sale_price || bike.price).toLocaleString() }}</p>
-                <p v-if="bike.sale_price" class="text-lg text-brand-grey/60 line-through">KES {{ Number(bike.price).toLocaleString() }}</p>
+                <p class="text-3xl font-bold text-brand-red">KES {{ (bike.sale_price || bike.price).toLocaleString() }}</p>
+                <p v-if="bike.sale_price" class="text-lg font-bold text-brand-grey/60 line-through">KES {{ Number(bike.price).toLocaleString() }}</p>
               </div>
               <p v-if="bike.description" class="mt-6 leading-relaxed text-brand-grey">{{ bike.description }}</p>
               <div class="mt-6 grid grid-cols-2 gap-3 rounded-sm border border-brand-grey/10 bg-brand-black/60 p-5">
@@ -29,6 +29,9 @@
               <div class="mt-6 flex flex-wrap gap-3">
                 <button v-if="bike.status !== 'sold' && bike.status !== 'coming_soon'" class="btn-primary" @click="openTestRide"><Zap class="h-5 w-5" />Book Test Ride</button>
                 <button class="btn-secondary" @click="openFinance"><BadgeDollarSign class="h-5 w-5" />Finance Options</button>
+                <button v-if="auth.isAuthenticated && auth.isCustomer" class="btn-ghost" :class="{ 'text-brand-red': isFavorited }" @click="toggleFavorite" :disabled="favoriteLoading">
+                  <Heart class="h-5 w-5" :class="{ 'fill-brand-red': isFavorited }" />{{ isFavorited ? 'Saved' : 'Save' }}
+                </button>
                 <button class="btn-ghost" @click="addToCompare"><Scale class="h-5 w-5" />Compare</button>
               </div>
             </div>
@@ -52,10 +55,10 @@
         <motion.div class="mt-12" :initial="{ opacity: 0, y: 30 }" :animate="{ opacity: 1, y: 0 }" :transition="{ delay: 0.4, duration: 0.5 }">
           <h2 class="font-display text-display-md leading-[var(--leading-display)] text-white">Related Motorcycles</h2>
           <div v-if="related.length" class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <NuxtLink v-for="r in related" :key="r.id" :to="`/motorcycles/${r.id}`">
+            <NuxtLink v-for="r in related" :key="r.id" :to="bikePath(r)">
               <div class="group rounded-sm border border-brand-grey/10 bg-brand-black/60 overflow-hidden transition-all duration-300 hover:border-brand-red/40">
                 <div class="aspect-[4/3] overflow-hidden bg-brand-black"><img v-if="r.images?.length" :src="pb.files.getURL(r, r.images[0])" :alt="r.name" class="h-full w-full object-cover transition-all duration-500 group-hover:scale-105" /></div>
-                <div class="p-3"><h3 class="font-display text-sm text-white">{{ r.name }}</h3><p class="text-xs text-brand-grey">KES {{ Number(r.price).toLocaleString() }}</p></div>
+                <div class="p-3"><p class="text-[10px] font-display tracking-display text-brand-grey/60 uppercase">{{ r.brand_name }}</p><h3 class="font-bold text-base text-white">{{ r.name }}</h3><p class="text-xs font-bold text-brand-red">KES {{ Number(r.price).toLocaleString() }}</p></div>
               </div>
             </NuxtLink>
           </div>
@@ -70,17 +73,20 @@
 </template>
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { Zap, BadgeDollarSign, Scale } from 'lucide-vue-next'
+import { Zap, BadgeDollarSign, Scale, Heart } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useAuthStore } from '~/stores/auth'
 
-interface Motorcycle { id: string; name: string; brand: string; brand_name?: string; year: number; engine_cc: number; type: string; price: number; sale_price?: number; images?: string[]; description?: string; new_arrival?: boolean; in_stock?: boolean; displacement?: number; horsepower?: number; torque?: number; transmission?: string; fuel_capacity?: number; weight?: number; top_speed?: number; braking?: string; suspension?: string; warranty?: string; colors?: string; created: string }
+interface Motorcycle { id: string; slug?: string; name: string; brand: string; brand_name?: string; year: number; engine_cc: number; type: string; price: number; sale_price?: number; images?: string[]; description?: string; new_arrival?: boolean; in_stock?: boolean; displacement?: number; horsepower?: number; torque?: number; transmission?: string; fuel_capacity?: number; weight?: number; top_speed?: number; braking?: string; suspension?: string; warranty?: string; colors?: string; created: string }
 
 useHead({ title: 'Motorcycle Details - Nairobi Powerbikes' })
 
 const pb = usePB()
 const route = useRoute()
+const auth = useAuthStore()
 const loading = ref(true); const bike = ref<Motorcycle | null>(null); const related = ref<Motorcycle[]>([])
 const activeImage = ref(0)
+const isFavorited = ref(false); const favoriteId = ref(''); const favoriteLoading = ref(false)
 
 const specHighlights = [
   { key: 'engine_cc', label: 'Engine' }, { key: 'horsepower', label: 'Horsepower' },
@@ -109,29 +115,73 @@ function getSpec(key: string): string {
   return v != null && v !== '' ? String(v) : '—'
 }
 
-function openTestRide() { navigateTo(`/service/test-ride?motorcycle=${route.params.id}`) }
-function openFinance() { navigateTo(`/finance?motorcycle=${route.params.id}`) }
+function bikePath(m: Motorcycle) {
+  return `/motorcycles/${m.slug || encodeURIComponent(m.name)}`
+}
+
+function openTestRide() { navigateTo(`/service/test-ride?motorcycle=${bike.value?.id}`) }
+function openFinance() { navigateTo(`/finance?motorcycle=${bike.value?.id}`) }
 function addToCompare() { navigateTo('/motorcycles/compare') }
 
-async function loadBike() {
+async function toggleFavorite() {
+  if (!auth.isAuthenticated || !auth.isCustomer || !bike.value) return
+  favoriteLoading.value = true
   try {
-    const res = await pb.collection('motorcycles').getOne<Motorcycle>(route.params.id as string, { expand: 'brand' })
-    bike.value = { ...res, brand_name: (res as any).expand?.brand?.name || '' }
-    useHead({ title: `${bike.value.name} - Nairobi Powerbikes` })
+    if (isFavorited.value && favoriteId.value) {
+      await pb.collection('favorites').delete(favoriteId.value)
+      isFavorited.value = false; favoriteId.value = ''
+    } else {
+      const record = await pb.collection('favorites').create<{ id: string }>({ user: auth.user?.id, motorcycle: bike.value.id })
+      isFavorited.value = true; favoriteId.value = record.id
+    }
+  } catch (e) { console.error(e) }
+  finally { favoriteLoading.value = false }
+}
+
+async function checkFavorite() {
+  if (!auth.isAuthenticated || !auth.isCustomer || !bike.value) return
+  try {
+    const favs = await pb.collection('favorites').getList(1, 1, { filter: `motorcycle = "${bike.value.id}" && user = "${auth.user?.id}"` })
+    if (favs.items.length > 0) {
+      isFavorited.value = true; favoriteId.value = (favs.items[0] as any).id
+    }
+  } catch {}
+}
+
+async function loadBike() {
+  const slug = route.params.slug as string
+  try {
+    let res: any
     try {
-      related.value = await pb.collection('motorcycles').getFullList<Motorcycle>({
-        filter: `brand="${bike.value.brand}" && id != "${bike.value.id}"`,
-        sort: '-created', expand: 'brand',
-      })
-      related.value = related.value.slice(0, 4).map(b => ({ ...b, brand_name: (b as any).expand?.brand?.name || '' }))
-    } catch { related.value = [] }
+      res = await pb.collection('motorcycles').getFirstListItem<Motorcycle>(`slug="${slug}"`, { expand: 'brand' })
+    } catch {
+      try {
+        res = await pb.collection('motorcycles').getOne<Motorcycle>(slug, { expand: 'brand' })
+      } catch {
+        res = await pb.collection('motorcycles').getFirstListItem<Motorcycle>(`name="${slug}"`, { expand: 'brand' })
+      }
+    }
+    if (res?.id) {
+      bike.value = { ...res, brand_name: (res as any).expand?.brand?.name || '' }
+      useHead({ title: `${bike.value.name} - Nairobi Powerbikes` })
+      try {
+        related.value = await pb.collection('motorcycles').getFullList<Motorcycle>({
+          filter: `brand="${bike.value.brand}" && id != "${bike.value.id}"`,
+          sort: '-created', expand: 'brand',
+        })
+        related.value = related.value.slice(0, 4).map(b => ({ ...b, brand_name: (b as any).expand?.brand?.name || '' }))
+      } catch { related.value = [] }
+    } else {
+      bike.value = null
+    }
   } catch { bike.value = null }
   finally { loading.value = false }
 }
 
 onMounted(async () => {
   await loadBike()
-  pb.collection('motorcycles').subscribe('*', () => loadBike())
+  await checkFavorite()
+  pb.collection('motorcycles').subscribe('*', async () => { await loadBike(); await checkFavorite() })
 })
 
 onUnmounted(() => { pb.collection('motorcycles').unsubscribe('*') })

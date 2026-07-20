@@ -19,7 +19,7 @@
         <div v-for="i in 8" :key="i" class="animate-pulse rounded-sm border border-brand-grey/10 p-4"><div class="aspect-[4/3] w-full rounded-sm bg-brand-grey/10" /><div class="mt-4 h-5 w-3/4 rounded bg-brand-grey/10" /><div class="mt-2 h-4 w-1/2 rounded bg-brand-grey/10" /></div>
       </div>
       <div v-else-if="filteredMotorcycles.length" class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <NuxtLink v-for="(bike, i) in filteredMotorcycles" :key="bike.id" :to="`/motorcycles/${bike.id}`">
+        <NuxtLink v-for="(bike, i) in filteredMotorcycles" :key="bike.id" :to="bikePath(bike)">
           <motion.div class="group rounded-sm border border-brand-grey/10 bg-brand-black/60 overflow-hidden transition-all duration-300 hover:border-brand-red/40"
             :initial="{ opacity: 0, y: 20 }" :animate="{ opacity: 1, y: 0 }" :transition="{ delay: (i % 8) * 0.04, duration: 0.35 }">
             <div class="aspect-[4/3] overflow-hidden bg-brand-black relative">
@@ -29,12 +29,12 @@
               <div v-if="bike.sale_price" class="absolute top-2 right-2 rounded-sm bg-green-600 px-2 py-0.5 text-[10px] font-display tracking-display text-white uppercase">Sale</div>
             </div>
             <div class="p-4">
-              <p class="text-[10px] font-display tracking-display text-brand-grey/60 uppercase">{{ bike.brand_name }}</p>
-              <h3 class="font-display text-lg tracking-[var(--tracking-display)] text-white">{{ bike.name }}</h3>
+              <p class="text-xs font-display tracking-display text-brand-grey/60 uppercase">{{ bike.brand_name }}</p>
+              <h3 class="font-bold text-2xl tracking-[var(--tracking-display)] text-white">{{ bike.name }}</h3>
               <p class="text-xs text-brand-grey">{{ bike.year }} · {{ bike.engine_cc }}cc · {{ bike.type }}</p>
               <div class="mt-2 flex items-baseline gap-2">
-                <p class="font-display text-xl text-brand-red">KES {{ (bike.sale_price || bike.price).toLocaleString() }}</p>
-                <p v-if="bike.sale_price" class="text-xs text-brand-grey/60 line-through">KES {{ Number(bike.price).toLocaleString() }}</p>
+                <p class="text-xl font-bold text-brand-red">KES {{ (bike.sale_price || bike.price).toLocaleString() }}</p>
+                <p v-if="bike.sale_price" class="text-xs font-bold text-brand-grey/60 line-through">KES {{ Number(bike.price).toLocaleString() }}</p>
               </div>
             </div>
           </motion.div>
@@ -77,6 +77,7 @@ const filteredMotorcycles = computed(() => {
   return result
 })
 
+function bikePath(b: any) { return `/motorcycles/${b.slug || encodeURIComponent(b.name)}` }
 function resetFilters() { filters.search = ''; filters.brand = ''; filters.type = ''; filters.sort = '-created'; filters.inStock = false }
 
 async function loadMotorcycles() {

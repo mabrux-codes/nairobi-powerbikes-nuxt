@@ -9,5 +9,14 @@ useHead({ title: 'Settings - Nairobi Powerbikes' })
 const pb = usePB(); const auth = useAuthStore(); const saving = ref(false)
 const form = ref({ name: '', phone: '', email_notifications: true })
 onMounted(() => { const u = auth.user; if (u) { form.value = { name: u.name || '', phone: (u as any).phone || '', email_notifications: (u as any).email_notifications ?? true } } })
-async function save() { saving.value = true; try { await pb.collection('users').update(auth.user!.id, form.value) } catch(e) { console.error(e) } finally { saving.value = false } }
+async function save() {
+  saving.value = true
+  try {
+    const payload: Record<string, any> = { name: form.value.name }
+    if (form.value.phone) payload.phone = form.value.phone
+    await pb.collection('users').update(auth.user!.id, payload)
+  } catch (e: any) {
+    console.error('Settings save failed:', e?.data?.message || e?.message || e)
+  } finally { saving.value = false }
+}
 </script>

@@ -1,7 +1,19 @@
 import PocketBase from 'pocketbase'
+import { useAuthStore } from '~/stores/auth'
 
 let pbInstance: PocketBase | null = null
-let hydrated = false
+
+function syncPiniaStore() {
+  try {
+    const auth = useAuthStore()
+    const model = pbInstance?.authStore?.model
+    if (model) {
+      auth.setUser(model as any)
+    } else {
+      auth.clear()
+    }
+  } catch {}
+}
 
 export function getPB(): PocketBase {
   if (!pbInstance) {
@@ -11,24 +23,33 @@ export function getPB(): PocketBase {
 
     if (import.meta.client) {
       pbInstance.authStore.onChange(() => {
-        try { localStorage.setItem('pb_auth', JSON.stringify({ token: pbInstance.authStore.token, model: pbInstance.authStore.model })) } catch {}
+        try {
+          localStorage.setItem('pb_auth', JSON.stringify({
+            token: pbInstance.authStore.token,
+            model: pbInstance.authStore.model,
+          }))
+        } catch {}
         document.cookie = pbInstance.authStore.exportToCookie('pb_auth')
+        syncPiniaStore()
       })
-    }
-  }
 
-  if (import.meta.client && !hydrated) {
-    hydrated = true
-    if (!pbInstance.authStore.token) {
-      try {
-        const stored = localStorage.getItem('pb_auth')
-        if (stored) {
+      const stored = localStorage.getItem('pb_auth')
+      if (stored && !pbInstance.authStore.token) {
+        try {
           const parsed = JSON.parse(stored)
           if (parsed.token) {
             pbInstance.authStore.save(parsed.token, parsed.model)
+            pbInstance.collection('users').authRefresh().catch(() => {
+              pbInstance.authStore.clear()
+              localStorage.removeItem('pb_auth')
+              document.cookie = 'pb_auth=; path=/; max-age=0'
+              syncPiniaStore()
+            })
           }
-        }
-      } catch {}
+        } catch {}
+      }
+
+      syncPiniaStore()
     }
   }
 

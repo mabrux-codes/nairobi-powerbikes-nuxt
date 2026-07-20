@@ -26,7 +26,7 @@
                 <div class="aspect-[4/3] mb-3 overflow-hidden rounded-sm bg-brand-black">
                   <img v-if="bike.images?.length" :src="pb.files.getURL(bike, bike.images[0])" :alt="bike.name" class="h-full w-full object-cover" />
                 </div>
-                <NuxtLink :to="`/motorcycles/${bike.id}`" class="font-display text-lg text-white hover:text-brand-red">{{ bike.name }}</NuxtLink>
+                <NuxtLink :to="bikePath(bike)" class="font-display text-lg text-white hover:text-brand-red">{{ bike.name }}</NuxtLink>
                 <p class="text-xs text-brand-grey">{{ bike.brand_name }}</p>
               </th>
             </tr>
@@ -91,6 +91,7 @@ function getSpecValue(bike: Motorcycle, key: string): string {
   return v != null && v !== '' ? String(v) : '—'
 }
 
+function bikePath(b: any) { return `/motorcycles/${b.slug || encodeURIComponent(b.name)}` }
 async function loadMotorcycles() {
   try {
     const bikes = await pb.collection('motorcycles').getFullList<Motorcycle>({ filter: 'status!="sold"', sort: '-created', expand: 'brand' })

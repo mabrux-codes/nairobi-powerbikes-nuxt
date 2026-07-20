@@ -27,7 +27,7 @@
               <p class="text-[10px] font-display tracking-display text-brand-grey/60 uppercase">{{ item.category }}</p>
               <h3 class="font-display text-lg tracking-[var(--tracking-display)] text-white">{{ item.name }}</h3>
               <p class="mt-1 text-xs text-brand-grey line-clamp-2">{{ item.description }}</p>
-              <p class="mt-2 font-display text-xl text-brand-red">KES {{ Number(item.price).toLocaleString() }}</p>
+              <p class="mt-2 text-xl font-bold text-brand-red">KES {{ Number(item.price).toLocaleString() }}</p>
             </div>
           </motion.div>
         </NuxtLink>

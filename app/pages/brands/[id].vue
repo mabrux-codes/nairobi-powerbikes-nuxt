@@ -18,11 +18,11 @@
             <div v-for="i in 6" :key="i" class="animate-pulse rounded-sm border border-brand-grey/10 p-4"><div class="aspect-[4/3] w-full rounded-sm bg-brand-grey/10" /><div class="mt-4 h-5 w-3/4 rounded bg-brand-grey/10" /><div class="mt-2 h-4 w-1/2 rounded bg-brand-grey/10" /></div>
           </div>
           <div v-else-if="motorcycles.length" class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <NuxtLink v-for="(bike, i) in motorcycles" :key="bike.id" :to="`/motorcycles/${bike.id}`">
+            <NuxtLink v-for="(bike, i) in motorcycles" :key="bike.id" :to="bikePath(bike)">
               <motion.div class="group rounded-sm border border-brand-grey/10 bg-brand-black/60 overflow-hidden transition-all duration-300 hover:border-brand-red/40"
                 :initial="{ opacity: 0, y: 24 }" :animate="{ opacity: 1, y: 0 }" :transition="{ delay: i * 0.06, duration: 0.4 }">
                 <div class="aspect-[4/3] overflow-hidden bg-brand-black"><img v-if="bike.images?.length" :src="pb.files.getURL(bike, bike.images[0])" :alt="bike.name" class="h-full w-full object-cover transition-all duration-500 group-hover:scale-105" /></div>
-                <div class="p-4"><h3 class="font-display text-lg tracking-[var(--tracking-display)] text-white">{{ bike.name }}</h3><p class="text-xs text-brand-grey">{{ bike.year }} · {{ bike.engine_cc }}cc</p><p class="mt-2 font-display text-xl text-brand-red">KES {{ Number(bike.price).toLocaleString() }}</p></div>
+                <div class="p-4"><h3 class="font-display text-lg tracking-[var(--tracking-display)] text-white">{{ bike.name }}</h3><p class="text-xs text-brand-grey">{{ bike.year }} · {{ bike.engine_cc }}cc</p><p class="mt-2 text-xl font-bold text-brand-red">KES {{ Number(bike.price).toLocaleString() }}</p></div>
               </motion.div>
             </NuxtLink>
           </div>
@@ -49,6 +49,7 @@ interface Motorcycle { id: string; name: string; year: number; engine_cc: number
 
 useHead({ title: 'Brand Details - Nairobi Powerbikes' })
 
+function bikePath(b: any) { return `/motorcycles/${b.slug || encodeURIComponent(b.name)}` }
 const pb = usePB()
 const route = useRoute()
 const loading = ref(true); const brand = ref<Brand | null>(null)

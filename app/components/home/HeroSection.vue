@@ -139,7 +139,7 @@
               <span class="font-display text-lg tracking-display text-white">{{ bike.name }}</span>
               <span class="text-sm text-brand-grey">{{ bike.cc }}cc</span>
               <span class="h-4 w-px bg-brand-grey/20" />
-              <span class="font-display text-lg text-brand-red">KSh {{ formatPrice(bike.price) }}</span>
+              <span class="text-lg font-bold text-brand-red">KSh {{ formatPrice(bike.price) }}</span>
               <span class="h-4 w-px bg-brand-grey/20" />
             </div>
           </div>

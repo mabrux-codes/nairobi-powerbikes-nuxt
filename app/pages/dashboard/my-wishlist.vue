@@ -7,7 +7,7 @@
       </div>
 
       <div v-if="loading" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div v-for="i in 6" :key="i" class="animate-pulse rounded-sm border border-brand-grey/20 p-5"><div class="mb-3 aspect-video rounded-sm bg-brand-grey/10" /><div class="h-5 w-3/4 rounded bg-brand-grey/10" /></div>
+        <div v-for="i in 6" :key="i" class="animate-pulse rounded-sm border border-brand-grey/20 p-5"><div class="mb-3 aspect-[4/3] rounded-sm bg-brand-grey/10" /><div class="h-5 w-3/4 rounded bg-brand-grey/10" /></div>
       </div>
 
       <div v-else-if="motorcycles.length === 0" class="rounded-sm border border-dashed border-brand-grey/20 p-12 text-center">
@@ -18,19 +18,21 @@
       </div>
 
       <div v-else class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div v-for="m in motorcycles" :key="m.id" class="group rounded-sm border border-brand-grey/20 bg-brand-black/60 p-4 transition-all duration-200 hover:border-brand-red/30">
-          <div class="mb-3 flex aspect-video items-center justify-center rounded-sm bg-brand-grey/10">
-            <Bike class="h-10 w-10 text-brand-grey/30" />
+        <div v-for="m in motorcycles" :key="m.id" class="group rounded-sm border border-brand-grey/20 bg-brand-black/60 overflow-hidden transition-all duration-200 hover:border-brand-red/30">
+          <div class="aspect-[4/3] overflow-hidden bg-brand-black">
+            <img v-if="m.images?.length" :src="pb.files.getURL(m, m.images[0])" :alt="m.name" class="h-full w-full object-cover transition-all duration-500 group-hover:scale-105" />
           </div>
-          <h3 class="font-display text-lg tracking-display text-white truncate">{{ m.name }}</h3>
-          <p class="text-sm text-brand-grey">{{ m.brand_name || '' }} &middot; {{ m.year || '' }}</p>
-          <div class="mt-3 flex items-center justify-between">
-            <span class="font-display text-lg tracking-display text-brand-red">KSh {{ formatPrice(m.price) }}</span>
-            <Badge :variant="m.status === 'available' ? 'success' : m.status === 'sold' ? 'danger' : 'warning'">{{ m.status || 'unknown' }}</Badge>
-          </div>
-          <div class="mt-3 flex gap-2">
-            <Button variant="ghost" size="sm" class="flex-1" @click="removeFavorite(m)">Remove</Button>
-            <Button variant="outline" size="sm" class="flex-1">View Details</Button>
+          <div class="p-4">
+            <p class="text-xs font-display tracking-display text-brand-grey/60 uppercase">{{ m.brand_name }}</p>
+            <h3 class="font-bold text-2xl tracking-[var(--tracking-display)] text-white">{{ m.name }}</h3>
+            <p class="text-xs text-brand-grey">{{ m.year || '' }} · {{ m.engine_cc || '' }}cc · {{ m.type || '' }}</p>
+            <div class="mt-2 flex items-baseline gap-2">
+              <p class="text-xl font-bold text-brand-red">KES {{ ((m.sale_price || m.price) || 0).toLocaleString() }}</p>
+              <p v-if="m.sale_price" class="text-xs font-bold text-brand-grey/60 line-through">KES {{ Number(m.price).toLocaleString() }}</p>
+            </div>
+            <div class="mt-3">
+              <NuxtLink :to="bikePath(m)"><Button variant="outline" size="sm" class="w-full">View Details</Button></NuxtLink>
+            </div>
           </div>
         </div>
       </div>
@@ -39,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { Bike, Heart } from 'lucide-vue-next'
+import { Heart } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
 
@@ -50,19 +52,11 @@ const pb = usePB(); const auth = useAuthStore()
 const loading = ref(true)
 const motorcycles = ref<any[]>([])
 
-function formatPrice(p: number) { return p ? p.toLocaleString() : '0' }
-
-async function removeFavorite(m: any) {
-  try {
-    const favs = await pb.collection('favorites').getList(1, 1, { filter: `motorcycle = "${m.id}" && user = "${auth.user?.id}"` })
-    if (favs.items.length > 0) {
-      await pb.collection('favorites').delete(favs.items[0].id)
-      motorcycles.value = motorcycles.value.filter(b => b.id !== m.id)
-    }
-  } catch (e) { console.error(e) }
+function bikePath(m: any) {
+  return `/motorcycles/${m.slug || encodeURIComponent(m.name)}`
 }
 
-onMounted(async () => {
+async function loadFavorites() {
   try {
     const favs = await pb.collection('favorites').getList(1, 100, { filter: `user = "${auth.user?.id}"`, expand: 'motorcycle' }).catch(() => ({ items: [] }))
     const bikeIds = [...new Set((favs.items as any[]).map((f: any) => f.motorcycle))]
@@ -70,8 +64,22 @@ onMounted(async () => {
       const filter = bikeIds.map((id: string) => `id = "${id}"`).join(' || ')
       const bikes = await pb.collection('motorcycles').getList(1, 50, { filter, expand: 'brand' }).catch(() => ({ items: [] }))
       motorcycles.value = (bikes.items as any[]).map(m => ({ ...m, brand_name: m.expand?.brand?.name || '' }))
+    } else {
+      motorcycles.value = []
     }
   } catch (e) { console.error(e) }
-  finally { loading.value = false }
+}
+
+onMounted(async () => {
+  await loadFavorites()
+  loading.value = false
+  const userId = auth.user?.id
+  if (userId) {
+    pb.collection('favorites').subscribe('*', () => loadFavorites())
+  }
+})
+
+onUnmounted(() => {
+  pb.collection('favorites').unsubscribe('*')
 })
 </script>

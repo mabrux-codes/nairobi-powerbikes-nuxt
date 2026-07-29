@@ -197,6 +197,13 @@ async function loadMotorcycles() {
 
 onMounted(async () => {
   await loadMotorcycles()
+  const bikeId = route.query.motorcycle as string | undefined
+  if (bikeId) {
+    const match = motorcycles.value.find(m => m.id === bikeId)
+    if (match) {
+      setFieldValue('motorcycle', match.name)
+    }
+  }
   pb.collection('motorcycles').subscribe('*', () => loadMotorcycles())
 })
 

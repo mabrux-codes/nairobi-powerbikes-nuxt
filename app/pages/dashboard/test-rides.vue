@@ -69,13 +69,13 @@
               <div class="space-y-3">
                 <div v-if="detailItem.id_document">
                   <p class="mb-1 text-xs text-brand-grey">ID Document</p>
-                  <img v-if="isImage(detailItem.id_document)" :src="pbImageUrl(detailItem, detailItem.id_document)" class="max-h-48 w-full rounded-sm border border-brand-grey/20 object-contain" @click="previewImg = pbImageUrl(detailItem, detailItem.id_document)" />
-                  <a v-else :href="pbImageUrl(detailItem, detailItem.id_document)" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> View Document</a>
+                  <img v-if="isImage(detailItem.id_document)" :src="pb.files.getURL(detailItem, detailItem.id_document)" class="max-h-48 w-full rounded-sm border border-brand-grey/20 object-contain" @click="previewImg = pb.files.getURL(detailItem, detailItem.id_document)" />
+                  <a v-else :href="pb.files.getURL(detailItem, detailItem.id_document)" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> View Document</a>
                 </div>
                 <div v-if="detailItem.drivers_license">
                   <p class="mb-1 text-xs text-brand-grey">Driver's License</p>
-                  <img v-if="isImage(detailItem.drivers_license)" :src="pbImageUrl(detailItem, detailItem.drivers_license)" class="max-h-48 w-full rounded-sm border border-brand-grey/20 object-contain" @click="previewImg = pbImageUrl(detailItem, detailItem.drivers_license)" />
-                  <a v-else :href="pbImageUrl(detailItem, detailItem.drivers_license)" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> View Document</a>
+                  <img v-if="isImage(detailItem.drivers_license)" :src="pb.files.getURL(detailItem, detailItem.drivers_license)" class="max-h-48 w-full rounded-sm border border-brand-grey/20 object-contain" @click="previewImg = pb.files.getURL(detailItem, detailItem.drivers_license)" />
+                  <a v-else :href="pb.files.getURL(detailItem, detailItem.drivers_license)" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> View Document</a>
                 </div>
               </div>
             </div>
@@ -124,7 +124,7 @@
 </template>
 <script setup lang="ts">
 import { Calendar, FileText, X } from 'lucide-vue-next'
-import { usePB, pbImageUrl } from '~/composables/usePocketBase'
+import { usePB } from '~/composables/usePocketBase'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Test Rides - Nairobi Powerbikes' })
 const pb = usePB(); const loading = ref(true); const saving = ref(false)

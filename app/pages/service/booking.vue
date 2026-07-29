@@ -113,9 +113,9 @@ const model = pb.authStore.model as Record<string, any> | null
 const isLoggedIn = !!model
 
 const validationSchema = toTypedSchema(z.object({
-  name: z.string().min(2, 'Name required'),
-  phone: z.string().min(8, 'Valid phone required'),
-  email: z.string().email('Valid email required'),
+  name: isLoggedIn ? z.string().optional() : z.string().min(2, 'Name required'),
+  phone: isLoggedIn ? z.string().optional() : z.string().min(8, 'Valid phone required'),
+  email: isLoggedIn ? z.string().optional() : z.string().email('Valid email required'),
   bikeModel: z.string().min(2, 'Bike model required'),
   serviceType: z.string().min(1, 'Select service type'),
   date: z.string().min(1, 'Select date'),
@@ -158,9 +158,9 @@ const submit = handleSubmit(async (values) => {
     const userId = pb.authStore.model?.id || null
     await pb.collection('service_bookings').create({
       type: 'service',
-      name: values.name,
-      phone: values.phone,
-      email: values.email,
+      name: values.name || model?.name || '',
+      phone: values.phone || model?.phone || '',
+      email: values.email || model?.email || '',
       motorcycle: values.bikeModel,
       service_type: values.serviceType,
       branch: 'Mombasa Road Branch',

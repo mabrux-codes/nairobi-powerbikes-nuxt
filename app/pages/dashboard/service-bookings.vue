@@ -57,6 +57,13 @@
             <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Notes</label>
               <textarea v-model="updateForm.notes" rows="3" class="input-field w-full resize-none" />
             </div>
+            <div v-if="editingItem?.id_document || editingItem?.drivers_license" class="border-t border-brand-grey/20 pt-4">
+              <label class="mb-2 block text-xs font-display tracking-display text-brand-grey uppercase">Documents</label>
+              <div class="flex flex-wrap gap-3">
+                <a v-if="editingItem.id_document" :href="pbImageUrl(editingItem, editingItem.id_document)" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> ID Document</a>
+                <a v-if="editingItem.drivers_license" :href="pbImageUrl(editingItem, editingItem.drivers_license)" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> Driver's License</a>
+              </div>
+            </div>
           </div>
           <div class="mt-6 flex justify-end gap-3">
             <Button variant="ghost" @click="showModal=false">Cancel</Button>
@@ -68,8 +75,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Wrench } from 'lucide-vue-next'
-import { usePB } from '~/composables/usePocketBase'
+import { Wrench, FileText } from 'lucide-vue-next'
+import { usePB, pbImageUrl } from '~/composables/usePocketBase'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Service Bookings - Nairobi Powerbikes' })
 const pb = usePB(); const loading = ref(true); const saving = ref(false)

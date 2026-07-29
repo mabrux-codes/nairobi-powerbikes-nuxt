@@ -12,7 +12,7 @@ migrate((app) => {
     "name": "id_document",
     "presentable": false,
     "protected": false,
-    "required": true,
+    "required": false,
     "system": false,
     "thumbs": null,
     "type": "file"
@@ -28,7 +28,7 @@ migrate((app) => {
     "name": "drivers_license",
     "presentable": false,
     "protected": false,
-    "required": true,
+    "required": false,
     "system": false,
     "thumbs": null,
     "type": "file"

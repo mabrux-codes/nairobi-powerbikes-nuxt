@@ -13,30 +13,28 @@
             <template v-if="!isLoggedIn">
               <div class="grid gap-5 sm:grid-cols-2">
                 <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Full Name</label>
-                  <Field name="name" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="text" placeholder="John Doe" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
+                  <Field name="name" v-slot="{ field, errorMessage }"><input v-bind="field" type="text" placeholder="John Doe" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
                 <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Phone</label>
-                  <Field name="phone" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="tel" placeholder="+254 7XX XXX XXX" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
+                  <Field name="phone" v-slot="{ field, errorMessage }"><input v-bind="field" type="tel" placeholder="+254 7XX XXX XXX" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
               </div>
               <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Email</label>
-                <Field name="email" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="email" placeholder="john@example.com" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
+                <Field name="email" v-slot="{ field, errorMessage }"><input v-bind="field" type="email" placeholder="john@example.com" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
             </template>
 
             <div class="grid gap-5 sm:grid-cols-2">
-              <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Motorcycle</label>
-                <Field name="bikeModel" v-slot="{ componentField, errorMessage }"><select v-bind="componentField" class="input-field h-11 appearance-none" :class="{ 'border-brand-red': errorMessage }"><option value="" disabled>Select motorcycle</option><option v-for="b in motorcycles" :key="b.id" :value="b.name">{{ b.name }} ({{ b.year || 'N/A' }})</option></select><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
               <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Service Type</label>
-                <Field name="serviceType" v-slot="{ componentField, errorMessage }"><select v-bind="componentField" class="input-field h-11 appearance-none" :class="{ 'border-brand-red': errorMessage }"><option value="" disabled>Select service</option><option v-for="s in serviceTypes" :key="s.value" :value="s.value">{{ s.label }}</option></select><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
+                <Field name="serviceType" v-slot="{ field, errorMessage }"><select v-bind="field" class="input-field h-11 appearance-none" :class="{ 'border-brand-red': errorMessage }"><option value="" disabled>Select service</option><option v-for="s in serviceTypes" :key="s.value" :value="s.value">{{ s.label }}</option></select><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
             </div>
 
             <div class="grid gap-5 sm:grid-cols-2">
               <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Preferred Date</label>
-                <Field name="date" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="date" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" :min="minDate" @change="onDateChange" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
+                <Field name="date" v-slot="{ field, errorMessage }"><input v-bind="field" type="date" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" :min="minDate" @change="onDateChange" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
               <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Preferred Time</label>
-                <Field name="time" v-slot="{ componentField, errorMessage }"><select v-bind="componentField" class="input-field h-11 appearance-none" :class="{ 'border-brand-red': errorMessage }"><option value="" disabled>Select time</option><option v-for="slot in availableTimeSlots" :key="slot" :value="slot" :disabled="bookedTimes.has(slot)">{{ slot }}</option></select><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p><p v-if="selectedDate && availableTimeSlots.length > 0 && availableTimeSlots.every(s => bookedTimes.has(s))" class="mt-1 text-xs text-amber-400">Fully booked for this date</p></Field></div>
+                <Field name="time" v-slot="{ field, errorMessage }"><select v-bind="field" class="input-field h-11 appearance-none" :class="{ 'border-brand-red': errorMessage }"><option value="" disabled>Select time</option><option v-for="slot in availableTimeSlots" :key="slot" :value="slot" :disabled="bookedTimes.has(slot)">{{ slot }}</option></select><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p><p v-if="selectedDate && availableTimeSlots.length > 0 && availableTimeSlots.every(s => bookedTimes.has(s))" class="mt-1 text-xs text-amber-400">Fully booked for this date</p></Field></div>
             </div>
 
             <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Branch</label>
-              <Field name="branch" v-slot="{ componentField }"><select v-bind="componentField" class="input-field h-11 appearance-none"><option value="mombasa-road">Mombasa Road Branch</option></select></Field></div>
+              <Field name="branch" v-slot="{ field }"><select v-bind="field" class="input-field h-11 appearance-none"><option value="mombasa-road">Mombasa Road Branch</option></select></Field></div>
 
             <button type="submit" :disabled="isSubmitting || availableTimeSlots.every(s => bookedTimes.has(s))" class="btn-primary mt-2 w-full justify-center h-12 disabled:opacity-50">
               <LoaderCircle v-if="isSubmitting" class="h-5 w-5 animate-spin" /><CalendarCheck v-else class="h-5 w-5" />{{ isSubmitting ? 'Booking...' : 'Book Appointment' }}</button>
@@ -75,15 +73,12 @@ import { useForm, Field } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 
-interface Motorcycle { id: string; name: string; year: number }
-
 useHead({ title: 'Service Booking - Nairobi Powerbikes', meta: [{ name: 'description', content: 'Schedule a service appointment at Nairobi Powerbikes. Our certified technicians will keep your ride in top condition.' }] })
 
 const pb = usePB()
 const showSuccess = ref(false)
 const submitError = ref('')
 const submittedEmail = ref('')
-const motorcycles = ref<Motorcycle[]>([])
 
 function closeSuccess() {
   showSuccess.value = false
@@ -119,7 +114,6 @@ const validationSchema = toTypedSchema(z.object({
   name: isLoggedIn ? z.string().optional() : z.string().min(2, 'Name required'),
   phone: isLoggedIn ? z.string().optional() : z.string().min(8, 'Valid phone required'),
   email: isLoggedIn ? z.string().optional() : z.string().email('Valid email required'),
-  bikeModel: z.string().min(2, 'Bike model required'),
   serviceType: z.string().min(1, 'Select service type'),
   date: z.string().min(1, 'Select date'),
   time: z.string().min(1, 'Select time'),
@@ -128,7 +122,7 @@ const validationSchema = toTypedSchema(z.object({
 
 const { handleSubmit, isSubmitting, resetForm, setFieldError } = useForm({
   validationSchema,
-  initialValues: { name: model?.name || '', phone: model?.phone || '', email: model?.email || '', bikeModel: '', serviceType: '', date: '', time: '', branch: 'mombasa-road' },
+  initialValues: { name: model?.name || '', phone: model?.phone || '', email: model?.email || '', serviceType: '', date: '', time: '', branch: 'mombasa-road' },
 })
 
 async function onDateChange(e: Event) {
@@ -164,7 +158,6 @@ const submit = handleSubmit(async (values) => {
       name: values.name || model?.name || '',
       phone: values.phone || model?.phone || '',
       email: values.email || model?.email || '',
-      motorcycle: values.bikeModel,
       service_type: values.serviceType,
       branch: 'Mombasa Road Branch',
       preferred_date: values.date,
@@ -182,16 +175,5 @@ const submit = handleSubmit(async (values) => {
   }
 })
 
-async function loadMotorcycles() {
-  try {
-    motorcycles.value = await pb.collection('motorcycles').getFullList<Motorcycle>({ sort: 'name' })
-  } catch { motorcycles.value = [] }
-}
 
-onMounted(async () => {
-  await loadMotorcycles()
-  pb.collection('motorcycles').subscribe('*', () => loadMotorcycles())
-})
-
-onUnmounted(() => { pb.collection('motorcycles').unsubscribe('*') })
 </script>

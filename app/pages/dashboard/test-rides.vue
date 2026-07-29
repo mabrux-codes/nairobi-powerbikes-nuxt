@@ -36,11 +36,66 @@
             <td class="px-4 py-3 text-brand-grey">{{ b.preferred_date || 'N/A' }}</td>
             <td class="px-4 py-3 text-brand-grey">{{ b.preferred_time || 'N/A' }}</td>
             <td class="px-4 py-3"><Badge :variant="statusVariant(b.status)">{{ b.status }}</Badge></td>
-            <td class="px-4 py-3 text-right"><Button variant="ghost" size="sm" @click="openUpdate(b)">Update</Button></td>
+            <td class="px-4 py-3 text-right"><Button variant="ghost" size="sm" @click="openDetail(b)">View</Button><Button variant="ghost" size="sm" @click="openUpdate(b)">Update</Button></td>
           </tr>
         </tbody>
       </table>
     </div>
+    <Teleport to="body">
+      <div v-if="showDetail" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto" @click.self="showDetail=false">
+        <div class="w-full max-w-lg rounded-sm border border-brand-grey/30 bg-brand-black p-6">
+          <div class="flex items-center justify-between">
+            <h2 class="font-display text-xl tracking-display text-white">Test Ride Details</h2>
+            <button @click="showDetail=false" class="text-brand-grey hover:text-white"><X class="h-5 w-5" /></button>
+          </div>
+          <div class="mt-5 space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Name</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.name || detailItem?.expand?.user?.name || 'N/A' }}</p></div>
+              <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Phone</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.phone || 'N/A' }}</p></div>
+              <div class="col-span-2"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Email</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.email || 'N/A' }}</p></div>
+            </div>
+            <div class="border-t border-brand-grey/20 pt-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Motorcycle</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.motorcycle || 'N/A' }}</p></div>
+                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Status</label><p class="mt-0.5"><Badge :variant="statusVariant(detailItem?.status)">{{ detailItem?.status }}</Badge></p></div>
+                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Date</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.preferred_date || 'N/A' }}</p></div>
+                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Time</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.preferred_time || 'N/A' }}</p></div>
+              </div>
+              <div class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Branch</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.branch || 'N/A' }}</p></div>
+              <div v-if="detailItem?.notes" class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Notes</label><p class="mt-0.5 text-sm text-white">{{ detailItem.notes }}</p></div>
+            </div>
+            <div v-if="detailItem?.id_document || detailItem?.drivers_license" class="border-t border-brand-grey/20 pt-4">
+              <label class="mb-2 block text-xs font-display tracking-display text-brand-grey uppercase">Uploaded Documents</label>
+              <div class="space-y-3">
+                <div v-if="detailItem.id_document">
+                  <p class="mb-1 text-xs text-brand-grey">ID Document</p>
+                  <img v-if="isImage(detailItem.id_document)" :src="pbImageUrl(detailItem, detailItem.id_document)" class="max-h-48 w-full rounded-sm border border-brand-grey/20 object-contain" @click="previewImg = pbImageUrl(detailItem, detailItem.id_document)" />
+                  <a v-else :href="pbImageUrl(detailItem, detailItem.id_document)" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> View Document</a>
+                </div>
+                <div v-if="detailItem.drivers_license">
+                  <p class="mb-1 text-xs text-brand-grey">Driver's License</p>
+                  <img v-if="isImage(detailItem.drivers_license)" :src="pbImageUrl(detailItem, detailItem.drivers_license)" class="max-h-48 w-full rounded-sm border border-brand-grey/20 object-contain" @click="previewImg = pbImageUrl(detailItem, detailItem.drivers_license)" />
+                  <a v-else :href="pbImageUrl(detailItem, detailItem.drivers_license)" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> View Document</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end">
+            <Button @click="showDetail=false">Close</Button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="previewImg" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" @click.self="previewImg=''">
+        <div class="relative max-h-[90vh] max-w-[90vw]">
+          <button @click="previewImg=''" class="absolute -right-3 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-brand-red text-white"><X class="h-4 w-4" /></button>
+          <img :src="previewImg" class="max-h-[90vh] max-w-[90vw] rounded-sm object-contain" />
+        </div>
+      </div>
+    </Teleport>
+
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto" @click.self="showModal=false">
         <div class="w-full max-w-md rounded-sm border border-brand-grey/30 bg-brand-black p-6">
@@ -57,13 +112,6 @@
             <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Notes</label>
               <textarea v-model="updateForm.notes" rows="3" class="input-field w-full resize-none" />
             </div>
-            <div v-if="editingItem?.id_document || editingItem?.drivers_license" class="border-t border-brand-grey/20 pt-4">
-              <label class="mb-2 block text-xs font-display tracking-display text-brand-grey uppercase">Documents</label>
-              <div class="flex flex-wrap gap-3">
-                <a v-if="editingItem.id_document" :href="pbImageUrl(editingItem, editingItem.id_document)" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> ID Document</a>
-                <a v-if="editingItem.drivers_license" :href="pbImageUrl(editingItem, editingItem.drivers_license)" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-sm text-brand-red hover:underline"><FileText class="h-4 w-4" /> Driver's License</a>
-              </div>
-            </div>
           </div>
           <div class="mt-6 flex justify-end gap-3">
             <Button variant="ghost" @click="showModal=false">Cancel</Button>
@@ -75,14 +123,17 @@
   </div>
 </template>
 <script setup lang="ts">
-import { Calendar, FileText } from 'lucide-vue-next'
+import { Calendar, FileText, X } from 'lucide-vue-next'
 import { usePB, pbImageUrl } from '~/composables/usePocketBase'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Test Rides - Nairobi Powerbikes' })
 const pb = usePB(); const loading = ref(true); const saving = ref(false)
-const items = ref<any[]>([]); const showModal = ref(false); const editingItem = ref<any>(null)
+const items = ref<any[]>([]); const showModal = ref(false); const showDetail = ref(false); const editingItem = ref<any>(null); const detailItem = ref<any>(null)
+const previewImg = ref('')
 const updateForm = ref({ status: 'pending', notes: '' })
 function statusVariant(s: string) { const m: Record<string, string> = { pending: 'warning', confirmed: 'secondary', completed: 'success', cancelled: 'danger' }; return m[s] || 'outline' }
+function isImage(filename: string) { return /\.(jpe?g|png)$/i.test(filename) }
+function openDetail(b: any) { detailItem.value = b; showDetail.value = true }
 function openUpdate(b: any) { editingItem.value = b; updateForm.value = { status: b.status || 'pending', notes: b.notes || '' }; showModal.value = true }
 async function saveUpdate() { saving.value = true; try { await pb.collection('service_bookings').update(editingItem.value.id, updateForm.value); showModal.value = false; await loadData() } catch (e) { console.error(e) } finally { saving.value = false } }
 async function loadData() { try { const res = await pb.collection('service_bookings').getList(1, 100, { sort: '-created', filter: 'type="test_ride"', expand: 'user' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }

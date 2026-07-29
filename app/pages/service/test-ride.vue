@@ -37,6 +37,39 @@
             <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Additional Notes</label>
               <Field name="notes" v-slot="{ field }"><textarea v-bind="field" rows="3" class="input-field min-h-[100px]" placeholder="Any preferences..."></textarea></Field></div>
 
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">ID Document <span class="text-brand-red">*</span></label>
+                <div @drop.prevent="onDropId" @dragover.prevent @dragenter.prevent class="relative flex cursor-pointer items-center justify-center rounded-sm border-2 border-dashed border-brand-grey/40 p-4 transition-colors hover:border-brand-red/60" @click="idInput?.click()">
+                  <input ref="idInput" type="file" accept="image/jpeg,image/png,application/pdf" class="hidden" @change="onIdChange" />
+                  <div v-if="!idDocument" class="flex flex-col items-center gap-2 text-brand-grey">
+                    <Upload class="h-6 w-6" />
+                    <span class="text-xs">Drop or click to upload</span>
+                  </div>
+                  <div v-else class="flex w-full items-center gap-3">
+                    <FileText class="h-5 w-5 shrink-0 text-brand-red" />
+                    <span class="truncate text-sm text-white">{{ idDocument.name }}</span>
+                    <button type="button" class="ml-auto shrink-0 text-brand-grey hover:text-brand-red" @click.stop="removeId"><X class="h-4 w-4" /></button>
+                  </div>
+                </div>
+                <p v-if="idDocumentError" class="mt-1 text-xs text-brand-red">{{ idDocumentError }}</p>
+              </div>
+              <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Driver's License <span class="text-brand-red">*</span></label>
+                <div @drop.prevent="onDropLicense" @dragover.prevent @dragenter.prevent class="relative flex cursor-pointer items-center justify-center rounded-sm border-2 border-dashed border-brand-grey/40 p-4 transition-colors hover:border-brand-red/60" @click="licenseInput?.click()">
+                  <input ref="licenseInput" type="file" accept="image/jpeg,image/png,application/pdf" class="hidden" @change="onLicenseChange" />
+                  <div v-if="!driversLicense" class="flex flex-col items-center gap-2 text-brand-grey">
+                    <Upload class="h-6 w-6" />
+                    <span class="text-xs">Drop or click to upload</span>
+                  </div>
+                  <div v-else class="flex w-full items-center gap-3">
+                    <FileText class="h-5 w-5 shrink-0 text-brand-red" />
+                    <span class="truncate text-sm text-white">{{ driversLicense.name }}</span>
+                    <button type="button" class="ml-auto shrink-0 text-brand-grey hover:text-brand-red" @click.stop="removeLicense"><X class="h-4 w-4" /></button>
+                  </div>
+                </div>
+                <p v-if="driversLicenseError" class="mt-1 text-xs text-brand-red">{{ driversLicenseError }}</p>
+              </div>
+            </div>
+
             <button type="submit" :disabled="isSubmitting || availableTimeSlots.every(s => bookedTimes.has(s))" class="btn-primary mt-2 w-full justify-center h-12 disabled:opacity-50">
               <LoaderCircle v-if="isSubmitting" class="h-5 w-5 animate-spin" /><CalendarCheck v-else class="h-5 w-5" />{{ isSubmitting ? 'Booking...' : 'Book Test Ride' }}</button>
           </form>
@@ -68,7 +101,7 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { CalendarCheck, LoaderCircle } from 'lucide-vue-next'
+import { CalendarCheck, LoaderCircle, Upload, FileText, X } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useForm, Field } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -91,6 +124,36 @@ const allTimeSlots = Array.from({ length: 36 }, (_, i) => {
   const m = String((i % 4) * 15).padStart(2, '0')
   return `${h}:${m}`
 })
+
+const idInput = ref<HTMLInputElement | null>(null)
+const licenseInput = ref<HTMLInputElement | null>(null)
+const idDocument = ref<File | null>(null)
+const driversLicense = ref<File | null>(null)
+const idDocumentError = ref('')
+const driversLicenseError = ref('')
+
+const allowedMimes = ['image/jpeg', 'image/png', 'application/pdf']
+const maxFileSize = 5 * 1024 * 1024
+
+function validateFile(file: File | null): string {
+  if (!file) return 'This field is required'
+  if (!allowedMimes.includes(file.type)) return 'Only JPG, PNG or PDF allowed'
+  if (file.size > maxFileSize) return 'File must be under 5MB'
+  return ''
+}
+
+function setFile(ref: Ref<File | null>, errorRef: Ref<string>, file: File | null) {
+  const err = validateFile(file)
+  ref.value = file && !err ? file : null
+  errorRef.value = err
+}
+
+function onDropId(e: DragEvent) { setFile(idDocument, idDocumentError, e.dataTransfer?.files[0] || null) }
+function onDropLicense(e: DragEvent) { setFile(driversLicense, driversLicenseError, e.dataTransfer?.files[0] || null) }
+function onIdChange(e: Event) { setFile(idDocument, idDocumentError, (e.target as HTMLInputElement).files?.[0] || null) }
+function onLicenseChange(e: Event) { setFile(driversLicense, driversLicenseError, (e.target as HTMLInputElement).files?.[0] || null) }
+function removeId() { idDocument.value = null; idDocumentError.value = ''; if (idInput.value) idInput.value.value = '' }
+function removeLicense() { driversLicense.value = null; driversLicenseError.value = ''; if (licenseInput.value) licenseInput.value.value = '' }
 
 const minDate = computed(() => new Date().toISOString().split('T')[0])
 
@@ -156,6 +219,11 @@ function closeSuccess() {
 const submit = handleSubmit(async (values) => {
   showSuccess.value = false
   submitError.value = ''
+  const idErr = validateFile(idDocument.value)
+  const licenseErr = validateFile(driversLicense.value)
+  idDocumentError.value = idErr
+  driversLicenseError.value = licenseErr
+  if (idErr || licenseErr) return
   try {
     const res = await pb.collection('service_bookings').getList(1, 1, {
       filter: `preferred_date = "${values.date}" && preferred_time = "${values.time}" && type = "test_ride"`,
@@ -166,24 +234,30 @@ const submit = handleSubmit(async (values) => {
       return
     }
     const userId = pb.authStore.model?.id || null
-    await pb.collection('service_bookings').create({
-      type: 'test_ride',
-      name: values.name || model?.name || '',
-      phone: values.phone || model?.phone || '',
-      email: values.email || model?.email || '',
-      motorcycle: values.motorcycle,
-      branch: 'Mombasa Road Branch',
-      preferred_date: values.date,
-      preferred_time: values.time,
-      notes: values.notes || '',
-      status: 'pending',
-      user: userId,
-    })
+    const fd = new FormData()
+    fd.append('type', 'test_ride')
+    fd.append('name', values.name || model?.name || '')
+    fd.append('phone', values.phone || model?.phone || '')
+    fd.append('email', values.email || model?.email || '')
+    fd.append('motorcycle', values.motorcycle)
+    fd.append('branch', 'Mombasa Road Branch')
+    fd.append('preferred_date', values.date)
+    fd.append('preferred_time', values.time)
+    fd.append('notes', values.notes || '')
+    fd.append('status', 'pending')
+    if (userId) fd.append('user', userId)
+    fd.append('id_document', idDocument.value!)
+    fd.append('drivers_license', driversLicense.value!)
+    await pb.collection('service_bookings').create(fd)
     submittedEmail.value = values.email
     showSuccess.value = true
     selectedDate.value = ''
     bookedTimes.value = new Set()
     resetForm()
+    idDocument.value = null
+    driversLicense.value = null
+    idDocumentError.value = ''
+    driversLicenseError.value = ''
   } catch (err: any) {
     submitError.value = err?.data?.message || err?.message || 'Booking failed. Please try again.'
   }

@@ -86,15 +86,21 @@ const submittedEmail = ref('')
 const motorcycles = ref<Motorcycle[]>([])
 const bookedTimes = ref<Set<string>>(new Set())
 const selectedDate = ref('')
-const allTimeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']
+const allTimeSlots = Array.from({ length: 36 }, (_, i) => {
+  const h = String(8 + Math.floor(i / 4)).padStart(2, '0')
+  const m = String((i % 4) * 15).padStart(2, '0')
+  return `${h}:${m}`
+})
 
 const minDate = computed(() => new Date().toISOString().split('T')[0])
 
 const availableTimeSlots = computed(() => {
   const now = new Date()
   return allTimeSlots.filter(slot => {
-    const [h] = slot.split(':').map(Number)
-    if (selectedDate.value === now.toISOString().split('T')[0] && h <= now.getHours()) return false
+    const [h, m] = slot.split(':').map(Number)
+    const totalMin = h * 60 + m
+    const nowMin = now.getHours() * 60 + now.getMinutes()
+    if (selectedDate.value === now.toISOString().split('T')[0] && totalMin <= nowMin) return false
     return true
   })
 })
@@ -185,7 +191,7 @@ const submit = handleSubmit(async (values) => {
 
 async function loadMotorcycles() {
   try {
-    motorcycles.value = await pb.collection('motorcycles').getFullList<Motorcycle>({ filter: 'status="available"', sort: 'name' })
+    motorcycles.value = await pb.collection('motorcycles').getFullList<Motorcycle>({ sort: 'name' })
   } catch { motorcycles.value = [] }
 }
 

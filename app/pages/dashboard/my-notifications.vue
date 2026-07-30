@@ -7,11 +7,12 @@
 import { Bell } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
+import { formatDate } from '~/composables/useFormat'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['customer'] })
 useHead({ title: 'Notifications - Nairobi Powerbikes' })
 const pb = usePB(); const auth = useAuthStore(); const loading = ref(true)
 const items = ref<any[]>([])
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : '' }
+
 function markRead(n: any) { pb.collection('notifications').update(n.id, { read: true }).then(() => n.read = true) }
 onMounted(async () => { try { const res = await pb.collection('notifications').getList(1, 50, { filter: `user = "${auth.user?.id}"`, sort: '-created' }); items.value = res.items as any[] } catch(e){} finally { loading.value = false } })
 </script>

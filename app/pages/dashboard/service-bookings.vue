@@ -28,8 +28,8 @@
         </div>
         <p v-if="s.description" class="mt-2 text-sm text-brand-grey/70">{{ s.description }}</p>
         <div v-if="s.preferred_date || s.preferred_time || s.branch" class="mt-1 flex flex-wrap gap-3 text-xs text-brand-grey/50">
-          <span v-if="s.preferred_date">Date: {{ s.preferred_date }}</span>
-          <span v-if="s.preferred_time">Time: {{ s.preferred_time }}</span>
+          <span v-if="s.preferred_date">Date: {{ formatDate(s.preferred_date) }}</span>
+          <span v-if="s.preferred_time">Time: {{ formatTime(s.preferred_time) }}</span>
           <span v-if="s.branch">Branch: {{ s.branch }}</span>
         </div>
         <div class="mt-3 flex gap-2">
@@ -77,6 +77,7 @@
 <script setup lang="ts">
 import { Wrench, FileText } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { formatDate, formatTime } from '~/composables/useFormat'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Service Bookings - Nairobi Powerbikes' })
 const pb = usePB(); const loading = ref(true); const saving = ref(false)

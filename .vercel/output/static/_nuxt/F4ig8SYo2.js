@@ -1,1 +1,0 @@
-import{r as e}from"./SAkicL8b.js";var t=e(`/NPB Logo.png`);export{t};

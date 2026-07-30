@@ -29,7 +29,7 @@
             <td class="px-4 py-3"><Badge :variant="b.type === 'test_ride' ? 'secondary' : 'default'">{{ b.type === 'test_ride' ? 'Test Ride' : 'Service' }}</Badge></td>
             <td class="px-4 py-3 text-white">{{ b.expand?.user?.name || b.expand?.user?.email || 'N/A' }}</td>
             <td class="px-4 py-3 text-brand-grey">{{ b.motorcycle || 'N/A' }}</td>
-            <td class="px-4 py-3 text-brand-grey">{{ b.preferred_date || 'N/A' }}</td>
+            <td class="px-4 py-3 text-brand-grey">{{ formatDate(b.preferred_date) }}</td>
             <td class="px-4 py-3"><Badge :variant="statusVariant(b.status)">{{ b.status }}</Badge></td>
             <td class="px-4 py-3 text-right"><Button variant="ghost" size="sm" @click="openDetail(b)">View</Button></td>
           </tr>
@@ -58,8 +58,8 @@
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Motorcycle</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.motorcycle || 'N/A' }}</p></div>
                   <div v-if="detailItem?.service_type"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Service Type</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem.service_type }}</p></div>
-                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Date</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.preferred_date || 'N/A' }}</p></div>
-                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Time</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.preferred_time || 'N/A' }}</p></div>
+                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Date</label><p class="mt-0.5 text-sm text-white break-words">{{ formatDate(detailItem?.preferred_date) }}</p></div>
+                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Time</label><p class="mt-0.5 text-sm text-white break-words">{{ formatTime(detailItem?.preferred_time) }}</p></div>
                 </div>
                 <div class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Branch</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.branch || 'N/A' }}</p></div>
                 <div v-if="detailItem?.notes" class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Notes</label><p class="mt-0.5 text-sm text-white whitespace-pre-wrap break-words">{{ detailItem.notes }}</p></div>
@@ -119,6 +119,7 @@
 <script setup lang="ts">
 import { Calendar, FileText, X } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { formatDate, formatTime } from '~/composables/useFormat'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Bookings - Nairobi Powerbikes' })
 const pb = usePB(); const loading = ref(true); const savingDetail = ref(false)

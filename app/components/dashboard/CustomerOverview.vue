@@ -46,7 +46,7 @@
               <div class="flex items-start justify-between gap-2">
                 <div>
                   <p class="text-sm text-white">{{ b.motorcycle || 'Motorcycle' }}</p>
-                  <p class="text-xs text-brand-grey">{{ formatDate(b.preferred_date) }} &middot; {{ b.preferred_time || 'N/A' }}</p>
+                  <p class="text-xs text-brand-grey">{{ formatDate(b.preferred_date) }} &middot; {{ formatTime(b.preferred_time) }}</p>
                 </div>
                 <Badge :variant="testRideStatusVariant(b.status)">{{ b.status }}</Badge>
               </div>
@@ -105,6 +105,7 @@
 import { Calendar, Check, ChevronRight, Wrench } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
+import { formatDate, formatTime } from '~/composables/useFormat'
 
 const pb = usePB()
 const auth = useAuthStore()
@@ -132,7 +133,7 @@ function stepStyle(stepKey: string, bookingStatus: string) {
   return 'bg-brand-grey/10 text-brand-grey/50'
 }
 
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : 'N/A' }
+
 
 function testRideStatusVariant(s: string) {
   const map: Record<string, string> = { pending: 'warning', confirmed: 'secondary', completed: 'success', cancelled: 'danger' }

@@ -7,12 +7,13 @@
 <script setup lang="ts">
 import { MessageSquare } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { formatDate } from '~/composables/useFormat'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Contacts - Nairobi Powerbikes' })
 const pb = usePB(); const loading = ref(true); const saving = ref(false)
 const items = ref<any[]>([]); const showModal = ref(false); const editingItem = ref<any>(null)
 const updateForm = ref({ status: 'new' })
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : 'N/A' }
+
 function openDetail(c: any) { editingItem.value = c; updateForm.value = { status: c.status || 'new' }; showModal.value = true }
 async function saveUpdate() { saving.value = true; try { await pb.collection('contacts').update(editingItem.value.id, updateForm.value); showModal.value = false; await loadData() } catch (e) { console.error(e) } finally { saving.value = false } }
 async function loadData() { try { const res = await pb.collection('contacts').getList(1, 100, { sort: '-created' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }

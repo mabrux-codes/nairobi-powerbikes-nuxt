@@ -38,7 +38,7 @@
                 <h3 class="font-display text-lg tracking-display text-white">{{ b.motorcycle || 'Test Ride' }}</h3>
                 <Badge variant="secondary">Test Ride</Badge>
               </div>
-              <p class="text-xs text-brand-grey">{{ formatDate(b.preferred_date) }} &middot; {{ b.preferred_time || 'N/A' }}</p>
+              <p class="text-xs text-brand-grey">{{ formatDate(b.preferred_date) }} &middot; {{ formatTime(b.preferred_time) }}</p>
             </div>
             <Badge :variant="statusVariant(b.status)">{{ b.status }}</Badge>
           </div>
@@ -46,7 +46,7 @@
           <div class="mt-3 grid gap-2 sm:grid-cols-3">
             <div><p class="text-xs text-brand-grey">Branch</p><p class="text-sm text-white">{{ b.branch || 'N/A' }}</p></div>
             <div><p class="text-xs text-brand-grey">Date</p><p class="text-sm text-white">{{ formatDate(b.preferred_date) || 'N/A' }}</p></div>
-            <div><p class="text-xs text-brand-grey">Time</p><p class="text-sm text-white">{{ b.preferred_time || 'N/A' }}</p></div>
+            <div><p class="text-xs text-brand-grey">Time</p><p class="text-sm text-white">{{ formatTime(b.preferred_time) }}</p></div>
           </div>
 
           <div class="mt-3">
@@ -77,6 +77,7 @@
 import { Calendar, Check, ChevronRight } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
+import { formatDate, formatTime } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['customer'] })
 useHead({ title: 'My Test Rides - Nairobi Powerbikes' })
@@ -105,7 +106,7 @@ function testRideStepStyle(stepKey: string, bookingStatus: string) {
   return 'bg-brand-grey/10 text-brand-grey/50'
 }
 
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : 'N/A' }
+
 
 function statusVariant(s: string) {
   const map: Record<string, string> = { pending: 'warning', confirmed: 'secondary', completed: 'success', cancelled: 'danger' }

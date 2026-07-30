@@ -1,5 +1,5 @@
 migrate(function(app) {
-  var records = app.findRecordsByFilter("brands", "", "created", 1, 999)
+  var records = app.findAllRecords("brands")
   for (var i = 0; i < records.length; i++) {
     var rec = records[i]
     var slug = rec.getString("slug")

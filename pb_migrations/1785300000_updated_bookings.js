@@ -2,11 +2,16 @@
 migrate((app) => {
   const collection = app.findCollectionByNameOrId("service_bookings")
 
-  const hasIdDoc = collection.fields.some((f: any) => f.name === 'id_document')
-  const hasLicense = collection.fields.some((f: any) => f.name === 'drivers_license')
+  let hasIdDoc = false
+  let hasLicense = false
+  for (let i = 0; i < collection.fields.length; i++) {
+    const f = collection.fields[i]
+    if (f.name === 'id_document') hasIdDoc = true
+    if (f.name === 'drivers_license') hasLicense = true
+  }
 
   if (!hasIdDoc) {
-    collection.fields.addAt(18, new Field({
+    collection.fields.addAt(collection.fields.length, new Field({
       "help": "",
       "hidden": false,
       "id": "file_id_document",
@@ -24,7 +29,7 @@ migrate((app) => {
   }
 
   if (!hasLicense) {
-    collection.fields.addAt(19, new Field({
+    collection.fields.addAt(collection.fields.length, new Field({
       "help": "",
       "hidden": false,
       "id": "file_drivers_license",

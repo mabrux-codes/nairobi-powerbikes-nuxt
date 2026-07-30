@@ -43,30 +43,30 @@
             <h2 class="font-display text-lg tracking-display text-white md:text-xl">Booking Details</h2>
             <button @click="showDetail=false" class="text-brand-grey hover:text-white"><X class="h-5 w-5" /></button>
           </div>
-          <div class="flex-1 overflow-y-auto px-4 pb-4 pt-4 md:px-6 md:pb-6">
+          <div class="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 pt-4 md:px-6 md:pb-6">
             <div class="space-y-4">
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Type</label><p class="mt-0.5"><Badge :variant="detailItem?.type === 'test_ride' ? 'secondary' : 'default'">{{ detailItem?.type === 'test_ride' ? 'Test Ride' : 'Service' }}</Badge></p></div>
                 <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Status</label><p class="mt-0.5"><Badge :variant="statusVariant(detailItem?.status)">{{ detailItem?.status }}</Badge></p></div>
               </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Name</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.name || detailItem?.expand?.user?.name || 'N/A' }}</p></div>
-                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Phone</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.phone || 'N/A' }}</p></div>
-                <div class="col-span-2"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Email</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.email || 'N/A' }}</p></div>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Name</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.name || detailItem?.expand?.user?.name || 'N/A' }}</p></div>
+                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Phone</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.phone || 'N/A' }}</p></div>
+                <div class="sm:col-span-2"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Email</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.email || 'N/A' }}</p></div>
               </div>
               <div class="border-t border-brand-grey/20 pt-4">
-                <div class="grid grid-cols-2 gap-4">
-                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Motorcycle</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.motorcycle || 'N/A' }}</p></div>
-                  <div v-if="detailItem?.service_type"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Service Type</label><p class="mt-0.5 text-sm text-white">{{ detailItem.service_type }}</p></div>
-                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Date</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.preferred_date || 'N/A' }}</p></div>
-                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Time</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.preferred_time || 'N/A' }}</p></div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Motorcycle</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.motorcycle || 'N/A' }}</p></div>
+                  <div v-if="detailItem?.service_type"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Service Type</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem.service_type }}</p></div>
+                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Date</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.preferred_date || 'N/A' }}</p></div>
+                  <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Time</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.preferred_time || 'N/A' }}</p></div>
                 </div>
-                <div class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Branch</label><p class="mt-0.5 text-sm text-white">{{ detailItem?.branch || 'N/A' }}</p></div>
-                <div v-if="detailItem?.notes" class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Notes</label><p class="mt-0.5 text-sm text-white whitespace-pre-wrap">{{ detailItem.notes }}</p></div>
+                <div class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Branch</label><p class="mt-0.5 text-sm text-white break-words">{{ detailItem?.branch || 'N/A' }}</p></div>
+                <div v-if="detailItem?.notes" class="mt-3"><label class="text-xs font-display tracking-display text-brand-grey uppercase">Notes</label><p class="mt-0.5 text-sm text-white whitespace-pre-wrap break-words">{{ detailItem.notes }}</p></div>
               </div>
               <div v-if="detailItem?.id_document || detailItem?.drivers_license" class="border-t border-brand-grey/20 pt-4">
                 <label class="mb-2 block text-xs font-display tracking-display text-brand-grey uppercase">Uploaded Documents</label>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div v-if="detailItem.id_document">
                     <p class="mb-1 text-xs text-brand-grey">ID Document</p>
                     <img v-if="isImage(detailItem.id_document)" :src="pb.files.getURL(detailItem, detailItem.id_document)" class="max-h-48 w-full rounded-sm border border-brand-grey/20 object-contain cursor-pointer" @click="previewImg = pb.files.getURL(detailItem, detailItem.id_document)" />
@@ -81,7 +81,7 @@
               </div>
               <div class="border-t border-brand-grey/20 pt-4">
                 <h3 class="mb-3 font-display text-base tracking-display text-white">Update Status</h3>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Status</label>
                     <select v-model="updateDetailForm.status" class="input-field h-11 w-full">
                       <option value="pending">Pending</option>

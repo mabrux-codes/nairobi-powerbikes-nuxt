@@ -54,16 +54,44 @@ const pb = usePB()
 const route = useRoute()
 const loading = ref(true); const brand = ref<Brand | null>(null)
 const motorcyclesLoading = ref(true); const motorcycles = ref<Motorcycle[]>([])
+let brandId = ''
+
+const fallbackBrands: Brand[] = [
+  { id: 'tekken', name: 'Tekken', tagline: 'Built to Conquer', description: 'Chinese engineering excellence meets bold design.' },
+  { id: 'taro-gp', name: 'Taro GP', tagline: 'Race-Bred Performance', description: 'High-performance motorcycles engineered for the track and the street.' },
+  { id: 'voge', name: 'Voge', tagline: 'Ride Beyond Limits', description: 'Adventure-ready motorcycles built for the open road.' },
+  { id: 'loncin', name: 'Loncin', tagline: 'Powering Your Ride', description: 'Reliable motorcycles and engines trusted worldwide.' },
+  { id: 'qj-motor', name: 'QJ Motor', tagline: 'The Future of Motion', description: 'Innovative motorcycles blending style, power, and technology.' },
+]
 
 async function loadMotorcycles() {
-  try { motorcycles.value = await pb.collection('motorcycles').getFullList<Motorcycle>({ filter: `brand="${route.params.id}" && status!="sold"`, sort: '-year,name' }) } catch { motorcycles.value = [] }
+  if (!brandId) { motorcyclesLoading.value = false; return }
+  try { motorcycles.value = await pb.collection('motorcycles').getFullList<Motorcycle>({ filter: `brand="${brandId}" && status!="sold"`, sort: '-year,name' }) } catch { motorcycles.value = [] }
   finally { motorcyclesLoading.value = false }
 }
 
 onMounted(async () => {
   try {
-    brand.value = await pb.collection('brands').getOne<Brand>(route.params.id as string)
-    useHead({ title: `${brand.value.name} - Nairobi Powerbikes` })
+    const slug = route.params.id as string
+    try {
+      const found = await pb.collection('brands').getFirstListItem<Brand>(`slug="${slug}"`)
+      brand.value = found; brandId = found.id
+    } catch {
+      try {
+        const name = slug.replace(/-/g, ' ')
+        const found = await pb.collection('brands').getFirstListItem<Brand>(`name~"${name}"`)
+        brand.value = found; brandId = found.id
+      } catch {
+        try {
+          const found = await pb.collection('brands').getOne<Brand>(slug)
+          brand.value = found; brandId = found.id
+        } catch {
+          const fb = fallbackBrands.find(b => b.id === slug || b.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug)
+          if (fb) { brand.value = fb; brandId = fb.id }
+        }
+      }
+    }
+    if (brand.value) useHead({ title: `${brand.value.name} - Nairobi Powerbikes` })
     await loadMotorcycles()
     pb.collection('motorcycles').subscribe('*', () => loadMotorcycles())
   } catch { brand.value = null }

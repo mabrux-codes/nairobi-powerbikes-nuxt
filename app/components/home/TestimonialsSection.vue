@@ -27,8 +27,8 @@
           </div>
           <p class="mt-3 text-sm leading-relaxed text-brand-grey/80 italic">&ldquo;{{ t.content }}&rdquo;</p>
           <div class="mt-4 flex items-center gap-3 border-t border-brand-grey/10 pt-4">
-            <div v-if="t.avatar" class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-brand-grey/10">
-              <img :src="pb.files.getURL(t, t.avatar)" :alt="t.name" class="h-full w-full object-cover" />
+            <div v-if="t.photo" class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-brand-grey/10">
+              <img :src="pb.files.getURL(t, t.photo)" :alt="t.name" class="h-full w-full object-cover" />
             </div>
             <div v-else class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-red/20 text-sm font-bold text-brand-red">
               {{ (t.name || '?')[0] }}
@@ -48,7 +48,7 @@
 import { motion } from 'motion-v'
 import { usePB } from '~/composables/usePocketBase'
 
-interface Testimonial { id: string; name: string; role?: string; content: string; rating?: number; avatar?: string; sort_order?: number }
+interface Testimonial { id: string; name: string; role?: string; content: string; rating?: number; photo?: string; display_order?: number }
 
 const pb = usePB()
 const loading = ref(true)
@@ -56,7 +56,7 @@ const testimonials = ref<Testimonial[]>([])
 
 async function loadTestimonials() {
   try {
-    const records = await pb.collection('testimonials').getFullList<Testimonial>({ sort: 'sort_order,created' })
+    const records = await pb.collection('testimonials').getFullList<Testimonial>({ sort: 'display_order,created' })
     testimonials.value = records
   } catch { testimonials.value = [] }
   finally { loading.value = false }

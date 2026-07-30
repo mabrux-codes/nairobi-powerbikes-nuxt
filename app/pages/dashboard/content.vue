@@ -131,9 +131,9 @@
             <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Testimonial</label><textarea v-model="testimonialForm.content" rows="3" class="input-field w-full resize-none" placeholder="Their feedback..." /></div>
             <div class="grid grid-cols-2 gap-4">
               <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Rating (1-5)</label><input v-model.number="testimonialForm.rating" type="number" min="1" max="5" class="input-field h-11" /></div>
-              <Input v-model="testimonialForm.sort_order" label="Sort Order" type="number" placeholder="0" />
+              <Input v-model="testimonialForm.display_order" label="Display Order" type="number" placeholder="0" />
             </div>
-            <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Avatar</label><input type="file" accept="image/*" @change="onAvatarChange" class="input-field w-full text-sm file:mr-3 file:border-0 file:bg-brand-red file:px-3 file:py-1 file:text-xs file:text-white" /><img v-if="avatarPreview" :src="avatarPreview" class="mt-2 h-12 w-12 rounded-full object-cover" /></div>
+            <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Photo</label><input type="file" accept="image/*" @change="onAvatarChange" class="input-field w-full text-sm file:mr-3 file:border-0 file:bg-brand-red file:px-3 file:py-1 file:text-xs file:text-white" /><img v-if="photoPreview" :src="photoPreview" class="mt-2 h-12 w-12 rounded-full object-cover" /></div>
           </div>
           <div class="mt-6 flex justify-end gap-3"><Button variant="ghost" @click="showTestimonialModal = false">Cancel</Button><Button :disabled="savingTestimonial" @click="saveTestimonial">{{ savingTestimonial ? 'Saving...' : 'Save' }}</Button></div>
         </div>
@@ -176,19 +176,19 @@ const showTeamModal = ref(false); const editingTeamId = ref<string | null>(null)
 const teamForm = ref({ name: '', role: '', bio: '', sort_order: '0' })
 
 const showTestimonialModal = ref(false); const editingTestimonialId = ref<string | null>(null); const savingTestimonial = ref(false)
-const testimonialForm = ref({ name: '', role: '', content: '', rating: 5, sort_order: '0' })
-const avatarFile = ref<File | null>(null); const avatarPreview = ref<string | null>(null)
+const testimonialForm = ref({ name: '', role: '', content: '', rating: 5, display_order: '0' })
+const photoFile = ref<File | null>(null); const photoPreview = ref<string | null>(null)
 
 function openTestimonialModal(t?: any) {
   editingTestimonialId.value = t?.id || null
-  testimonialForm.value = t ? { name: t.name, role: t.role || '', content: t.content || '', rating: t.rating || 5, sort_order: t.sort_order?.toString() || '0' } : { name: '', role: '', content: '', rating: 5, sort_order: '0' }
-  avatarFile.value = null; avatarPreview.value = t?.avatar ? pb.files.getURL(t, t.avatar) : null
+  testimonialForm.value = t ? { name: t.name, role: t.role || '', content: t.content || '', rating: t.rating || 5, display_order: t.display_order?.toString() || '0' } : { name: '', role: '', content: '', rating: 5, display_order: '0' }
+  photoFile.value = null; photoPreview.value = t?.photo ? pb.files.getURL(t, t.photo) : null
   showTestimonialModal.value = true
 }
 
 function onAvatarChange(e: Event) {
   const target = e.target as HTMLInputElement
-  if (target.files?.[0]) { avatarFile.value = target.files[0]; avatarPreview.value = URL.createObjectURL(target.files[0]) }
+  if (target.files?.[0]) { photoFile.value = target.files[0]; photoPreview.value = URL.createObjectURL(target.files[0]) }
 }
 
 async function saveTestimonial() {
@@ -199,8 +199,8 @@ async function saveTestimonial() {
     data.append('role', testimonialForm.value.role)
     data.append('content', testimonialForm.value.content)
     data.append('rating', (testimonialForm.value.rating || 5).toString())
-    data.append('sort_order', testimonialForm.value.sort_order || '0')
-    if (avatarFile.value) data.append('avatar', avatarFile.value)
+    data.append('display_order', testimonialForm.value.display_order || '0')
+    if (photoFile.value) data.append('photo', photoFile.value)
     if (editingTestimonialId.value) await pb.collection('testimonials').update(editingTestimonialId.value, data)
     else await pb.collection('testimonials').create(data)
     showTestimonialModal.value = false; await loadData()
@@ -232,7 +232,7 @@ async function loadData() {
       pb.collection('timeline_milestones').getFullList({ sort: 'display_order' }).catch(() => []),
       pb.collection('company_stats').getList(1, 10, { sort: 'sort_order' }).catch(() => ({ items: [] })),
       pb.collection('team_members').getFullList({ sort: 'sort_order' }).catch(() => []),
-      pb.collection('testimonials').getFullList({ sort: 'sort_order' }).catch(() => []),
+      pb.collection('testimonials').getFullList({ sort: 'display_order' }).catch(() => []),
     ])
     milestones.value = m as any[]; stats.value = (s as any).items || []; team.value = t as any[]; testimonials.value = te as any[]
   } catch (e) { console.error(e) }

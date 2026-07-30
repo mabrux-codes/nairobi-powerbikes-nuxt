@@ -8,9 +8,9 @@
       </motion.div>
 
       <div class="mt-8 flex flex-wrap gap-3">
-        <button v-for="cat in categories" :key="cat" class="rounded-sm border px-4 py-2 text-xs font-display tracking-display uppercase transition-all duration-200"
-          :class="activeCategory === cat ? 'border-brand-red bg-brand-red/10 text-brand-red' : 'border-brand-grey/20 text-brand-grey hover:border-brand-red/40'"
-          @click="activeCategory = cat">{{ cat }}</button>
+        <Button v-for="cat in categories" :key="cat" variant="ghost" size="sm"
+          :class="activeCategory === cat ? 'border-brand-red bg-brand-red/10 text-brand-red' : ''"
+          @click="activeCategory = cat">{{ cat }}</Button>
       </div>
 
       <div v-if="loading" class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

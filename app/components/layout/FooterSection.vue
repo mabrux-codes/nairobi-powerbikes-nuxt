@@ -48,13 +48,14 @@
               placeholder="Your email address"
               class="w-full border border-brand-grey bg-brand-black px-4 py-3 text-sm text-white placeholder:text-brand-grey focus:border-brand-red focus:outline-none transition-colors"
             />
-            <button
+            <Button
               type="submit"
-              :disabled="subscribing"
-              class="btn-primary w-full justify-center text-sm disabled:opacity-50"
+              :loading="subscribing"
+              variant="primary"
+              class="w-full"
             >
-              {{ subscribing ? 'Subscribing...' : 'Subscribe' }}
-            </button>
+              Subscribe
+            </Button>
           </form>
           <p v-if="subscribeMsg" class="mt-3 text-xs" :class="subscribeError ? 'text-red-400' : 'text-green-400'">
             {{ subscribeMsg }}

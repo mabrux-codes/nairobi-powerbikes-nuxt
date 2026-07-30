@@ -33,7 +33,7 @@
               <td class="px-4 py-3 text-brand-grey">{{ s.name || 'N/A' }}</td>
               <td class="px-4 py-3 text-brand-grey">{{ formatDate(s.created) }}</td>
               <td class="px-4 py-3"><Badge :variant="s.active !== false ? 'success' : 'danger'">{{ s.active !== false ? 'Active' : 'Inactive' }}</Badge></td>
-              <td class="px-4 py-3 text-right"><Button variant="outline" size="sm" @click="toggleActive(s)">{{ s.active !== false ? 'Deactivate' : 'Activate' }}</Button></td>
+              <td class="px-4 py-3 text-right"><Button variant="ghost" size="sm" @click="toggleActive(s)">{{ s.active !== false ? 'Deactivate' : 'Activate' }}</Button></td>
             </tr>
           </tbody>
         </table>
@@ -45,16 +45,19 @@
 <script setup lang="ts">
 import { Mail } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 import { formatDate } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Subscribers - Nairobi Powerbikes' })
 
 const pb = usePB()
+const toast = useToast()
+const confirmDlg = useConfirm()
 const loading = ref(true)
 const subscribers = ref<any[]>([])
 const searchQuery = ref('')
-
 
 
 const filtered = computed(() => {
@@ -63,9 +66,16 @@ const filtered = computed(() => {
 })
 
 async function toggleActive(s: any) {
-  const active = s.active !== false ? false : true
-  await pb.collection('subscribers').update(s.id, { active })
-  s.active = active
+  const newActive = s.active !== false ? false : true
+  const ok = await confirmDlg.confirm({ title: 'Change Status', message: `Are you sure you want to ${newActive ? 'activate' : 'deactivate'} this subscriber?`, confirmText: 'Confirm', confirmType: 'warning' })
+  if (!ok) return
+  try {
+    await pb.collection('subscribers').update(s.id, { active: newActive })
+    s.active = newActive
+    toast.add({ type: 'success', title: `Subscriber ${newActive ? 'activated' : 'deactivated'} successfully` })
+  } catch (e: any) {
+    toast.add({ type: 'error', title: 'Failed to update status', message: e?.message || 'Something went wrong' })
+  }
 }
 
 async function loadData() { try { const res = await pb.collection('subscribers').getList(1, 200, { sort: '-created' }); subscribers.value = res.items as any[] } catch (e) { console.error(e) } }

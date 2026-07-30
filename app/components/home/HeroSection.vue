@@ -58,14 +58,14 @@
             :animate="{ opacity: 1, y: 0 }"
             :transition="{ delay: 0.8, duration: 0.5 }"
           >
-            <NuxtLink to="/motorcycles" class="btn-primary">
+            <Button to="/motorcycles" variant="primary" size="lg">
               <ArrowRight class="h-5 w-5" />
               Browse Motorcycles
-            </NuxtLink>
-            <NuxtLink to="/service/test-ride" class="btn-secondary">
+            </Button>
+            <Button to="/service/test-ride" variant="secondary" size="lg">
               <Calendar class="h-5 w-5" />
               Book a Test Ride
-            </NuxtLink>
+            </Button>
           </motion.div>
         </motion.div>
 

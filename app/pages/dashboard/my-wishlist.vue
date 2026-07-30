@@ -31,7 +31,7 @@
               <p v-if="m.sale_price" class="text-xs font-bold text-brand-grey/60 line-through">KES {{ Number(m.price).toLocaleString() }}</p>
             </div>
             <div class="mt-3">
-              <NuxtLink :to="bikePath(m)"><Button variant="outline" size="sm" class="w-full">View Details</Button></NuxtLink>
+              <NuxtLink :to="bikePath(m)"><Button variant="ghost" size="sm" class="w-full">View Details</Button></NuxtLink>
             </div>
           </div>
         </div>

@@ -34,8 +34,7 @@
             <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Branch</label>
               <Field name="branch" v-slot="{ field }"><select v-bind="field" class="input-field h-11 appearance-none"><option value="mombasa-road">Mombasa Road Branch</option></select></Field></div>
 
-            <button type="submit" :disabled="isSubmitting || availableTimeSlots.every(s => bookedTimes.has(s))" class="btn-primary mt-2 w-full justify-center h-12 disabled:opacity-50">
-              <LoaderCircle v-if="isSubmitting" class="h-5 w-5 animate-spin" /><CalendarCheck v-else class="h-5 w-5" />{{ isSubmitting ? 'Booking...' : 'Book Appointment' }}</button>
+            <Button type="submit" :loading="isSubmitting" :disabled="availableTimeSlots.every(s => bookedTimes.has(s))" variant="primary" class="mt-2 w-full"><CalendarCheck class="h-5 w-5" />Book Appointment</Button>
           </form>
 
           <div v-if="submitError" class="mt-6 rounded-sm border border-brand-red/30 bg-brand-red/10 p-4 text-center">
@@ -56,7 +55,7 @@
             Your service booking has been received. We will send a confirmation with your appointment details to
             <span class="font-medium text-white">{{ submittedEmail }}</span>.
           </p>
-          <button @click="closeSuccess" class="btn-primary mt-6 w-full justify-center">Got it</button>
+          <Button @click="closeSuccess" variant="primary" class="mt-6 w-full">Got it</Button>
         </motion.div>
       </div>
     </Teleport>

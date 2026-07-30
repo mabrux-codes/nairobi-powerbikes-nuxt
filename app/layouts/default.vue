@@ -5,6 +5,7 @@
       <slot />
     </main>
     <FooterSection />
+    <ToastContainer />
   </div>
 </template>
 

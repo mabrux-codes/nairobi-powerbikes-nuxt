@@ -30,7 +30,7 @@
       <div v-else class="mt-10 rounded-sm border border-dashed border-brand-grey/20 p-16 text-center">
         <p class="font-display text-2xl tracking-display text-brand-grey">No New Arrivals</p>
         <p class="mt-2 text-sm text-brand-grey/60">Check back soon for the latest models</p>
-        <NuxtLink to="/motorcycles" class="btn-ghost mt-4">Browse All Motorcycles</NuxtLink>
+        <Button to="/motorcycles" variant="ghost" class="mt-4">Browse All Motorcycles</Button>
       </div>
     </div>
   </div>

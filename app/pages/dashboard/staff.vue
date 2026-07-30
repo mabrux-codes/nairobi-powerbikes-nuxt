@@ -72,8 +72,8 @@
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-2">
                   <Button variant="ghost" size="sm" @click="openEditModal(s)">Edit</Button>
-                  <Button v-if="s.status === 'active'" variant="outline" size="sm" @click="toggleStatus(s)">Deactivate</Button>
-                  <Button v-else variant="outline" size="sm" @click="toggleStatus(s)">Activate</Button>
+                  <Button v-if="s.status === 'active'" variant="ghost" size="sm" @click="toggleStatus(s)">Deactivate</Button>
+                  <Button v-else variant="ghost" size="sm" @click="toggleStatus(s)">Activate</Button>
                 </div>
               </td>
             </tr>
@@ -128,11 +128,15 @@
 <script setup lang="ts">
 import { Users } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Staff Management - Nairobi Powerbikes' })
 
 const pb = usePB()
+const toast = useToast()
+const confirmDlg = useConfirm()
 const loading = ref(true)
 const saving = ref(false)
 const staff = ref<any[]>([])
@@ -179,19 +183,23 @@ async function saveStaff() {
       const { password, ...rest } = form.value
       await pb.collection('users').create({ ...rest, status: 'active', emailVisibility: true, password, passwordConfirm: password })
     }
+    toast.add({ type: 'success', title: editingId.value ? 'Staff updated successfully' : 'Staff created successfully' })
     closeModal()
     await loadStaff()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save staff', message: e?.message || 'Something went wrong' }) }
   finally { saving.value = false }
 }
 
 async function toggleStatus(s: any) {
   const newStatus = s.status === 'active' ? 'inactive' : 'active'
+  const ok = await confirmDlg.confirm({ title: 'Change Status', message: `Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} this user?`, confirmText: 'Confirm', confirmType: 'warning' })
+  if (!ok) return
   try {
     await pb.collection('users').update(s.id, { status: newStatus })
     s.status = newStatus
+    toast.add({ type: 'success', title: `Staff ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully` })
   } catch (e: any) {
-    console.error('Status toggle failed:', e?.data?.message || e?.message || e)
+    toast.add({ type: 'error', title: 'Failed to update status', message: e?.message || 'Something went wrong' })
   }
 }
 

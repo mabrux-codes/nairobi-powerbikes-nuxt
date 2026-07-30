@@ -104,12 +104,12 @@ migrate((app) => {
     ],
     "id": "pbc_1873367423",
     "indexes": [],
-    "listRule": null,
+    "listRule": "1=1",
     "name": "testimonials",
     "system": false,
     "type": "base",
     "updateRule": "@request.auth.role = 'admin'",
-    "viewRule": null
+    "viewRule": "1=1"
   });
 
   return app.save(collection);

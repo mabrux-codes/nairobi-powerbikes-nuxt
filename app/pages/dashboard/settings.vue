@@ -27,7 +27,7 @@
               </div>
               <div class="flex gap-2">
                 <Button variant="ghost" size="sm" @click="openBranchModal(b)">Edit</Button>
-                <Button variant="outline" size="sm" @click="deleteBranch(b)">Delete</Button>
+                <Button variant="danger" size="sm" :disabled="deleting" @click="deleteBranch(b)">Delete</Button>
               </div>
             </div>
           </div>
@@ -49,7 +49,7 @@
               </div>
               <div class="flex gap-2">
                 <Button variant="ghost" size="sm" @click="openServiceModal(s)">Edit</Button>
-                <Button variant="outline" size="sm" @click="deleteService(s)">Delete</Button>
+                <Button variant="danger" size="sm" :disabled="deleting" @click="deleteService(s)">Delete</Button>
               </div>
             </div>
           </div>
@@ -110,16 +110,20 @@
 
 <script setup lang="ts">
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Settings - Nairobi Powerbikes' })
 
 const pb = usePB()
+const toast = useToast()
+const confirmDlg = useConfirm()
 const loading = ref(true)
 const branches = ref<any[]>([]); const serviceTypes = ref<any[]>([])
 const showBranchModal = ref(false); const branchEditingId = ref<string | null>(null)
 const branchForm = ref({ name: '', address: '', phone: '', email: '', hours: '' })
-const savingBranch = ref(false)
+const savingBranch = ref(false); const deleting = ref(false)
 const showServiceModal = ref(false); const serviceEditingId = ref<string | null>(null)
 const serviceForm = ref({ name: '', price: '', description: '' })
 const savingService = ref(false)
@@ -143,14 +147,21 @@ async function saveBranch() {
   try {
     const payload: any = { ...branchForm.value }
     if (!branchEditingId.value) payload.slug = branchForm.value.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    if (branchEditingId.value) await pb.collection('branches').update(branchEditingId.value, payload)
-    else await pb.collection('branches').create(payload)
+    if (branchEditingId.value) { await pb.collection('branches').update(branchEditingId.value, payload); toast.add({ type: 'success', title: 'Branch updated successfully' }) }
+    else { await pb.collection('branches').create(payload); toast.add({ type: 'success', title: 'Branch created successfully' }) }
     showBranchModal.value = false; await loadData()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save branch', message: e?.message || 'Something went wrong' }) }
   finally { savingBranch.value = false }
 }
 
-async function deleteBranch(b: any) { if (await confirm(`Delete branch "${b.name}"?`)) pb.collection('branches').delete(b.id).then(() => loadData()) }
+async function deleteBranch(b: any) {
+  deleting.value = true
+  try {
+    const ok = await confirmDlg.confirm({ title: 'Delete Branch', message: `Are you sure you want to delete "${b.name}"? This cannot be undone.`, confirmText: 'Delete', confirmType: 'danger' })
+    if (ok) { await pb.collection('branches').delete(b.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) }
+  finally { deleting.value = false }
+}
 
 function openServiceModal(s?: any) {
   serviceEditingId.value = s?.id || null
@@ -162,14 +173,21 @@ async function saveService() {
   savingService.value = true
   try {
     const payload: any = { ...serviceForm.value, price: parseFloat(serviceForm.value.price) || 0 }
-    if (serviceEditingId.value) await pb.collection('service_types').update(serviceEditingId.value, payload)
-    else await pb.collection('service_types').create(payload)
+    if (serviceEditingId.value) { await pb.collection('service_types').update(serviceEditingId.value, payload); toast.add({ type: 'success', title: 'Service updated successfully' }) }
+    else { await pb.collection('service_types').create(payload); toast.add({ type: 'success', title: 'Service created successfully' }) }
     showServiceModal.value = false; await loadData()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save service', message: e?.message || 'Something went wrong' }) }
   finally { savingService.value = false }
 }
 
-async function deleteService(s: any) { if (await confirm(`Delete service "${s.name}"?`)) pb.collection('service_types').delete(s.id).then(() => loadData()) }
+async function deleteService(s: any) {
+  deleting.value = true
+  try {
+    const ok = await confirmDlg.confirm({ title: 'Delete Service', message: `Are you sure you want to delete "${s.name}"? This cannot be undone.`, confirmText: 'Delete', confirmType: 'danger' })
+    if (ok) { await pb.collection('service_types').delete(s.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) }
+  finally { deleting.value = false }
+}
 
 async function loadData() {
   try {

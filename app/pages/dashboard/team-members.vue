@@ -33,7 +33,7 @@
           <p v-if="m.bio" class="mt-2 text-xs text-brand-grey leading-relaxed">{{ m.bio }}</p>
           <div class="mt-4 flex justify-center gap-2">
             <Button variant="ghost" size="sm" @click="openEditModal(m)">Edit</Button>
-            <Button variant="outline" size="sm" @click="confirmDelete(m)">Delete</Button>
+            <Button variant="danger" size="sm" :disabled="deleting" @click="confirmDelete(m)">Delete</Button>
           </div>
         </div>
       </div>
@@ -65,12 +65,16 @@
 <script setup lang="ts">
 import { Users } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Team - Nairobi Powerbikes' })
 
 const pb = usePB()
-const loading = ref(true); const saving = ref(false)
+const toast = useToast()
+const confirmDlg = useConfirm()
+const loading = ref(true); const saving = ref(false); const deleting = ref(false)
 const members = ref<any[]>([])
 const showModal = ref(false); const editingId = ref<string | null>(null)
 const form = ref({ name: '', role: '', bio: '', sort_order: '0' })
@@ -85,14 +89,14 @@ async function saveMember() {
   saving.value = true
   try {
     const payload: any = { ...form.value, sort_order: parseInt(form.value.sort_order) || 0 }
-    if (editingId.value) await pb.collection('team_members').update(editingId.value, payload)
-    else await pb.collection('team_members').create(payload)
+    if (editingId.value) { await pb.collection('team_members').update(editingId.value, payload); toast.add({ type: 'success', title: 'Updated successfully' }) }
+    else { await pb.collection('team_members').create(payload); toast.add({ type: 'success', title: 'Created successfully' }) }
     closeModal(); await loadMembers()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save', message: e?.message || 'Something went wrong' }) }
   finally { saving.value = false }
 }
 
-async function confirmDelete(m: any) { if (await confirm(`Delete "${m.name}"?`)) pb.collection('team_members').delete(m.id).then(() => loadMembers()) }
+async function confirmDelete(m: any) { deleting.value = true; try { const ok = await confirmDlg.confirm({ title: 'Delete Member', message: `Are you sure you want to delete "${m.name}"? This cannot be undone.`, confirmText: 'Delete', confirmType: 'danger' }); if (ok) { await pb.collection('team_members').delete(m.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadMembers() } } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) } finally { deleting.value = false } }
 
 async function loadMembers() { try { const res = await pb.collection('team_members').getList(1, 50, { sort: 'sort_order' }); members.value = res.items as any[] } catch (e) { console.error(e) } }
 

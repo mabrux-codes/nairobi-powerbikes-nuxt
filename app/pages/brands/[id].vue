@@ -35,7 +35,7 @@
       <div v-else class="rounded-sm border border-dashed border-brand-grey/20 p-16 text-center">
         <p class="font-display text-2xl tracking-display text-brand-grey">Brand Not Found</p>
         <p class="mt-2 text-sm text-brand-grey/60">The brand you're looking for doesn't exist.</p>
-        <NuxtLink to="/brands" class="btn-primary mt-6 inline-flex">Browse All Brands</NuxtLink>
+        <Button to="/brands" variant="primary" class="mt-6">Browse All Brands</Button>
       </div>
     </div>
   </div>

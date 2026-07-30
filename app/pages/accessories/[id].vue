@@ -15,15 +15,15 @@
             <p v-if="item.description" class="mt-6 leading-relaxed text-brand-grey">{{ item.description }}</p>
             <div v-if="item.features?.length" class="mt-6"><h3 class="font-display text-lg text-white">Features</h3><ul class="mt-2 space-y-1.5"><li v-for="(f, i) in item.features" :key="i" class="flex items-start gap-2 text-sm text-brand-grey"><Check class="mt-0.5 h-4 w-4 shrink-0 text-brand-red" />{{ f }}</li></ul></div>
             <div class="mt-8 flex flex-wrap gap-3">
-              <button class="btn-primary"><ShoppingCart class="h-5 w-5" />Add to Cart</button>
-              <button class="btn-secondary"><Heart class="h-5 w-5" />Add to Wishlist</button>
+              <Button variant="primary"><ShoppingCart class="h-5 w-5" />Add to Cart</Button>
+              <Button variant="secondary"><Heart class="h-5 w-5" />Add to Wishlist</Button>
             </div>
           </div>
         </motion.div>
       </template>
       <div v-else class="rounded-sm border border-dashed border-brand-grey/20 p-16 text-center">
         <p class="font-display text-2xl tracking-display text-brand-grey">Accessory Not Found</p>
-        <NuxtLink to="/accessories" class="btn-primary mt-6 inline-flex">Browse All Accessories</NuxtLink>
+        <Button to="/accessories" variant="primary" class="mt-6">Browse All Accessories</Button>
       </div>
     </div>
   </div>

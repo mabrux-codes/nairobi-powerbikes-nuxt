@@ -21,11 +21,11 @@
                 <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Category</label><Field name="category" v-slot="{ componentField, errorMessage }"><select v-bind="componentField" class="input-field appearance-none" :class="{ 'border-brand-red': errorMessage }"><option value="" disabled>Select category</option><option v-for="c in categories" :key="c" :value="c">{{ c }}</option></select><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
               </div>
               <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Message</label><Field name="message" v-slot="{ componentField, errorMessage }"><textarea v-bind="componentField" rows="5" class="input-field min-h-[140px]" :class="{ 'border-brand-red': errorMessage }"></textarea><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
-              <button type="submit" :disabled="isSubmitting" class="btn-primary w-full justify-center disabled:opacity-50"><LoaderCircle v-if="isSubmitting" class="h-5 w-5 animate-spin" /><Send v-else class="h-5 w-5" />{{ isSubmitting ? 'Sending...' : 'Send Message' }}</button>
+              <Button type="submit" :loading="isSubmitting" variant="primary" class="w-full"><Send class="h-5 w-5" />Send Message</Button>
             </form>
             <div v-if="showSuccess" class="mt-6 rounded-sm border border-green-500/30 bg-green-500/10 p-5 text-center">
               <CheckCircle class="mx-auto mb-3 h-8 w-8 text-green-400" /><p class="font-display text-xl tracking-display text-green-400">Message Sent!</p><p class="mt-1 text-sm text-green-300">We'll get back to you as soon as possible.</p>
-              <button class="btn-ghost mt-4" @click="resetForm">Send Another Message</button>
+              <Button variant="ghost" class="mt-4" @click="resetForm">Send Another Message</Button>
             </div>
             <div v-if="submitError" class="mt-6 rounded-sm border border-brand-red/30 bg-brand-red/10 p-4 text-center"><p class="text-sm text-brand-red">{{ submitError }}</p></div>
           </div>

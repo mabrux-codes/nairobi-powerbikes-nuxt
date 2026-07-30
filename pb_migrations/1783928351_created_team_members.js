@@ -95,12 +95,12 @@ migrate((app) => {
     ],
     "id": "pbc_3980519374",
     "indexes": [],
-    "listRule": "",
+    "listRule": "1=1",
     "name": "team_members",
     "system": false,
     "type": "base",
     "updateRule": "@request.auth.role = 'admin'",
-    "viewRule": ""
+    "viewRule": "1=1"
   });
 
   return app.save(collection);

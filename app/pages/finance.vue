@@ -37,7 +37,7 @@
                 <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Employment Status</label><Field name="fin_employment" v-slot="{ componentField, errorMessage }"><select v-bind="componentField" class="input-field appearance-none"><option value="" disabled>Select</option><option>Employed</option><option>Self-Employed</option><option>Business Owner</option></select></Field></div>
                 <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Monthly Income (KES)</label><Field name="fin_income" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="number" class="input-field" /></Field></div>
               </div>
-              <button type="submit" :disabled="isSubmittingFin" class="btn-primary w-full justify-center disabled:opacity-50"><LoaderCircle v-if="isSubmittingFin" class="h-5 w-5 animate-spin" /><BadgeDollarSign v-else class="h-5 w-5" />{{ isSubmittingFin ? 'Submitting...' : 'Submit Application' }}</button>
+              <Button type="submit" :loading="isSubmittingFin" variant="primary" class="w-full"><BadgeDollarSign class="h-5 w-5" />Submit Application</Button>
             </form>
             <div v-if="finSuccess" class="mt-6 rounded-sm border border-green-500/30 bg-green-500/10 p-5 text-center">
               <CheckCircle class="mx-auto mb-3 h-8 w-8 text-green-400" /><p class="font-display text-xl tracking-display text-green-400">Application Submitted</p><p class="mt-1 text-sm text-green-300">Our finance team will contact you within 48 hours.</p>

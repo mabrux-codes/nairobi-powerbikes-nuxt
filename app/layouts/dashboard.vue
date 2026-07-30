@@ -18,11 +18,12 @@
           <p class="mt-2 text-sm text-brand-grey">You've been inactive for a while. For your security, you'll be automatically logged out in <span class="text-amber-400 font-bold">{{ countdown }}</span> seconds.</p>
           <div class="mt-6 flex gap-3 justify-center">
             <Button @click="stayLoggedIn">Stay Logged In</Button>
-            <Button variant="outline" @click="logoutNow">Log Out Now</Button>
+            <Button variant="ghost" @click="logoutNow">Log Out Now</Button>
           </div>
         </div>
       </div>
     </Teleport>
+    <ToastContainer />
   </div>
 </template>
 

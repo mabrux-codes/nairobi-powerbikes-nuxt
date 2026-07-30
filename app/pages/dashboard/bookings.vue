@@ -119,17 +119,19 @@
 <script setup lang="ts">
 import { Calendar, FileText, X } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 import { formatDate, formatTime } from '~/composables/useFormat'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Bookings - Nairobi Powerbikes' })
-const pb = usePB(); const loading = ref(true); const savingDetail = ref(false)
+const pb = usePB(); const toast = useToast(); const confirmDlg = useConfirm(); const loading = ref(true); const savingDetail = ref(false)
 const items = ref<any[]>([]); const showDetail = ref(false); const detailItem = ref<any>(null)
 const previewImg = ref('')
 const updateDetailForm = ref({ status: 'pending', notes: '' })
 function statusVariant(s: string) { const m: Record<string, string> = { pending: 'warning', confirmed: 'secondary', in_progress: 'default', completed: 'success', cancelled: 'danger' }; return m[s] || 'outline' }
 function isImage(filename: string) { return /\.(jpe?g|png)$/i.test(filename) }
 function openDetail(b: any) { detailItem.value = b; updateDetailForm.value = { status: b.status || 'pending', notes: b.notes || '' }; showDetail.value = true }
-async function saveDetailUpdate() { savingDetail.value = true; try { await pb.collection('service_bookings').update(detailItem.value.id, updateDetailForm.value); showDetail.value = false; await loadData() } catch (e) { console.error(e) } finally { savingDetail.value = false } }
+async function saveDetailUpdate() { savingDetail.value = true; try { await pb.collection('service_bookings').update(detailItem.value.id, updateDetailForm.value); toast.add({ type: 'success', title: 'Booking updated successfully' }); showDetail.value = false; await loadData() } catch (e: any) { toast.add({ type: 'error', title: 'Failed to update booking', message: e?.message || 'Something went wrong' }) } finally { savingDetail.value = false } }
 async function loadData() { try { const res = await pb.collection('service_bookings').getList(1, 100, { sort: '-created', expand: 'user' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }
 watch([showDetail, previewImg], ([sd, pi]) => { document.body.style.overflow = sd || pi ? 'hidden' : '' })
 onMounted(() => { loadData(); pb.collection('service_bookings').subscribe('*', () => loadData()) })

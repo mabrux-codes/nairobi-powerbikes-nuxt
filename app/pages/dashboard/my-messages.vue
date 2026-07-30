@@ -7,10 +7,11 @@
 import { Mail } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
+import { formatDate } from '~/composables/useFormat'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['customer'] })
 useHead({ title: 'Messages - Nairobi Powerbikes' })
 const pb = usePB(); const auth = useAuthStore(); const loading = ref(true)
 const items = ref<any[]>([])
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : '' }
+
 onMounted(async () => { try { const res = await pb.collection('messages').getList(1, 50, { filter: `to_user = "${auth.user?.id}"`, sort: '-created', expand: 'from_user' }); items.value = res.items as any[] } catch(e){} finally { loading.value = false } })
 </script>

@@ -77,6 +77,7 @@
 import { Check, ChevronRight, Wrench } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
+import { formatDate } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['customer'] })
 useHead({ title: 'My Bookings - Nairobi Powerbikes' })
@@ -106,7 +107,7 @@ function stepStyle(stepKey: string, bookingStatus: string) {
   return 'bg-brand-grey/10 text-brand-grey/50'
 }
 
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : 'N/A' }
+
 
 function statusVariant(s: string) {
   const map: Record<string, string> = { pending: 'warning', diagnosed: 'default', in_progress: 'secondary', completed: 'success', cancelled: 'danger' }

@@ -44,6 +44,7 @@
 <script setup lang="ts">
 import { MessageSquare } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { formatDate } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Messages - Nairobi Powerbikes' })
@@ -54,7 +55,7 @@ const messages = ref<any[]>([])
 const searchQuery = ref('')
 const readFilter = ref('')
 
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : 'N/A' }
+
 
 const filtered = computed(() => {
   return messages.value.filter(m => {

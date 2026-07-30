@@ -11,7 +11,7 @@
         <div v-for="i in 6" :key="i" class="animate-pulse rounded-sm border border-brand-grey/10 p-6"><div class="mx-auto mb-4 h-16 w-32 rounded bg-brand-grey/10" /><div class="mx-auto h-5 w-24 rounded bg-brand-grey/10" /><div class="mx-auto mt-2 h-4 w-48 rounded bg-brand-grey/10" /></div>
       </div>
       <div v-else class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink v-for="(brand, i) in brands" :key="brand.id" :to="`/brands/${brand.id}`">
+        <NuxtLink v-for="(brand, i) in brands" :key="brand.id" :to="`/brands/${brand.slug || brand.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`">
           <motion.div class="group rounded-sm border border-brand-grey/10 bg-brand-black/60 p-8 text-center transition-all duration-300 hover:border-brand-red/40 hover:bg-brand-red/5"
             :initial="{ opacity: 0, y: 30 }" :animate="{ opacity: 1, y: 0 }" :transition="{ delay: i * 0.08, duration: 0.4 }">
             <img v-if="brand.logo" :src="pb.files.getURL(brand, brand.logo)" :alt="brand.name" class="mx-auto mb-5 h-20 max-w-[140px] object-contain transition-all duration-300 group-hover:scale-110" />

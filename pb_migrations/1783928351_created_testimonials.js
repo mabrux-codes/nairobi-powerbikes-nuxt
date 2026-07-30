@@ -6,7 +6,6 @@ migrate((app) => {
     "fields": [
       {
         "autogeneratePattern": "[a-z0-9]{15}",
-        "help": "",
         "hidden": false,
         "id": "text3208210256",
         "max": 15,
@@ -21,7 +20,6 @@ migrate((app) => {
       },
       {
         "autogeneratePattern": "",
-        "help": "",
         "hidden": false,
         "id": "text7d7619a7ae",
         "max": 200,
@@ -36,7 +34,6 @@ migrate((app) => {
       },
       {
         "autogeneratePattern": "",
-        "help": "",
         "hidden": false,
         "id": "text185f311c8b",
         "max": 200,
@@ -51,7 +48,6 @@ migrate((app) => {
       },
       {
         "autogeneratePattern": "",
-        "help": "",
         "hidden": false,
         "id": "text8bdcb3a2e5",
         "max": 5000,
@@ -108,17 +104,16 @@ migrate((app) => {
     ],
     "id": "pbc_1873367423",
     "indexes": [],
-    "listRule": "",
+    "listRule": null,
     "name": "testimonials",
     "system": false,
     "type": "base",
     "updateRule": "@request.auth.role = 'admin'",
-    "viewRule": ""
+    "viewRule": null
   });
 
   return app.save(collection);
 }, (app) => {
   const collection = app.findCollectionByNameOrId("pbc_1873367423");
-
   return app.delete(collection);
-})
+});

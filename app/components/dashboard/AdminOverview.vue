@@ -141,14 +141,18 @@ async function safeCount(collection: string, filter?: string) {
   }
 }
 
+function pbDate(d: Date) {
+  return d.toISOString().replace('T', ' ')
+}
+
 async function calcChange(collection: string, filter?: string) {
   const now = new Date()
-  const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
-  const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString()
+  const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
 
-  const thisFilter = `created>='${startThisMonth}'${filter ? ' && ' + filter : ''}`
-  const lastFilter = `created>='${startLastMonth}' && created<='${endLastMonth}'${filter ? ' && ' + filter : ''}`
+  const thisFilter = `created>='${pbDate(startThisMonth)}'${filter ? ' && ' + filter : ''}`
+  const lastFilter = `created>='${pbDate(startLastMonth)}' && created<='${pbDate(endLastMonth)}'${filter ? ' && ' + filter : ''}`
   const thisCount = await safeCount(collection, thisFilter)
   const lastCount = await safeCount(collection, lastFilter)
   if (lastCount === 0) return thisCount > 0 ? 100 : 0

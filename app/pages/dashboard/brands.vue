@@ -119,6 +119,7 @@ async function saveBrand() {
     data.append('country', form.value.country)
     data.append('description', form.value.description)
     data.append('sort_order', form.value.sort_order || '0')
+    if (!editingId.value) data.append('slug', form.value.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))
     if (logoFile.value) data.append('logo', logoFile.value)
 
     if (editingId.value) await pb.collection('brands').update(editingId.value, data)

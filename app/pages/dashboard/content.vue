@@ -67,6 +67,25 @@
             </div>
           </div>
         </div>
+        <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="font-display text-lg tracking-display text-white">Testimonials (Homepage)</h2>
+            <Button size="sm" @click="openTestimonialModal()">Add Testimonial</Button>
+          </div>
+          <div v-if="testimonials.length === 0" class="rounded-sm border border-dashed border-brand-grey/20 p-6 text-center"><p class="text-sm text-brand-grey">No testimonials yet</p></div>
+          <div v-else class="space-y-2">
+            <div v-for="t in testimonials" :key="t.id" class="flex items-start justify-between rounded-sm border border-brand-grey/10 px-4 py-3">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-white">{{ t.name }} <span v-if="t.role" class="text-xs text-brand-grey font-normal">&mdash; {{ t.role }}</span></p>
+                <p class="mt-1 text-xs text-brand-grey/70 line-clamp-2">{{ t.content }}</p>
+              </div>
+              <div class="flex flex-shrink-0 gap-2 ml-4">
+                <Button variant="ghost" size="sm" @click="openTestimonialModal(t)">Edit</Button>
+                <Button variant="outline" size="sm" @click="deleteTestimonial(t)">Delete</Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -103,6 +122,25 @@
     </Teleport>
 
     <Teleport to="body">
+      <div v-if="showTestimonialModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="showTestimonialModal = false">
+        <div class="w-full max-w-md rounded-sm border border-brand-grey/30 bg-brand-black p-6">
+          <h2 class="font-display text-xl tracking-display text-white">{{ editingTestimonialId ? 'Edit Testimonial' : 'Add Testimonial' }}</h2>
+          <div class="mt-4 space-y-4">
+            <Input v-model="testimonialForm.name" label="Customer Name" placeholder="John Doe" />
+            <Input v-model="testimonialForm.role" label="Role / Title" placeholder="e.g. Motorcycle Enthusiast" />
+            <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Testimonial</label><textarea v-model="testimonialForm.content" rows="3" class="input-field w-full resize-none" placeholder="Their feedback..." /></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Rating (1-5)</label><input v-model.number="testimonialForm.rating" type="number" min="1" max="5" class="input-field h-11" /></div>
+              <Input v-model="testimonialForm.display_order" label="Display Order" type="number" placeholder="0" />
+            </div>
+            <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Photo</label><input type="file" accept="image/*" @change="onAvatarChange" class="input-field w-full text-sm file:mr-3 file:border-0 file:bg-brand-red file:px-3 file:py-1 file:text-xs file:text-white" /><img v-if="photoPreview" :src="photoPreview" class="mt-2 h-12 w-12 rounded-full object-cover" /></div>
+          </div>
+          <div class="mt-6 flex justify-end gap-3"><Button variant="ghost" @click="showTestimonialModal = false">Cancel</Button><Button :disabled="savingTestimonial" @click="saveTestimonial">{{ savingTestimonial ? 'Saving...' : 'Save' }}</Button></div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
       <div v-if="showTeamModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="showTeamModal = false">
         <div class="w-full max-w-md rounded-sm border border-brand-grey/30 bg-brand-black p-6">
           <h2 class="font-display text-xl tracking-display text-white">{{ editingTeamId ? 'Edit Team Member' : 'Add Team Member' }}</h2>
@@ -126,7 +164,7 @@ definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Content - Manager - Nairobi Powerbikes' })
 
 const pb = usePB(); const loading = ref(true)
-const milestones = ref<any[]>([]); const stats = ref<any[]>([]); const team = ref<any[]>([])
+const milestones = ref<any[]>([]); const stats = ref<any[]>([]); const team = ref<any[]>([]); const testimonials = ref<any[]>([])
 
 const showMilestoneModal = ref(false); const editingMilestoneId = ref<string | null>(null); const savingMilestone = ref(false)
 const milestoneForm = ref({ year: '', title: '', description: '', display_order: '0' })
@@ -136,6 +174,43 @@ const statForm = ref({ label: '', value: '', suffix: '', sort_order: '0' })
 
 const showTeamModal = ref(false); const editingTeamId = ref<string | null>(null); const savingTeam = ref(false)
 const teamForm = ref({ name: '', role: '', bio: '', sort_order: '0' })
+
+const showTestimonialModal = ref(false); const editingTestimonialId = ref<string | null>(null); const savingTestimonial = ref(false)
+const testimonialForm = ref({ name: '', role: '', content: '', rating: 5, display_order: '0' })
+const photoFile = ref<File | null>(null); const photoPreview = ref<string | null>(null)
+
+function openTestimonialModal(t?: any) {
+  editingTestimonialId.value = t?.id || null
+  testimonialForm.value = t ? { name: t.name, role: t.role || '', content: t.content || '', rating: t.rating || 5, display_order: t.display_order?.toString() || '0' } : { name: '', role: '', content: '', rating: 5, display_order: '0' }
+  photoFile.value = null; photoPreview.value = t?.photo ? pb.files.getURL(t, t.photo) : null
+  showTestimonialModal.value = true
+}
+
+function onAvatarChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files?.[0]) { photoFile.value = target.files[0]; photoPreview.value = URL.createObjectURL(target.files[0]) }
+}
+
+async function saveTestimonial() {
+  savingTestimonial.value = true
+  try {
+    const data = new FormData()
+    data.append('name', testimonialForm.value.name)
+    data.append('role', testimonialForm.value.role)
+    data.append('content', testimonialForm.value.content)
+    data.append('rating', (testimonialForm.value.rating || 5).toString())
+    data.append('display_order', testimonialForm.value.display_order || '0')
+    if (photoFile.value) data.append('photo', photoFile.value)
+    if (editingTestimonialId.value) await pb.collection('testimonials').update(editingTestimonialId.value, data)
+    else await pb.collection('testimonials').create(data)
+    showTestimonialModal.value = false; await loadData()
+  } catch (e) { console.error(e) }
+  finally { savingTestimonial.value = false }
+}
+
+async function deleteTestimonial(t: any) {
+  if (await confirm('Delete this testimonial?')) pb.collection('testimonials').delete(t.id).then(() => loadData())
+}
 
 function getInitials(name: string) { return name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() }
 
@@ -153,12 +228,13 @@ async function deleteTeamMember(m: any) { if (await confirm(`Delete "${m.name}"?
 
 async function loadData() {
   try {
-    const [m, s, t] = await Promise.all([
+    const [m, s, t, te] = await Promise.all([
       pb.collection('timeline_milestones').getFullList({ sort: 'display_order' }).catch(() => []),
       pb.collection('company_stats').getList(1, 10, { sort: 'sort_order' }).catch(() => ({ items: [] })),
       pb.collection('team_members').getFullList({ sort: 'sort_order' }).catch(() => []),
+      pb.collection('testimonials').getFullList({ sort: 'display_order' }).catch(() => []),
     ])
-    milestones.value = m as any[]; stats.value = (s as any).items || []; team.value = t as any[]
+    milestones.value = m as any[]; stats.value = (s as any).items || []; team.value = t as any[]; testimonials.value = te as any[]
   } catch (e) { console.error(e) }
 }
 

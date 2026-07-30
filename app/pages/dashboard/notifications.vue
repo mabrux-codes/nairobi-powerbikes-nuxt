@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { Bell } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { formatDate } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Notifications - Nairobi Powerbikes' })
@@ -79,7 +80,7 @@ const users = ref<any[]>([])
 const showModal = ref(false)
 const notifForm = ref({ title: '', type: 'system', user: '', message: '', link: '' })
 
-function formatDate(d: string) { return d ? new Date(d).toLocaleString() : '' }
+
 
 function openSendModal() {
   notifForm.value = { title: '', type: 'system', user: '', message: '', link: '' }

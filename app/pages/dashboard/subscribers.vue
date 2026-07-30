@@ -45,6 +45,7 @@
 <script setup lang="ts">
 import { Mail } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { formatDate } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Subscribers - Nairobi Powerbikes' })
@@ -54,7 +55,7 @@ const loading = ref(true)
 const subscribers = ref<any[]>([])
 const searchQuery = ref('')
 
-function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : 'N/A' }
+
 
 const filtered = computed(() => {
   if (!searchQuery.value) return subscribers.value

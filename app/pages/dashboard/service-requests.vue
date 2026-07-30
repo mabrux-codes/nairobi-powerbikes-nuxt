@@ -89,5 +89,6 @@ function statusVariant(s: string) { const m: Record<string, string> = { pending:
 function openUpdate(s: any) { editingItem.value = s; updateForm.value = { status: s.status || 'pending', cost: s.cost?.toString() || '', notes: s.notes || '' }; showModal.value = true }
 async function saveUpdate() { saving.value = true; try { const p: any = { status: updateForm.value.status, notes: updateForm.value.notes }; if (updateForm.value.cost) p.cost = parseFloat(updateForm.value.cost); await pb.collection('service_bookings').update(editingItem.value.id, p); showModal.value = false; await loadData() } catch (e) { console.error(e) } finally { saving.value = false } }
 async function loadData() { try { const res = await pb.collection('service_bookings').getList(1, 100, { sort: '-created' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }
-onMounted(() => loadData())
+onMounted(() => { loadData(); pb.collection('service_bookings').subscribe('*', () => loadData()) })
+onUnmounted(() => { pb.collection('service_bookings').unsubscribe('*') })
 </script>

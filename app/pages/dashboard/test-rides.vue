@@ -137,5 +137,6 @@ function openDetail(b: any) { detailItem.value = b; showDetail.value = true }
 function openUpdate(b: any) { editingItem.value = b; updateForm.value = { status: b.status || 'pending', notes: b.notes || '' }; showModal.value = true }
 async function saveUpdate() { saving.value = true; try { await pb.collection('service_bookings').update(editingItem.value.id, updateForm.value); showModal.value = false; await loadData() } catch (e) { console.error(e) } finally { saving.value = false } }
 async function loadData() { try { const res = await pb.collection('service_bookings').getList(1, 100, { sort: '-created', filter: 'type="test_ride"', expand: 'user' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }
-onMounted(() => loadData())
+onMounted(() => { loadData(); pb.collection('service_bookings').subscribe('*', () => loadData()) })
+onUnmounted(() => { pb.collection('service_bookings').unsubscribe('*') })
 </script>

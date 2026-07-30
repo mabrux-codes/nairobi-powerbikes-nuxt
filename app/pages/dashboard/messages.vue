@@ -32,7 +32,7 @@
           <p class="mt-3 text-sm text-brand-grey/80 leading-relaxed">{{ msg.message || msg.body || 'No content' }}</p>
           <div class="mt-3 flex items-center gap-3">
             <Button v-if="!msg.read" variant="ghost" size="sm" @click="markRead(msg)">Mark Read</Button>
-            <Button variant="outline" size="sm" @click="confirmDelete(msg)">Delete</Button>
+            <Button variant="danger" size="sm" :disabled="deleting" @click="confirmDelete(msg)">Delete</Button>
             <a v-if="msg.email" :href="`mailto:${msg.email}`" class="text-xs text-brand-red hover:underline">Reply via Email</a>
           </div>
         </div>
@@ -44,17 +44,21 @@
 <script setup lang="ts">
 import { MessageSquare } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 import { formatDate } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Messages - Nairobi Powerbikes' })
 
 const pb = usePB()
+const toast = useToast()
+const confirmDlg = useConfirm()
 const loading = ref(true)
+const deleting = ref(false)
 const messages = ref<any[]>([])
 const searchQuery = ref('')
 const readFilter = ref('')
-
 
 
 const filtered = computed(() => {
@@ -68,12 +72,20 @@ const filtered = computed(() => {
 })
 
 async function markRead(msg: any) {
-  await pb.collection('contacts').update(msg.id, { read: true })
-  msg.read = true
+  try {
+    await pb.collection('contacts').update(msg.id, { read: true })
+    msg.read = true
+    toast.add({ type: 'success', title: 'Marked as read' })
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to update', message: e?.message || 'Something went wrong' }) }
 }
 
 async function confirmDelete(msg: any) {
-  if (await confirm('Delete this message?')) pb.collection('contacts').delete(msg.id).then(() => loadMessages())
+  deleting.value = true
+  try {
+    const ok = await confirmDlg.confirm({ title: 'Delete Message', message: 'Are you sure you want to delete this message? This cannot be undone.', confirmText: 'Delete', confirmType: 'danger' })
+    if (ok) { await pb.collection('contacts').delete(msg.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadMessages() }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) }
+  finally { deleting.value = false }
 }
 
 async function loadMessages() { try { const res = await pb.collection('contacts').getList(1, 100, { sort: '-created' }); messages.value = res.items as any[] } catch (e) { console.error(e) } }

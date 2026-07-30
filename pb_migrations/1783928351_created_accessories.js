@@ -133,12 +133,12 @@ migrate((app) => {
     ],
     "id": "pbc_3522889012",
     "indexes": [],
-    "listRule": "",
+    "listRule": "1=1",
     "name": "accessories",
     "system": false,
     "type": "base",
     "updateRule": "@request.auth.role = 'admin'",
-    "viewRule": ""
+    "viewRule": "1=1"
   });
 
   return app.save(collection);

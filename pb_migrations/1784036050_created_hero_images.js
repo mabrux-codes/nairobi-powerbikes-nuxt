@@ -79,12 +79,12 @@ migrate((app) => {
     ],
     "id": "pbc_359789826",
     "indexes": [],
-    "listRule": "",
+    "listRule": "1=1",
     "name": "hero_images",
     "system": false,
     "type": "base",
     "updateRule": null,
-    "viewRule": ""
+    "viewRule": "1=1"
   });
 
   return app.save(collection);

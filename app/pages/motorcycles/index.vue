@@ -44,7 +44,7 @@
         <SearchX class="mx-auto mb-4 h-12 w-12 text-brand-grey/30" />
         <p class="font-display text-xl tracking-display text-brand-grey">No Motorcycles Found</p>
         <p class="mt-2 text-sm text-brand-grey/60">Try adjusting your filters</p>
-        <button class="btn-ghost mt-4" @click="resetFilters">Clear Filters</button>
+        <Button variant="ghost" class="mt-4" @click="resetFilters">Clear Filters</Button>
       </div>
     </div>
   </div>

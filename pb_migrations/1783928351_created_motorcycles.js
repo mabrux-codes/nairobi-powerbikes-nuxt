@@ -228,12 +228,12 @@ migrate((app) => {
     ],
     "id": "pbc_1020517649",
     "indexes": [],
-    "listRule": "",
+    "listRule": "1=1",
     "name": "motorcycles",
     "system": false,
     "type": "base",
     "updateRule": "@request.auth.role = 'admin'",
-    "viewRule": ""
+    "viewRule": "1=1"
   });
 
   return app.save(collection);

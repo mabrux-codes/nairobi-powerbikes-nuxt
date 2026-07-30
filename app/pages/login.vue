@@ -9,7 +9,7 @@
         <form @submit.prevent="handleLogin" class="space-y-5">
           <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Email</label><Field name="email" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="email" class="input-field" :class="{ 'border-brand-red': errorMessage }" placeholder="you@example.com" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
           <div><label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Password</label><Field name="password" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="password" class="input-field" :class="{ 'border-brand-red': errorMessage }" placeholder="••••••••" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
-          <button type="submit" :disabled="isSubmitting" class="btn-primary w-full justify-center disabled:opacity-50"><LoaderCircle v-if="isSubmitting" class="h-5 w-5 animate-spin" /><LogIn v-else class="h-5 w-5" />{{ isSubmitting ? 'Signing In...' : 'Sign In' }}</button>
+          <Button type="submit" :loading="isSubmitting" variant="primary" class="w-full"><LogIn class="h-5 w-5" />Sign In</Button>
         </form>
         <div v-if="errorMsg" class="mt-4 rounded-sm border border-brand-red/30 bg-brand-red/10 p-3 text-center"><p class="text-sm text-brand-red">{{ errorMsg }}</p></div>
         <p class="mt-6 text-center text-sm text-brand-grey">Don't have an account? <NuxtLink to="/register" class="font-display text-brand-red hover:underline">Register</NuxtLink></p>

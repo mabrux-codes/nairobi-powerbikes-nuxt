@@ -80,15 +80,17 @@
 <script setup lang="ts">
 import { Wrench, FileText } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 import { formatDate, formatTime } from '~/composables/useFormat'
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Service Requests - Nairobi Powerbikes' })
-const pb = usePB(); const loading = ref(true); const saving = ref(false)
+const pb = usePB(); const toast = useToast(); const confirmDlg = useConfirm(); const loading = ref(true); const saving = ref(false)
 const items = ref<any[]>([]); const showModal = ref(false); const editingItem = ref<any>(null)
 const updateForm = ref({ status: 'pending', cost: '', notes: '' })
 function statusVariant(s: string) { const m: Record<string, string> = { pending: 'warning', diagnosed: 'default', in_progress: 'secondary', completed: 'success', cancelled: 'danger' }; return m[s] || 'outline' }
 function openUpdate(s: any) { editingItem.value = s; updateForm.value = { status: s.status || 'pending', cost: s.cost?.toString() || '', notes: s.notes || '' }; showModal.value = true }
-async function saveUpdate() { saving.value = true; try { const p: any = { status: updateForm.value.status, notes: updateForm.value.notes }; if (updateForm.value.cost) p.cost = parseFloat(updateForm.value.cost); await pb.collection('service_bookings').update(editingItem.value.id, p); showModal.value = false; await loadData() } catch (e) { console.error(e) } finally { saving.value = false } }
+async function saveUpdate() { saving.value = true; try { const p: any = { status: updateForm.value.status, notes: updateForm.value.notes }; if (updateForm.value.cost) p.cost = parseFloat(updateForm.value.cost); await pb.collection('service_bookings').update(editingItem.value.id, p); toast.add({ type: 'success', title: 'Service request updated successfully' }); showModal.value = false; await loadData() } catch (e: any) { toast.add({ type: 'error', title: 'Failed to update service request', message: e?.message || 'Something went wrong' }) } finally { saving.value = false } }
 async function loadData() { try { const res = await pb.collection('service_bookings').getList(1, 100, { sort: '-created' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }
 onMounted(() => { loadData(); pb.collection('service_bookings').subscribe('*', () => loadData()) })
 onUnmounted(() => { pb.collection('service_bookings').unsubscribe('*') })

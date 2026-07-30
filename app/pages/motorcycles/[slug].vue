@@ -27,12 +27,12 @@
                 <div v-for="s in specHighlights" :key="s.key" class="text-center"><p class="text-xs font-display tracking-display text-brand-grey uppercase">{{ s.label }}</p><p class="text-lg font-display text-white">{{ getSpec(s.key) }}</p></div>
               </div>
               <div class="mt-6 flex flex-wrap gap-3">
-                <button v-if="bike.status !== 'sold' && bike.status !== 'coming_soon'" class="btn-primary" @click="openTestRide"><Zap class="h-5 w-5" />Book Test Ride</button>
-                <button class="btn-secondary" @click="openFinance"><BadgeDollarSign class="h-5 w-5" />Finance Options</button>
-                <button v-if="auth.isAuthenticated && auth.isCustomer" class="btn-ghost" :class="{ 'text-brand-red': isFavorited }" @click="toggleFavorite" :disabled="favoriteLoading">
+                <Button v-if="bike.status !== 'sold' && bike.status !== 'coming_soon'" variant="primary" @click="openTestRide"><Zap class="h-5 w-5" />Book Test Ride</Button>
+                <Button variant="secondary" @click="openFinance"><BadgeDollarSign class="h-5 w-5" />Finance Options</Button>
+                <Button v-if="auth.isAuthenticated && auth.isCustomer" variant="ghost" :class="{ 'text-brand-red': isFavorited }" @click="toggleFavorite" :disabled="favoriteLoading">
                   <Heart class="h-5 w-5" :class="{ 'fill-brand-red': isFavorited }" />{{ isFavorited ? 'Saved' : 'Save' }}
-                </button>
-                <button class="btn-ghost" @click="addToCompare"><Scale class="h-5 w-5" />Compare</button>
+                </Button>
+                <Button variant="ghost" @click="addToCompare"><Scale class="h-5 w-5" />Compare</Button>
               </div>
             </div>
           </div>
@@ -66,7 +66,7 @@
       </template>
       <div v-else class="rounded-sm border border-dashed border-brand-grey/20 p-16 text-center">
         <p class="font-display text-2xl tracking-display text-brand-grey">Motorcycle Not Found</p>
-        <NuxtLink to="/motorcycles" class="btn-primary mt-6 inline-flex">Browse All Motorcycles</NuxtLink>
+        <Button to="/motorcycles" variant="primary" class="mt-6">Browse All Motorcycles</Button>
       </div>
     </div>
   </div>

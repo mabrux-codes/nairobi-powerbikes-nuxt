@@ -13,8 +13,7 @@
               <input v-model="email" type="email" required placeholder="Enter your email" class="input-field h-12 pr-10" :class="{ 'border-brand-red': error }" />
               <Mail v-if="!email.length" class="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-grey/40" />
             </div>
-            <button type="submit" :disabled="submitting" class="btn-primary h-12 shrink-0 disabled:opacity-50">
-              <LoaderCircle v-if="submitting" class="h-5 w-5 animate-spin" /><Send v-else class="h-5 w-5" />{{ submitting ? 'Subscribing...' : 'Subscribe' }}</button>
+            <Button type="submit" :loading="submitting" variant="primary" class="h-12 shrink-0"><Send class="h-5 w-5" />Subscribe</Button>
           </form>
           <div v-if="subscribed" class="rounded-sm border border-green-500/30 bg-green-500/10 p-6">
             <motion.div :initial="{ opacity: 0, scale: 0.9 }" :animate="{ opacity: 1, scale: 1 }" :transition="{ type: 'spring', stiffness: 200 }">

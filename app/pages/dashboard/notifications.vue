@@ -23,7 +23,7 @@
             <td class="px-4 py-3 text-brand-grey">{{ n.expand?.user?.name || n.expand?.user?.email || 'All Users' }}</td>
             <td class="px-4 py-3 text-brand-grey">{{ formatDate(n.created) }}</td>
             <td class="px-4 py-3"><Badge :variant="n.read ? 'success' : 'warning'">{{ n.read ? 'Read' : 'New' }}</Badge></td>
-            <td class="px-4 py-3"><button class="text-xs text-brand-red hover:underline" @click="confirmDelete(n)">Delete</button></td>
+            <td class="px-4 py-3"><button class="text-xs text-brand-red hover:underline" :disabled="deleting" @click="confirmDelete(n)">Delete</button></td>
           </tr>
         </tbody>
       </table>
@@ -67,14 +67,19 @@
 <script setup lang="ts">
 import { Bell } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 import { formatDate } from '~/composables/useFormat'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Notifications - Nairobi Powerbikes' })
 
 const pb = usePB()
+const toast = useToast()
+const confirmDlg = useConfirm()
 const loading = ref(true)
 const sending = ref(false)
+const deleting = ref(false)
 const items = ref<any[]>([])
 const users = ref<any[]>([])
 const showModal = ref(false)
@@ -105,13 +110,19 @@ async function sendNotification() {
         })
       }
     }
+    toast.add({ type: 'success', title: 'Notification sent' })
     closeModal(); await loadData()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to send notification', message: e?.message || 'Something went wrong' }) }
   finally { sending.value = false }
 }
 
 async function confirmDelete(n: any) {
-  if (await confirm(`Delete notification "${n.title}"?`)) pb.collection('notifications').delete(n.id).then(() => loadData())
+  deleting.value = true
+  try {
+    const ok = await confirmDlg.confirm({ title: 'Delete Notification', message: `Are you sure you want to delete "${n.title}"? This cannot be undone.`, confirmText: 'Delete', confirmType: 'danger' })
+    if (ok) { await pb.collection('notifications').delete(n.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) }
+  finally { deleting.value = false }
 }
 
 async function loadData() {

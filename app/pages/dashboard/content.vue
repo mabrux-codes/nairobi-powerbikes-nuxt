@@ -25,7 +25,7 @@
               </div>
               <div class="flex gap-2">
                 <Button variant="ghost" size="sm" @click="openMilestoneModal(ms)">Edit</Button>
-                <Button variant="outline" size="sm" @click="deleteMilestone(ms)">Delete</Button>
+                <Button variant="danger" size="sm" :disabled="deleting" @click="deleteMilestone(ms)">Delete</Button>
               </div>
             </div>
           </div>
@@ -43,7 +43,7 @@
               <p class="text-xs font-display tracking-display text-brand-grey uppercase">{{ s.label }}</p>
               <div class="mt-2 flex justify-center gap-2">
                 <Button variant="ghost" size="sm" @click="openStatModal(s)">Edit</Button>
-                <Button variant="outline" size="sm" @click="deleteStat(s)">Delete</Button>
+                <Button variant="danger" size="sm" :disabled="deleting" @click="deleteStat(s)">Delete</Button>
               </div>
             </div>
           </div>
@@ -62,7 +62,7 @@
               <p class="text-xs text-brand-red font-display tracking-display">{{ m.role }}</p>
               <div class="mt-2 flex justify-center gap-2">
                 <Button variant="ghost" size="sm" @click="openTeamModal(m)">Edit</Button>
-                <Button variant="outline" size="sm" @click="deleteTeamMember(m)">Delete</Button>
+                <Button variant="danger" size="sm" :disabled="deleting" @click="deleteTeamMember(m)">Delete</Button>
               </div>
             </div>
           </div>
@@ -81,7 +81,7 @@
               </div>
               <div class="flex flex-shrink-0 gap-2 ml-4">
                 <Button variant="ghost" size="sm" @click="openTestimonialModal(t)">Edit</Button>
-                <Button variant="outline" size="sm" @click="deleteTestimonial(t)">Delete</Button>
+                <Button variant="danger" size="sm" :disabled="deleting" @click="deleteTestimonial(t)">Delete</Button>
               </div>
             </div>
           </div>
@@ -159,11 +159,13 @@
 
 <script setup lang="ts">
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Content - Manager - Nairobi Powerbikes' })
 
-const pb = usePB(); const loading = ref(true)
+const pb = usePB(); const toast = useToast(); const confirmDlg = useConfirm(); const loading = ref(true); const deleting = ref(false)
 const milestones = ref<any[]>([]); const stats = ref<any[]>([]); const team = ref<any[]>([]); const testimonials = ref<any[]>([])
 
 const showMilestoneModal = ref(false); const editingMilestoneId = ref<string | null>(null); const savingMilestone = ref(false)
@@ -201,30 +203,35 @@ async function saveTestimonial() {
     data.append('rating', (testimonialForm.value.rating || 5).toString())
     data.append('display_order', testimonialForm.value.display_order || '0')
     if (photoFile.value) data.append('photo', photoFile.value)
-    if (editingTestimonialId.value) await pb.collection('testimonials').update(editingTestimonialId.value, data)
-    else await pb.collection('testimonials').create(data)
+    if (editingTestimonialId.value) { await pb.collection('testimonials').update(editingTestimonialId.value, data); toast.add({ type: 'success', title: 'Testimonial updated successfully' }) }
+    else { await pb.collection('testimonials').create(data); toast.add({ type: 'success', title: 'Testimonial created successfully' }) }
     showTestimonialModal.value = false; await loadData()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save testimonial', message: e?.message || 'Something went wrong' }) }
   finally { savingTestimonial.value = false }
 }
 
 async function deleteTestimonial(t: any) {
-  if (await confirm('Delete this testimonial?')) pb.collection('testimonials').delete(t.id).then(() => loadData())
+  deleting.value = true
+  try {
+    const ok = await confirmDlg.confirm({ title: 'Delete Testimonial', message: 'Are you sure you want to delete this testimonial? This cannot be undone.', confirmText: 'Delete', confirmType: 'danger' })
+    if (ok) { await pb.collection('testimonials').delete(t.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) }
+  finally { deleting.value = false }
 }
 
 function getInitials(name: string) { return name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() }
 
 function openMilestoneModal(ms?: any) { editingMilestoneId.value = ms?.id || null; milestoneForm.value = ms ? { year: ms.year, title: ms.title, description: ms.description || '', display_order: ms.display_order?.toString() || '0' } : { year: '', title: '', description: '', display_order: '0' }; showMilestoneModal.value = true }
-async function saveMilestone() { savingMilestone.value = true; try { const p: any = { ...milestoneForm.value, display_order: parseInt(milestoneForm.value.display_order) || 0 };       if (editingMilestoneId.value) await pb.collection('timeline_milestones').update(editingMilestoneId.value, p); else await pb.collection('timeline_milestones').create(p); showMilestoneModal.value = false; await loadData() } catch (e) { console.error(e) } finally { savingMilestone.value = false } }
-async function deleteMilestone(ms: any) { if (await confirm('Delete this milestone?')) pb.collection('timeline_milestones').delete(ms.id).then(() => loadData()) }
+async function saveMilestone() { savingMilestone.value = true; try { const p: any = { ...milestoneForm.value, display_order: parseInt(milestoneForm.value.display_order) || 0 }; if (editingMilestoneId.value) { await pb.collection('timeline_milestones').update(editingMilestoneId.value, p); toast.add({ type: 'success', title: 'Milestone updated successfully' }) } else { await pb.collection('timeline_milestones').create(p); toast.add({ type: 'success', title: 'Milestone created successfully' }) }; showMilestoneModal.value = false; await loadData() } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save milestone', message: e?.message || 'Something went wrong' }) } finally { savingMilestone.value = false } }
+async function deleteMilestone(ms: any) { deleting.value = true; try { const ok = await confirmDlg.confirm({ title: 'Delete Milestone', message: 'Are you sure you want to delete this milestone? This cannot be undone.', confirmText: 'Delete', confirmType: 'danger' }); if (ok) { await pb.collection('timeline_milestones').delete(ms.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() } } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) } finally { deleting.value = false } }
 
 function openStatModal(s?: any) { editingStatId.value = s?.id || null; statForm.value = s ? { label: s.label, value: s.value?.toString() || '', suffix: s.suffix || '', sort_order: s.sort_order?.toString() || '0' } : { label: '', value: '', suffix: '', sort_order: '0' }; showStatModal.value = true }
-async function saveStat() { savingStat.value = true; try { const p: any = { ...statForm.value, value: parseInt(statForm.value.value) || 0, sort_order: parseInt(statForm.value.sort_order) || 0 }; if (editingStatId.value) await pb.collection('company_stats').update(editingStatId.value, p); else await pb.collection('company_stats').create(p); showStatModal.value = false; await loadData() } catch (e) { console.error(e) } finally { savingStat.value = false } }
-async function deleteStat(s: any) { if (await confirm('Delete this stat?')) pb.collection('company_stats').delete(s.id).then(() => loadData()) }
+async function saveStat() { savingStat.value = true; try { const p: any = { ...statForm.value, value: parseInt(statForm.value.value) || 0, sort_order: parseInt(statForm.value.sort_order) || 0 }; if (editingStatId.value) { await pb.collection('company_stats').update(editingStatId.value, p); toast.add({ type: 'success', title: 'Stat updated successfully' }) } else { await pb.collection('company_stats').create(p); toast.add({ type: 'success', title: 'Stat created successfully' }) }; showStatModal.value = false; await loadData() } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save stat', message: e?.message || 'Something went wrong' }) } finally { savingStat.value = false } }
+async function deleteStat(s: any) { deleting.value = true; try { const ok = await confirmDlg.confirm({ title: 'Delete Stat', message: 'Are you sure you want to delete this stat? This cannot be undone.', confirmText: 'Delete', confirmType: 'danger' }); if (ok) { await pb.collection('company_stats').delete(s.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() } } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) } finally { deleting.value = false } }
 
 function openTeamModal(m?: any) { editingTeamId.value = m?.id || null; teamForm.value = m ? { name: m.name, role: m.role || '', bio: m.bio || '', sort_order: m.sort_order?.toString() || '0' } : { name: '', role: '', bio: '', sort_order: '0' }; showTeamModal.value = true }
-async function saveTeamMember() { savingTeam.value = true; try { const p: any = { ...teamForm.value, sort_order: parseInt(teamForm.value.sort_order) || 0 }; if (editingTeamId.value) await pb.collection('team_members').update(editingTeamId.value, p); else await pb.collection('team_members').create(p); showTeamModal.value = false; await loadData() } catch (e) { console.error(e) } finally { savingTeam.value = false } }
-async function deleteTeamMember(m: any) { if (await confirm(`Delete "${m.name}"?`)) pb.collection('team_members').delete(m.id).then(() => loadData()) }
+async function saveTeamMember() { savingTeam.value = true; try { const p: any = { ...teamForm.value, sort_order: parseInt(teamForm.value.sort_order) || 0 }; if (editingTeamId.value) { await pb.collection('team_members').update(editingTeamId.value, p); toast.add({ type: 'success', title: 'Team member updated successfully' }) } else { await pb.collection('team_members').create(p); toast.add({ type: 'success', title: 'Team member created successfully' }) }; showTeamModal.value = false; await loadData() } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save team member', message: e?.message || 'Something went wrong' }) } finally { savingTeam.value = false } }
+async function deleteTeamMember(m: any) { deleting.value = true; try { const ok = await confirmDlg.confirm({ title: 'Delete Team Member', message: `Are you sure you want to delete "${m.name}"? This cannot be undone.`, confirmText: 'Delete', confirmType: 'danger' }); if (ok) { await pb.collection('team_members').delete(m.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() } } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) } finally { deleting.value = false } }
 
 async function loadData() {
   try {

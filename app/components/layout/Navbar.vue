@@ -60,12 +60,12 @@
             </NuxtLink>
           </template>
           <template v-else>
-            <NuxtLink
+            <Button
               to="/login"
-              class="btn-primary px-4 py-1.5 text-xs sm:px-5 sm:py-2 sm:text-sm"
+              variant="primary"
             >
               Sign In
-            </NuxtLink>
+            </Button>
           </template>
         </ClientOnly>
 

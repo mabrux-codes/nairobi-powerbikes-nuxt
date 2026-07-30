@@ -17,7 +17,7 @@
           <p class="mt-1 text-xs text-brand-grey">{{ b.address }}</p>
           <p class="mt-2 text-sm text-brand-grey">{{ b.phone }} &middot; {{ b.email }}</p>
           <p class="mt-1 text-xs text-brand-grey/60 whitespace-pre-line">{{ b.hours }}</p>
-          <div class="mt-4 flex gap-2"><Button variant="ghost" size="sm" @click="openEdit(b)">Edit</Button><Button variant="outline" size="sm" @click="confirmDelete(b)">Delete</Button></div>
+          <div class="mt-4 flex gap-2"><Button variant="ghost" size="sm" @click="openEdit(b)">Edit</Button><Button variant="danger" size="sm" :disabled="deleting" @click="confirmDelete(b)">Delete</Button></div>
         </div>
       </div>
       <ClientOnly>
@@ -62,12 +62,16 @@
 <script setup lang="ts">
 import { MapPin } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Branches - Nairobi Powerbikes' })
 
 const pb = usePB()
-const loading = ref(true); const saving = ref(false)
+const toast = useToast()
+const confirmDlg = useConfirm()
+const loading = ref(true); const saving = ref(false); const deleting = ref(false)
 const items = ref<any[]>([]); const showModal = ref(false); const editingId = ref<string | null>(null)
 const imageFile = ref<File | null>(null); const imagePreview = ref<string | null>(null)
 
@@ -101,14 +105,14 @@ async function saveItem() {
     if (form.value.lng) data.append('lng', form.value.lng)
     if (imageFile.value) data.append('image', imageFile.value)
 
-    if (editingId.value) await pb.collection('branches').update(editingId.value, data)
-    else await pb.collection('branches').create(data)
+    if (editingId.value) { await pb.collection('branches').update(editingId.value, data); toast.add({ type: 'success', title: 'Updated successfully' }) }
+    else { await pb.collection('branches').create(data); toast.add({ type: 'success', title: 'Created successfully' }) }
     closeModal(); await loadData()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save', message: e?.message || 'Something went wrong' }) }
   finally { saving.value = false }
 }
 
-async function confirmDelete(b: any) { if (await confirm(`Delete "${b.name}"?`)) pb.collection('branches').delete(b.id).then(() => loadData()) }
+async function confirmDelete(b: any) { deleting.value = true; try { const ok = await confirmDlg.confirm({ title: 'Delete Branch', message: `Are you sure you want to delete "${b.name}"? This cannot be undone.`, confirmText: 'Delete', confirmType: 'danger' }); if (ok) { await pb.collection('branches').delete(b.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadData() } } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) } finally { deleting.value = false } }
 
 async function loadData() { try { const res = await pb.collection('branches').getList(1, 50, { sort: 'sort_order' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }
 

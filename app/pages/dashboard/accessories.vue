@@ -43,7 +43,7 @@
           </div>
           <div class="mt-3 flex gap-2">
             <Button variant="ghost" size="sm" class="flex-1" @click="openEditModal(a)">Edit</Button>
-            <Button variant="outline" size="sm" class="flex-1" @click="confirmDelete(a)">Delete</Button>
+            <Button variant="danger" size="sm" class="flex-1" :disabled="deleting" @click="confirmDelete(a)">Delete</Button>
           </div>
         </div>
       </div>
@@ -84,13 +84,18 @@
 
 <script setup lang="ts">
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
+import { useConfirm } from '~/composables/useConfirm'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Accessories - Nairobi Powerbikes' })
 
 const pb = usePB()
+const toast = useToast()
+const confirmDlg = useConfirm()
 const loading = ref(true)
 const saving = ref(false)
+const deleting = ref(false)
 const items = ref<any[]>([])
 const categories = ['Helmets', 'Gloves', 'Jackets', 'Pants', 'Boots', 'Luggage', 'Maintenance', 'Electronics', 'Lighting', 'Other']
 const searchQuery = ref('')
@@ -123,15 +128,20 @@ async function saveItem() {
   saving.value = true
   try {
     const payload: any = { ...form.value, price: parseFloat(form.value.price) || 0 }
-    if (editingId.value) await pb.collection('accessories').update(editingId.value, payload)
-    else await pb.collection('accessories').create(payload)
+    if (editingId.value) { await pb.collection('accessories').update(editingId.value, payload); toast.add({ type: 'success', title: 'Updated successfully' }) }
+    else { await pb.collection('accessories').create(payload); toast.add({ type: 'success', title: 'Created successfully' }) }
     closeModal(); await loadItems()
-  } catch (e) { console.error(e) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save', message: e?.message || 'Something went wrong' }) }
   finally { saving.value = false }
 }
 
 async function confirmDelete(a: any) {
-  if (await confirm(`Delete "${a.name}"?`)) pb.collection('accessories').delete(a.id).then(() => loadItems())
+  deleting.value = true
+  try {
+    const ok = await confirmDlg.confirm({ title: 'Delete Accessory', message: `Are you sure you want to delete "${a.name}"? This cannot be undone.`, confirmText: 'Delete', confirmType: 'danger' })
+    if (ok) { await pb.collection('accessories').delete(a.id); toast.add({ type: 'success', title: 'Deleted successfully' }); await loadItems() }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message || 'Something went wrong' }) }
+  finally { deleting.value = false }
 }
 
 async function loadItems() {

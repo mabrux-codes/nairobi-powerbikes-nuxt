@@ -92,35 +92,39 @@
           <div class="border-t border-brand-grey/20 px-6 py-6">
             <ClientOnly>
               <template v-if="auth.isAuthenticated">
-                <NuxtLink
+                <Button
                   :to="auth.getDashboardRoute()"
-                  class="btn-primary w-full justify-center text-sm"
+                  variant="primary"
+                  class="w-full"
                   @click="close"
                 >
                   Dashboard
-                </NuxtLink>
-                <button
-                  class="mt-3 flex w-full items-center justify-center gap-2 py-3 text-sm text-brand-grey hover:text-brand-red transition-colors"
+                </Button>
+                <Button
+                  variant="ghost"
+                  class="mt-3 w-full"
                   @click="handleSignOut"
                 >
                   Sign Out
-                </button>
+                </Button>
               </template>
               <template v-else>
-                <NuxtLink
+                <Button
                   to="/login"
-                  class="btn-primary w-full justify-center text-sm"
+                  variant="primary"
+                  class="w-full"
                   @click="close"
                 >
                   Sign In
-                </NuxtLink>
-                <NuxtLink
+                </Button>
+                <Button
                   to="/register"
-                  class="btn-secondary mt-3 w-full justify-center text-sm"
+                  variant="secondary"
+                  class="mt-3 w-full"
                   @click="close"
                 >
                   Create Account
-                </NuxtLink>
+                </Button>
               </template>
             </ClientOnly>
           </div>

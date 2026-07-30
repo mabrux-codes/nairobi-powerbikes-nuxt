@@ -13,7 +13,6 @@
       <div v-else class="space-y-6">
         <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6">
           <h2 class="font-display text-lg tracking-display text-white mb-4">Profile Information</h2>
-          <div v-if="profileMessage" class="mb-4 rounded-sm bg-emerald-500/20 p-3 text-sm text-emerald-400">{{ profileMessage }}</div>
           <div class="space-y-4">
             <Input v-model="profileForm.name" label="Full Name" placeholder="Your name" />
             <Input v-model="profileForm.email" label="Email" type="email" placeholder="email@example.com" />
@@ -26,7 +25,6 @@
 
         <div class="rounded-sm border border-brand-grey/20 bg-brand-black/60 p-6">
           <h2 class="font-display text-lg tracking-display text-white mb-4">Change Password</h2>
-          <div v-if="passwordMessage" class="mb-4 rounded-sm p-3 text-sm" :class="passwordError ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'">{{ passwordMessage }}</div>
           <div class="space-y-4">
             <Input v-model="passwordForm.current" label="Current Password" type="password" placeholder="Enter current password" />
             <Input v-model="passwordForm.newPassword" label="New Password" type="password" placeholder="Enter new password" />
@@ -43,53 +41,46 @@
 
 <script setup lang="ts">
 import { usePB } from '~/composables/usePocketBase'
+import { useToast } from '~/composables/useToast'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['customer'] })
 useHead({ title: 'My Profile - Nairobi Powerbikes' })
 
 const pb = usePB()
+const toast = useToast()
 const auth = useAuthStore()
 const loading = ref(true)
 const savingProfile = ref(false)
 const savingPassword = ref(false)
-const profileMessage = ref('')
-const passwordMessage = ref('')
-const passwordError = ref(false)
 
 const profileForm = ref({ name: '', email: '', phone: '' })
 const passwordForm = ref({ current: '', newPassword: '', confirm: '' })
 
 async function saveProfile() {
   savingProfile.value = true
-  profileMessage.value = ''
   try {
     const payload: any = { name: profileForm.value.name, email: profileForm.value.email }
     if (profileForm.value.phone) payload.phone = profileForm.value.phone
     await pb.collection('users').update(auth.user!.id, payload)
     auth.user!.name = profileForm.value.name
     auth.user!.email = profileForm.value.email
-    profileMessage.value = 'Profile updated successfully'
-    setTimeout(() => { profileMessage.value = '' }, 3000)
+    toast.add({ type: 'success', title: 'Profile updated successfully' })
   } catch (e: any) {
-    profileMessage.value = e.message || 'Failed to update profile'
+    toast.add({ type: 'error', title: 'Failed to update profile', message: e.message || 'Something went wrong' })
   }
   finally { savingProfile.value = false }
 }
 
 async function changePassword() {
   savingPassword.value = true
-  passwordMessage.value = ''
-  passwordError.value = false
   if (passwordForm.value.newPassword !== passwordForm.value.confirm) {
-    passwordMessage.value = 'Passwords do not match'
-    passwordError.value = true
+    toast.add({ type: 'error', title: 'Passwords do not match' })
     savingPassword.value = false
     return
   }
   if (passwordForm.value.newPassword.length < 6) {
-    passwordMessage.value = 'Password must be at least 6 characters'
-    passwordError.value = true
+    toast.add({ type: 'error', title: 'Password must be at least 6 characters' })
     savingPassword.value = false
     return
   }
@@ -99,12 +90,10 @@ async function changePassword() {
       password: passwordForm.value.newPassword,
       passwordConfirm: passwordForm.value.confirm,
     })
-    passwordMessage.value = 'Password updated successfully'
+    toast.add({ type: 'success', title: 'Password updated successfully' })
     passwordForm.value = { current: '', newPassword: '', confirm: '' }
-    setTimeout(() => { passwordMessage.value = '' }, 3000)
   } catch (e: any) {
-    passwordMessage.value = e.message || 'Failed to update password'
-    passwordError.value = true
+    toast.add({ type: 'error', title: 'Failed to update password', message: e.message || 'Something went wrong' })
   }
   finally { savingPassword.value = false }
 }

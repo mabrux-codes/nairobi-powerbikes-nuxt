@@ -70,8 +70,7 @@
               </div>
             </div>
 
-            <button type="submit" :disabled="isSubmitting || availableTimeSlots.every(s => bookedTimes.has(s))" class="btn-primary mt-2 w-full justify-center h-12 disabled:opacity-50">
-              <LoaderCircle v-if="isSubmitting" class="h-5 w-5 animate-spin" /><CalendarCheck v-else class="h-5 w-5" />{{ isSubmitting ? 'Booking...' : 'Book Test Ride' }}</button>
+            <Button type="submit" :loading="isSubmitting" :disabled="availableTimeSlots.every(s => bookedTimes.has(s))" variant="primary" class="mt-2 w-full"><CalendarCheck class="h-5 w-5" />Book Test Ride</Button>
           </form>
 
           <div v-if="submitError" class="mt-6 rounded-sm border border-brand-red/30 bg-brand-red/10 p-4 text-center">
@@ -92,7 +91,7 @@
             Your test ride request has been received. We will send a confirmation with your appointment details to
             <span class="font-medium text-white">{{ submittedEmail }}</span>.
           </p>
-          <button @click="closeSuccess" class="btn-primary mt-6 w-full justify-center">Got it</button>
+          <Button @click="closeSuccess" variant="primary" class="mt-6 w-full">Got it</Button>
       </motion.div>
       </div>
     </Teleport>

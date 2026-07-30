@@ -15,15 +15,15 @@
             <p v-if="item.description" class="mt-6 leading-relaxed text-brand-grey">{{ item.description }}</p>
             <div v-if="item.sizes?.length" class="mt-6"><h3 class="font-display text-lg text-white">Sizes</h3><div class="mt-2 flex flex-wrap gap-2"><button v-for="s in item.sizes" :key="s" class="rounded-sm border border-brand-grey/20 px-4 py-2 text-sm text-brand-grey transition-all hover:border-brand-red hover:text-brand-red" :class="{ 'border-brand-red bg-brand-red/10 text-brand-red': selectedSize === s }" @click="selectedSize = s">{{ s }}</button></div></div>
             <div class="mt-8 flex flex-wrap gap-3">
-              <button class="btn-primary" :disabled="!selectedSize && !!item.sizes?.length"><ShoppingCart class="h-5 w-5" />Add to Cart</button>
-              <button class="btn-secondary"><Heart class="h-5 w-5" />Add to Wishlist</button>
+              <Button variant="primary" :disabled="!selectedSize && !!item.sizes?.length"><ShoppingCart class="h-5 w-5" />Add to Cart</Button>
+              <Button variant="secondary"><Heart class="h-5 w-5" />Add to Wishlist</Button>
             </div>
           </div>
         </motion.div>
       </template>
       <div v-else class="rounded-sm border border-dashed border-brand-grey/20 p-16 text-center">
         <p class="font-display text-2xl tracking-display text-brand-grey">Apparel Not Found</p>
-        <NuxtLink to="/apparel" class="btn-primary mt-6 inline-flex">Browse All Apparel</NuxtLink>
+        <Button to="/apparel" variant="primary" class="mt-6">Browse All Apparel</Button>
       </div>
     </div>
   </div>

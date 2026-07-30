@@ -9,12 +9,10 @@
       </div>
       <div><label class="mb-1.5 block text-xs font-display tracking-[var(--tracking-display)] text-brand-grey uppercase">Email</label>
         <Field name="email" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="email" placeholder="john@example.com" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
-      <div class="grid gap-5 sm:grid-cols-2">
-        <div><label class="mb-1.5 block text-xs font-display tracking-[var(--tracking-display)] text-brand-grey uppercase">Bike Model</label>
+      <div><label class="mb-1.5 block text-xs font-display tracking-[var(--tracking-display)] text-brand-grey uppercase">Bike Model</label>
           <Field name="bikeModel" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="text" placeholder="e.g. Kawasaki Ninja 650" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
-        <div><label class="mb-1.5 block text-xs font-display tracking-[var(--tracking-display)] text-brand-grey uppercase">Service Type</label>
+      <div><label class="mb-1.5 block text-xs font-display tracking-[var(--tracking-display)] text-brand-grey uppercase">Service Type</label>
           <Field name="serviceType" v-slot="{ componentField, errorMessage }"><select v-bind="componentField" class="input-field h-11 appearance-none" :class="{ 'border-brand-red': errorMessage }"><option value="" disabled>Select service</option><option v-for="s in serviceTypes" :key="s.value" :value="s.value">{{ s.label }}</option></select><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>
-      </div>
       <div class="grid gap-5 sm:grid-cols-2">
         <div><label class="mb-1.5 block text-xs font-display tracking-[var(--tracking-display)] text-brand-grey uppercase">Preferred Date</label>
           <Field name="date" v-slot="{ componentField, errorMessage }"><input v-bind="componentField" type="date" class="input-field h-11" :class="{ 'border-brand-red': errorMessage }" :min="minDate" @change="onDateChange" /><p v-if="errorMessage" class="mt-1 text-xs text-brand-red">{{ errorMessage }}</p></Field></div>

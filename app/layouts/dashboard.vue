@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen bg-brand-black text-white flex">
-    <DashboardSidebar :isOpen="sidebarOpen" @close="sidebarOpen = false" />
-    <div class="flex-1 flex flex-col min-h-screen lg:ml-64">
-      <DashboardHeader @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+    <DashboardSidebar :isOpen="sidebarOpen" :collapsed="sidebarCollapsed" @close="sidebarOpen = false" />
+    <div class="flex-1 flex flex-col min-h-screen transition-all duration-300" :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
+      <DashboardHeader @toggle-sidebar="sidebarOpen = !sidebarOpen" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" />
       <main class="flex-1 p-4 sm:p-6">
         <slot />
       </main>
@@ -23,6 +23,7 @@
         </div>
       </div>
     </Teleport>
+    <RealtimeToasts v-if="isAdmin" />
     <ToastContainer />
   </div>
 </template>
@@ -31,9 +32,15 @@
 import { cn } from '~/utils/cn'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
+import RealtimeToasts from '~/components/dashboard/RealtimeToasts.vue'
 import { useInactivityLogout } from '~/composables/useInactivityLogout'
+import { useAuthStore } from '~/stores/auth'
+
+const auth = useAuthStore()
+const isAdmin = computed(() => auth.user?.role === 'admin')
 
 const sidebarOpen = ref(false)
+const sidebarCollapsed = ref(false)
 const { showWarning, warningCountdown, setupListeners, stayLoggedIn, forceLogout } = useInactivityLogout()
 
 const inactivityWarning = computed(() => showWarning.value)

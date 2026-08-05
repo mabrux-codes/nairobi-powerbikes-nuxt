@@ -1,186 +1,278 @@
 <template>
   <header
-    ref="headerRef"
-    class="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
-    :class="scrolled ? 'bg-brand-black/90 backdrop-blur-md shadow-lg shadow-brand-black/50' : 'bg-brand-black/30 backdrop-blur-sm'"
+    ref="headerEl"
+    class="fixed inset-x-0 top-0 z-50 transition-all duration-300"
+    :class="scrolled
+      ? 'border-b border-white/[0.07] bg-brand-black/85 shadow-lg shadow-black/40 backdrop-blur-xl'
+      : 'border-b border-transparent bg-gradient-to-b from-black/70 via-black/25 to-transparent'"
   >
-    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-      <NuxtLink to="/" class="flex items-center py-4 shrink-0">
-        <img src="/NPB Logo.png" alt="Nairobi Powerbikes" class="h-12 w-auto" />
+    <div
+      class="mx-auto flex max-w-[90rem] items-center justify-between px-4 transition-all duration-300 sm:px-6 lg:px-8"
+      :class="scrolled ? 'h-16 md:h-[70px] lg:h-20' : 'h-[68px] md:h-[76px] lg:h-[88px]'"
+    >
+      <!-- ============ LEFT: LOGO ============ -->
+      <NuxtLink to="/" class="flex shrink-0 items-center" aria-label="Nairobi Powerbikes — Home">
+        <img
+          src="/NPB Logo.png"
+          alt="Nairobi Powerbikes"
+          class="h-10 w-auto transition-all duration-300 md:h-11 lg:h-12"
+          :class="{ 'scale-90': scrolled }"
+        />
       </NuxtLink>
 
-      <nav class="hidden lg:flex items-center gap-1">
-        <div
-          v-for="item in navItems"
-          :key="item.label"
-          class="relative"
-          @mouseenter="openDropdown(item.label)"
-          @mouseleave="closeDropdown()"
-        >
-          <button
-            v-if="item.children"
-            class="flex items-center gap-1 px-3 py-6 text-sm font-display tracking-display uppercase text-brand-light hover:text-brand-red transition-colors whitespace-nowrap"
-            @click="toggleDropdown(item.label)"
+      <!-- ============ CENTER: NAV ============ -->
+      <nav class="hidden items-center gap-0.5 lg:flex" aria-label="Primary">
+        <template v-for="item in navItems" :key="item.label">
+          <!-- mega menu item -->
+          <div
+            v-if="item.mega"
+            class="relative"
+            @mouseenter="openMega(item.label)"
+            @mouseleave="scheduleCloseMega"
           >
-            {{ item.label }}
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200" :class="{ 'rotate-180': activeDropdown === item.label }"><path d="m6 9 6 6 6-6" /></svg>
-          </button>
+            <button
+              :id="`nav-${item.slug}`"
+              class="nav-link flex items-center gap-1.5 px-3 py-2 text-[13px] font-semibold tracking-wide transition-colors"
+              :class="[isActive(item.to) ? 'text-brand-red' : 'text-brand-light/90 hover:text-white', openMegaMenu === item.label && 'text-white']"
+              :aria-expanded="openMegaMenu === item.label"
+              :aria-controls="`mega-${item.slug}`"
+              @click="toggleMega(item.label)"
+            >
+              {{ item.label }}
+              <ChevronDown class="h-3.5 w-3.5 transition-transform duration-200" :class="{ 'rotate-180': openMegaMenu === item.label }" />
+            </button>
+            <div class="nav-underline" :class="{ 'nav-underline-active': isActive(item.to) }" />
+            <div
+              :id="`mega-${item.slug}`"
+              class="absolute top-full"
+              @mouseenter="clearCloseTimeout"
+            >
+              <MegaMenuPanel
+                :kind="item.mega"
+                :open="openMegaMenu === item.label"
+                @navigate="closeAll"
+              />
+            </div>
+          </div>
+
+          <!-- plain link -->
           <NuxtLink
             v-else
-            :to="item.to || '#'"
-            class="flex items-center gap-1 px-3 py-6 text-sm font-display tracking-display uppercase text-brand-light hover:text-brand-red transition-colors whitespace-nowrap"
-            :class="{ 'text-brand-red': isActive(item.to!) }"
+            :to="item.to"
+            class="nav-link relative flex items-center px-3 py-2 text-[13px] font-semibold tracking-wide transition-colors"
+            :class="isActive(item.to) ? 'text-brand-red' : 'text-brand-light/90 hover:text-white'"
+            :aria-current="isActive(item.to) ? 'page' : undefined"
           >
             {{ item.label }}
+            <span class="nav-underline" :class="{ 'nav-underline-active': isActive(item.to) }" />
           </NuxtLink>
-          <Transition name="dropdown">
-            <div v-if="item.children && activeDropdown === item.label" class="absolute left-0 top-full" @mouseenter="openDropdown(item.label)" @mouseleave="closeDropdown()">
-              <div class="w-56 rounded-sm border border-brand-grey/20 bg-brand-black/95 backdrop-blur-lg shadow-xl overflow-hidden">
-                <div class="py-2">
-                  <NuxtLink v-for="child in item.children" :key="child.label" :to="child.to!" class="block px-4 py-2.5 text-sm text-brand-grey hover:text-brand-red hover:bg-white/5 transition-colors" @click="activeDropdown = null">{{ child.label }}</NuxtLink>
-                </div>
-              </div>
-            </div>
-          </Transition>
-        </div>
+        </template>
       </nav>
 
-      <div class="flex items-center gap-3">
+      <!-- ============ RIGHT: ACTIONS ============ -->
+      <div class="flex items-center gap-1 sm:gap-2">
+        <button
+          class="icon-btn"
+          aria-label="Search the catalogue"
+          @click="searchOpen = true"
+        >
+          <Search class="h-5 w-5" />
+        </button>
+
+        <!-- wishlist -->
+        <NuxtLink
+          :to="wishlistRoute"
+          class="icon-btn relative"
+          :aria-label="`Wishlist${wishlist.count.value ? `, ${wishlist.count.value} saved items` : ''}`"
+        >
+          <Heart class="h-5 w-5" />
+          <Transition name="badge">
+            <span
+              v-if="wishlist.count.value > 0"
+              key="wishlist-count"
+              class="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-red px-1 text-[9px] font-bold text-white shadow-lg shadow-brand-red/40"
+            >
+              {{ wishlist.count.value > 99 ? '99+' : wishlist.count.value }}
+            </span>
+          </Transition>
+        </NuxtLink>
+
         <ClientOnly>
+          <!-- logged in -->
           <template v-if="auth.isAuthenticated">
-            <NuxtLink
-              :to="auth.getDashboardRoute()"
-              class="flex items-center gap-2 rounded-full border border-brand-grey/30 px-3 py-1.5 text-xs sm:px-4 sm:py-1.5 sm:text-sm text-brand-light hover:border-brand-red hover:text-brand-red transition-all duration-200"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="5" />
-                <path d="M20 21a8 8 0 1 0-16 0" />
-              </svg>
-              {{ auth.user?.name || auth.user?.email }}
-            </NuxtLink>
+            <NavNotifications class="hidden sm:flex" />
+            <ProfileMenu />
           </template>
+          <!-- guest -->
           <template v-else>
-            <Button
-              to="/login"
-              variant="primary"
-            >
-              Sign In
-            </Button>
+            <div class="hidden items-center gap-2 md:flex">
+              <Button to="/login" variant="ghost" size="sm" class="h-9 px-4">Sign In</Button>
+              <Button to="/register" variant="primary" size="sm" class="h-9 px-4">Register</Button>
+            </div>
           </template>
         </ClientOnly>
 
+        <!-- mobile hamburger -->
         <button
-          class="lg:hidden flex h-10 w-10 items-center justify-center text-brand-light hover:text-brand-red transition-colors"
+          class="icon-btn lg:hidden"
+          :aria-label="mobileOpen ? 'Close navigation' : 'Open navigation'"
+          :aria-expanded="mobileOpen"
           @click="mobileOpen = true"
-          aria-label="Open menu"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" x2="20" y1="12" y2="12" />
-            <line x1="4" x2="20" y1="6" y2="6" />
-            <line x1="4" x2="20" y1="18" y2="18" />
-          </svg>
+          <Menu class="h-6 w-6" />
         </button>
       </div>
     </div>
 
-    <MobileMenu v-model="mobileOpen" />
+    <!-- mobile menu + overlays -->
+    <MobileMenu v-model="mobileOpen" @open-search="searchOpen = true" />
   </header>
+
+  <GlobalSearch :open="searchOpen" @close="searchOpen = false" />
 </template>
 
 <script setup lang="ts">
+import { Search, Heart, Menu, ChevronDown } from 'lucide-vue-next'
+import { useCatalogStore } from '~/stores/catalog'
+import { useWishlist } from '~/composables/useWishlist'
+
 const auth = useAuthStore()
 const route = useRoute()
+const wishlist = useWishlist()
+const store = useCatalogStore()
 
-const headerRef = ref<HTMLElement | null>(null)
 const scrolled = ref(false)
-const activeDropdown = ref<string | null>(null)
+const openMegaMenu = ref<string | null>(null)
 const mobileOpen = ref(false)
-const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+const searchOpen = ref(false)
+const closeTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
-function clearHoverTimeout() {
-  if (hoverTimeout.value) { clearTimeout(hoverTimeout.value); hoverTimeout.value = null }
+const wishlistRoute = computed(() => (auth.isAuthenticated ? '/dashboard/my-wishlist' : '/login'))
+
+interface MegaItem {
+  label: string
+  slug: string
+  to: string
+  mega: 'motorcycles' | 'accessories' | 'apparel'
 }
-
-function openDropdown(label: string) {
-  clearHoverTimeout()
-  activeDropdown.value = label
-}
-
-function closeDropdown() {
-  clearHoverTimeout()
-  hoverTimeout.value = setTimeout(() => {
-    activeDropdown.value = null
-  }, 150)
-}
-
-function toggleDropdown(label: string) {
-  clearHoverTimeout()
-  activeDropdown.value = activeDropdown.value === label ? null : label
-}
-
-interface NavChild {
+interface PlainItem {
   label: string
   to: string
+  mega?: never
 }
 
-interface NavItem {
-  label: string
-  to?: string
-  children?: NavChild[]
-}
-
-const navItems: NavItem[] = [
+const navItems: Array<MegaItem | PlainItem> = [
   { label: 'Home', to: '/' },
-  {
-    label: 'Motorcycles', to: '/motorcycles',
-    children: [
-      { label: 'All Motorcycles', to: '/motorcycles' },
-      { label: 'Brands', to: '/brands' },
-      { label: 'Compare', to: '/motorcycles/compare' },
-    ],
-  },
-  { label: 'New Arrivals', to: '/new-arrivals' },
-  { label: 'Accessories', to: '/accessories' },
-  { label: 'Apparel', to: '/apparel' },
-  {
-    label: 'Service', to: '/service/booking',
-    children: [
-      { label: 'Book a Service', to: '/service/booking' },
-      { label: 'Book a Test Ride', to: '/service/test-ride' },
-    ],
-  },
-  { label: 'Finance', to: '/finance' },
-  { label: 'About', to: '/about' },
-  { label: 'Contact Us', to: '/contact' },
+  { label: 'Motorcycles', slug: 'motorcycles', to: '/motorcycles', mega: 'motorcycles' },
+  { label: 'Accessories', slug: 'accessories', to: '/accessories', mega: 'accessories' },
+  { label: 'Apparel', slug: 'apparel', to: '/apparel', mega: 'apparel' },
+  { label: 'Book a Service', to: '/service/booking' },
+  { label: 'Book a Test Ride', to: '/service/test-ride' },
+  { label: 'About Us', to: '/about' },
+  { label: 'Contact', to: '/contact' },
 ]
 
 function isActive(path: string): boolean {
   if (path === '/') return route.path === '/'
-  return route.path.startsWith(path.split('?')[0])
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
+
+function openMega(label: string) { clearCloseTimeout(); openMegaMenu.value = label }
+function toggleMega(label: string) { openMegaMenu.value = openMegaMenu.value === label ? null : label }
+function clearCloseTimeout() {
+  if (closeTimeout.value) { clearTimeout(closeTimeout.value); closeTimeout.value = null }
+}
+function scheduleCloseMega() {
+  clearCloseTimeout()
+  closeTimeout.value = setTimeout(() => { openMegaMenu.value = null }, 140)
+}
+function closeAll() { openMegaMenu.value = null }
+
+function onScroll() { scrolled.value = window.scrollY > 24 }
+
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    openMegaMenu.value = null
+    mobileOpen.value = false
+    searchOpen.value = false
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault()
+    searchOpen.value = !searchOpen.value
+  }
+}
+
+const headerEl = ref<HTMLElement | null>(null)
+function syncNavHeight() {
+  const el = headerEl.value
+  if (!el) return
+  document.documentElement.style.setProperty('--nav-h', `${el.offsetHeight}px`)
 }
 
 onMounted(() => {
-  const onScroll = () => {
-    scrolled.value = window.scrollY > 20
-  }
   window.addEventListener('scroll', onScroll, { passive: true })
-  onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
+  window.addEventListener('keydown', onKey)
+  store.ensureActive()
+  wishlist.load()
+  onScroll()
+  syncNavHeight()
+  window.addEventListener('resize', syncNavHeight)
+  const ro = new ResizeObserver(syncNavHeight)
+  if (headerEl.value) ro.observe(headerEl.value)
+  ;(headerEl.value as any).__navRo = ro
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('keydown', onKey)
+  window.removeEventListener('resize', syncNavHeight)
+  ;(headerEl.value as any)?.__navRo?.disconnect()
+  store.release()
+})
+
+watch(() => route.fullPath, () => { openMegaMenu.value = null; mobileOpen.value = false })
 </script>
 
 <style scoped>
-.dropdown-enter-active {
-  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+.nav-link {
+  position: relative;
 }
-.dropdown-leave-active {
-  transition: opacity 0.15s ease-in, transform 0.15s ease-in;
+.nav-underline {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #D6001C, rgba(214, 0, 28, 0.25));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.dropdown-enter-from {
-  opacity: 0;
-  transform: translateY(-6px);
+.nav-link:hover .nav-underline {
+  transform: scaleX(1);
 }
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
+.nav-underline-active {
+  transform: scaleX(1);
 }
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  color: rgb(242 242 242 / 0.85);
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+.icon-btn:hover {
+  color: #fff;
+  background-color: rgb(255 255 255 / 0.07);
+}
+.icon-btn:active {
+  transform: scale(0.94);
+}
+.badge-enter-active, .badge-leave-active { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s; }
+.badge-enter-from { transform: scale(0.4); opacity: 0; }
+.badge-leave-to { transform: scale(0.4); opacity: 0; }
 </style>

@@ -26,8 +26,8 @@
           <div class="flex items-center justify-between border-b border-brand-grey/10 px-4 py-3">
             <h3 class="text-sm font-semibold text-white">Notifications</h3>
             <div class="flex gap-2">
-              <button v-if="store.unreadCount > 0" class="text-xs text-brand-grey hover:text-white transition-colors" @click="store.markAllRead()">Mark all read</button>
-              <button v-if="store.notifications.length > 0" class="text-xs text-brand-red/70 hover:text-brand-red transition-colors" @click="store.clearAll()">Clear all</button>
+              <button v-if="store.unreadCount > 0" class="text-xs text-brand-grey hover:text-white transition-colors" @click="markAllRead()">Mark all read</button>
+              <button v-if="store.notifications.length > 0" class="text-xs text-brand-red/70 hover:text-brand-red transition-colors" @click="clearAll()">Clear all</button>
             </div>
           </div>
 
@@ -48,7 +48,7 @@
                   <button
                     v-if="!n.read"
                     class="shrink-0 text-[10px] text-brand-red/60 hover:text-brand-red transition-colors"
-                    @click="store.markRead(n.id)"
+                    @click="markRead(n.id)"
                   >Mark read</button>
                 </div>
                 <p class="mt-0.5 text-xs text-white line-clamp-2">{{ n.message }}</p>
@@ -56,7 +56,7 @@
               </div>
               <button
                 class="-mr-1 -mt-1 shrink-0 opacity-0 group-hover:opacity-100 text-brand-grey/40 hover:text-white transition-all"
-                @click="store.remove(n.id)"
+                @click="removeNotification(n.id)"
                 aria-label="Delete notification"
               >
                 <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -72,6 +72,7 @@
 <script setup lang="ts">
 import { useNotificationStore, type NotificationItem } from '~/stores/notifications'
 import { useToast } from '~/composables/useToast'
+import { useAuthStore } from '~/stores/auth'
 import {
   CalendarCheck, Bike, MessageSquare, Newspaper, Users, Shield, Settings, Image, LogIn, Bell,
 } from 'lucide-vue-next'
@@ -99,35 +100,52 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   try {
-    pb.collection('service_bookings').unsubscribe('*')
-    pb.collection('testimonials').unsubscribe('*')
-    pb.collection('contacts').unsubscribe('*')
+    pb.collection('notifications').unsubscribe('*')
   } catch { /* ignore */ }
 })
 
+function markAllRead() {
+  store.markAllRead()
+  try {
+    const pbIds = store.notifications.map(n => n.id.replace(/^notif-/, ''))
+    pbIds.forEach(id => pb.collection('notifications').update(id, { read: true }))
+  } catch { /* ignore */ }
+}
+
+function clearAll() {
+  store.clearAll()
+  try {
+    pb.collection('notifications').getList(1, 200, { sort: '-created' }).then((res) => {
+      res.items.forEach(r => pb.collection('notifications').delete(r.id))
+    })
+  } catch { /* ignore */ }
+}
+
 function typeIcon(type: string) {
   const icons: Record<string, object> = {
-    booking: CalendarCheck, test_ride: Bike, testimonial: MessageSquare,
+    booking: CalendarCheck, service: CalendarCheck, test_ride: Bike, testimonial: MessageSquare,
     motorcycle: Bike, user: Users, staff: Shield, system: Settings,
-    media: Image, auth: LogIn, general: Bell,
+    media: Image, auth: LogIn, general: Bell, contact: MessageSquare, offer: Bell, message: Bell,
   }
   return icons[type] || Bell
 }
 
 function typeBg(type: string) {
   const map: Record<string, string> = {
-    booking: 'bg-blue-500/15', test_ride: 'bg-blue-500/15', testimonial: 'bg-green-500/15',
+    booking: 'bg-blue-500/15', service: 'bg-blue-500/15', test_ride: 'bg-blue-500/15', testimonial: 'bg-green-500/15',
     motorcycle: 'bg-amber-500/15', user: 'bg-purple-500/15', staff: 'bg-purple-500/15',
     system: 'bg-brand-grey/15', media: 'bg-pink-500/15', auth: 'bg-brand-grey/15', general: 'bg-brand-grey/15',
+    contact: 'bg-green-500/15', offer: 'bg-amber-500/15', message: 'bg-brand-grey/15',
   }
   return map[type] || 'bg-brand-grey/15'
 }
 
 function typeColor(type: string) {
   const map: Record<string, string> = {
-    booking: 'text-blue-400', test_ride: 'text-blue-400', testimonial: 'text-green-400',
+    booking: 'text-blue-400', service: 'text-blue-400', test_ride: 'text-blue-400', testimonial: 'text-green-400',
     motorcycle: 'text-amber-400', user: 'text-purple-400', staff: 'text-purple-400',
     system: 'text-brand-grey/60', media: 'text-pink-400', auth: 'text-brand-grey/60', general: 'text-brand-grey/60',
+    contact: 'text-green-400', offer: 'text-amber-400', message: 'text-brand-grey/60',
   }
   return map[type] || 'text-brand-grey/60'
 }
@@ -144,7 +162,24 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })
 }
 
+function markRead(id: string) {
+  store.markRead(id)
+  try {
+    const pbId = id.replace(/^notif-/, '')
+    pb.collection('notifications').update(pbId, { read: true })
+  } catch { /* ignore */ }
+}
+
+function removeNotification(id: string) {
+  store.remove(id)
+  try {
+    const pbId = id.replace(/^notif-/, '')
+    pb.collection('notifications').delete(pbId)
+  } catch { /* ignore */ }
+}
+
 const pb = usePB()
+const auth = useAuthStore()
 
 async function fetchNotifications() {
   try {
@@ -162,6 +197,7 @@ async function fetchNotifications() {
           link: r.link || '',
           read: r.read || false,
           createdAt: r.created,
+          broadcast: r.broadcast || false,
         })
       }
     }
@@ -171,70 +207,41 @@ async function fetchNotifications() {
   } catch { /* fail silently — PB collection may not exist yet */ }
 }
 
-async function createAndAddNotification(data: { type: string; title: string; message: string; link?: string }) {
-  try {
-    const record = await pb.collection('notifications').create({
-      type: data.type,
-      title: data.title,
-      message: data.message,
-      link: data.link || '',
-      read: false,
-    })
-    store.addFromPB({
-      id: record.id,
-      type: record.type,
-      title: record.title,
-      message: record.message,
-      link: record.link || '',
-      read: false,
-      created: record.created,
-    })
-  } catch {
-    store.add({ type: data.type as NotificationItem['type'], title: data.title, message: data.message, link: data.link })
-  }
+function isVisibleForUser(r: any) {
+  if (auth.user?.role === 'admin') return true
+  return r?.user === auth.user?.id || r?.broadcast === true
 }
 
 function subscribeToRealtime() {
   if (!pb) return
   try {
-    pb.collection('service_bookings').subscribe('*', (e) => {
+    const filter = auth.user?.role === 'admin' ? undefined : pb.filter('user = {:uid} || broadcast = true', { uid: auth.user?.id })
+    pb.collection('notifications').subscribe('*', (e) => {
+      if (!isVisibleForUser(e.record)) return
       if (e.action === 'create') {
-        const r = e.record
-        const name = r?.name || 'A customer'
-        const type = r?.type || 'booking'
-        let title: string, message: string, link: string
-        if (type === 'test_ride') {
-          title = 'New Test Ride Booking'
-          message = `${name} booked a test ride${r?.motorcycle ? ' for ' + r.motorcycle : ''}`
-          link = '/dashboard/test-rides'
-        } else {
-          title = 'New Service Booking'
-          message = `${name} booked a ${r?.service_type || 'service'} appointment`
-          link = '/dashboard/service-bookings'
+        store.addFromPB({
+          id: e.record.id,
+          type: e.record.type,
+          title: e.record.title,
+          message: e.record.message,
+          link: e.record.link || '',
+          read: false,
+          created: e.record.created,
+          broadcast: e.record.broadcast,
+        })
+        toast.add({ type: 'info', title: e.record.title, message: e.record.message })
+      } else if (e.action === 'update') {
+        const existing = store.notifications.find(n => n.id === `notif-${e.record.id}`)
+        if (existing) {
+          existing.read = e.record.read
+          existing.title = e.record.title || existing.title
+          existing.message = e.record.message || existing.message
+          existing.link = e.record.link || existing.link
         }
-        createAndAddNotification({ type, title, message, link })
-        toast.add({ type: 'success', title, message })
+      } else if (e.action === 'delete') {
+        store.remove(`notif-${e.record.id}`)
       }
-    })
-    pb.collection('testimonials').subscribe('*', (e) => {
-      if (e.action === 'create') {
-        const name = e.record?.name || 'Someone'
-        const title = 'New Testimonial'
-        const message = `${name} submitted a testimonial`
-        createAndAddNotification({ type: 'testimonial', title, message, link: '/dashboard/testimonials' })
-        toast.add({ type: 'success', title, message })
-      }
-    })
-    pb.collection('contacts').subscribe('*', (e) => {
-      if (e.action === 'create') {
-        const name = e.record?.name || 'Someone'
-        const subject = e.record?.subject || 'General Inquiry'
-        const title = 'New Contact Message'
-        const message = `${name} sent a message: ${subject}`
-        createAndAddNotification({ type: 'general', title, message, link: '/dashboard/contacts' })
-        toast.add({ type: 'success', title, message })
-      }
-    })
+    }, filter ? { filter } : undefined)
   } catch { /* realtime not available */ }
 }
 </script>

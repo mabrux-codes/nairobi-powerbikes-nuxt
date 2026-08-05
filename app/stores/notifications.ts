@@ -2,12 +2,13 @@ import { defineStore } from 'pinia'
 
 export interface NotificationItem {
   id: string
-  type: 'booking' | 'test_ride' | 'testimonial' | 'motorcycle' | 'user' | 'staff' | 'system' | 'media' | 'auth' | 'general'
+  type: 'booking' | 'test_ride' | 'testimonial' | 'motorcycle' | 'user' | 'staff' | 'system' | 'media' | 'auth' | 'general' | 'service' | 'contact' | 'offer' | 'message'
   title: string
   message: string
   read: boolean
   createdAt: string
   link?: string
+  broadcast?: boolean
 }
 
 export const useNotificationStore = defineStore('notifications', () => {
@@ -24,7 +25,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     persist()
   }
 
-  function addFromPB(pbRec: { id: string; type: string; title: string; message: string; link?: string; read: boolean; created: string }) {
+  function addFromPB(pbRec: { id: string; type: string; title: string; message: string; link?: string; read: boolean; created: string; broadcast?: boolean }) {
     const id = `notif-${pbRec.id}`
     if (notifications.value.some(n => n.id === id)) return
     notifications.value.unshift({
@@ -35,6 +36,7 @@ export const useNotificationStore = defineStore('notifications', () => {
       link: pbRec.link || '',
       read: pbRec.read,
       createdAt: pbRec.created,
+      broadcast: pbRec.broadcast,
     })
     persist()
   }

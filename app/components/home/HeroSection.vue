@@ -67,6 +67,18 @@
               Book a Test Ride
             </Button>
           </motion.div>
+
+          <motion.dl
+            class="mt-10 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06]"
+            :initial="{ opacity: 0, y: 20 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ delay: 1, duration: 0.5 }"
+          >
+            <div v-for="s in heroStats" :key="s.label" class="bg-brand-black/85 px-4 py-4 backdrop-blur-sm">
+              <dd class="font-heading text-2xl text-white sm:text-3xl">{{ s.value }}</dd>
+              <dt class="mt-1 font-display text-[10px] font-semibold tracking-[0.18em] text-brand-grey uppercase">{{ s.label }}</dt>
+            </div>
+          </motion.dl>
         </motion.div>
 
         <!-- Desktop/tablet card (1024px+) -->
@@ -131,6 +143,17 @@
       />
     </div>
 
+        <button
+      class="absolute bottom-24 left-1/2 z-20 hidden -translate-x-1/2 flex-col items-center gap-2 text-white/60 transition-colors hover:text-brand-red lg:flex"
+      aria-label="Scroll to content"
+      @click="scrollToContent"
+    >
+      <span class="font-display text-[10px] font-semibold tracking-[0.3em] text-white/50 uppercase">Scroll</span>
+      <span class="flex h-9 w-5 items-start justify-center rounded-full border border-white/25 p-1">
+        <span class="scroll-dot h-2 w-1 rounded-full bg-brand-red" />
+      </span>
+    </button>
+
     <div class="absolute bottom-0 left-0 right-0 z-20 border-t border-brand-grey/10 bg-brand-black/80 backdrop-blur-md">
       <div class="mx-auto max-w-7xl overflow-hidden px-4 sm:px-6 lg:px-8">
         <div class="flex whitespace-nowrap py-4" ref="tickerRef">
@@ -184,6 +207,22 @@ function startAutoScroll() {
 
 const featuredBikes = ref<Bike[]>([])
 
+const heroStats = computed(() => {
+  const minPrice = featuredBikes.value.length
+    ? Math.min(...featuredBikes.value.map(b => b.price))
+    : 0
+  return [
+    { label: 'Featured Models', value: featuredBikes.value.length },
+    { label: 'Premium Brands', value: 12 },
+    { label: 'From', value: minPrice ? `KSh ${minPrice.toLocaleString('en-KE')}` : '—' },
+  ]
+})
+
+function scrollToContent() {
+  const el = document.getElementById('home-content')
+  el?.scrollIntoView({ behavior: 'smooth' })
+}
+
 function formatPrice(amount: number): string { return amount.toLocaleString('en-KE') }
 
 async function loadHeroImages() {
@@ -219,4 +258,6 @@ onBeforeUnmount(() => {
 @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 .animate-marquee { animation: marquee linear infinite; }
 
+@keyframes scroll-dot { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(12px); opacity: 0; } }
+.scroll-dot { animation: scroll-dot 1.6s ease-in-out infinite; }
 </style>

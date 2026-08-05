@@ -1,53 +1,98 @@
 <template>
   <section class="bg-brand-black py-20">
-    <div class="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
-      <motion.div class="mb-16 text-center" :initial="{ opacity: 0, y: 40 }" :while-in-view="{ opacity: 1, y: 0 }" :viewport="{ once: true }" :transition="{ duration: 0.6 }">
-        <h2 class="font-heading text-4xl text-white sm:text-5xl lg:text-display-xl">Featured <span class="text-brand-red">Machines</span></h2>
-        <div class="mx-auto mt-2 h-1 w-24 bg-brand-red" />
-        <p class="mt-4 text-brand-grey">Hand-picked motorcycles ready to conquer Nairobi's streets</p>
-      </motion.div>
-
-      <div v-if="loading" class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <div v-for="i in 4" :key="i" class="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/80">
-          <div class="aspect-[4/5] animate-pulse bg-zinc-800/50" />
-          <div class="space-y-4 p-6">
-            <div class="h-3 w-20 animate-pulse rounded bg-zinc-800/50" />
-            <div class="h-6 w-3/4 animate-pulse rounded bg-zinc-800/50" />
-            <div class="h-4 w-full animate-pulse rounded bg-zinc-800/50" />
-            <div class="h-4 w-2/3 animate-pulse rounded bg-zinc-800/50" />
-            <div class="h-8 w-1/2 animate-pulse rounded bg-zinc-800/50" />
-          </div>
-        </div>
+    <div class="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8">
+      <div class="mb-14 flex flex-wrap items-end justify-between gap-6">
+        <SectionHeading
+          eyebrow="Hand-Picked Machines"
+          title="Featured"
+          accent="Motorcycles"
+          description="Our flagship models, curated for performance and presence."
+          align="left"
+        />
+        <Button to="/motorcycles" variant="ghost" trailing-arrow class="mb-2">View Full Collection</Button>
       </div>
 
-      <div v-else-if="bikes.length" class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <motion.div v-for="(bike, index) in bikes" :key="bike.id"
-          class="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/80 transition-all duration-500 hover:-translate-y-2 hover:border-brand-red/60 hover:shadow-2xl hover:shadow-brand-red/10"
-          :initial="{ opacity: 0, y: 40 }" :while-in-view="{ opacity: 1, y: 0 }" :viewport="{ once: true, margin: '-50px' }"
-          :transition="{ delay: index * 0.1, duration: 0.5 }">
-          <div class="aspect-[4/5] overflow-hidden bg-zinc-900 relative">
-            <img v-if="bike.images?.length" :src="pb.files.getURL(bike, bike.images[0])" :alt="bike.name" class="h-full w-full object-cover transition-all duration-700 group-hover:scale-105" />
-            <div v-else class="flex h-full w-full items-center justify-center bg-zinc-900">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-600"><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="18.5" cy="17.5" r="3.5" /><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm0 0-3.5 5.5L9 9l-3.5 4" /><line x1="15" y1="6" x2="18.5" y2="17.5" /></svg>
-            </div>
-            <div v-if="bike.sale_price || bike.offer_price" class="absolute top-3 right-3 rounded-sm bg-green-600 px-2 py-1 text-[10px] font-display tracking-display text-white uppercase">Sale</div>
-          </div>
-          <div class="flex flex-col gap-5 p-6">
-            <p class="text-xs uppercase tracking-widest text-zinc-500">{{ bike.expand?.brand?.name || bike.brand || 'Motorcycle' }}</p>
-            <h3 class="text-3xl font-bold text-white">{{ bike.name }}</h3>
-            <p v-if="bike.description" class="line-clamp-2 text-sm leading-relaxed text-zinc-400">{{ bike.description }}</p>
-            <p class="text-2xl font-bold text-brand-red">KSh {{ formatPrice(bike.sale_price || bike.offer_price || bike.price) }}</p>
-            <p v-if="bike.sale_price || bike.offer_price" class="-mt-3 text-sm text-zinc-500 line-through">KSh {{ formatPrice(bike.price) }}</p>
-            <NuxtLink :to="bikePath(bike)" class="mt-auto rounded-xl bg-brand-red px-4 py-3 text-center text-sm font-semibold text-white transition-all duration-300 hover:bg-red-600 group-hover:shadow-lg group-hover:shadow-brand-red/20">
-              View Details <ArrowRight class="ml-1.5 inline-block h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+      <div v-if="loading" class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <ShopSkeletonCard v-for="i in 4" :key="i" />
+      </div>
+
+      <div v-else-if="bikes.length" class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <motion.div
+          v-for="(bike, index) in bikes"
+          :key="bike.id"
+          class="group relative flex flex-col overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-b from-white/[0.05] to-white/[0.01] transition-all duration-500 hover:-translate-y-2 hover:border-brand-red/40 hover:shadow-[0_32px_70px_-24px_rgba(214,0,28,0.4)]"
+          :initial="{ opacity: 0, y: 44 }"
+          :while-in-view="{ opacity: 1, y: 0 }"
+          :viewport="{ once: true, margin: '-50px' }"
+          :transition="{ delay: index * 0.1, duration: 0.55, ease: 'easeOut' }"
+        >
+          <div class="relative aspect-[4/5] overflow-hidden bg-black">
+            <NuxtLink :to="bikePath(bike)" class="block h-full w-full" tabindex="-1" aria-hidden="true">
+              <img
+                v-if="bike.images?.length"
+                :src="pb.files.getURL(bike, bike.images[0], { thumb: '900x0' })"
+                :alt="bike.name"
+                loading="lazy"
+                decoding="async"
+                class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
+              />
+              <div v-else class="flex h-full w-full items-center justify-center bg-zinc-900">
+                <Bike class="h-14 w-14 text-zinc-700" stroke-width="1" />
+              </div>
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/25" />
             </NuxtLink>
+
+            <div class="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+              <span v-if="bike.new_arrival" class="rounded-full bg-brand-red px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-white uppercase">New</span>
+              <span v-if="bike.sale_price" class="rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-black uppercase">Sale</span>
+            </div>
+
+            <button
+              class="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border bg-black/55 backdrop-blur-md transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red"
+              :class="wishlist.isSaved('bike', bike.id) ? 'border-brand-red/60 text-brand-red' : 'border-white/15 text-white hover:border-brand-red/50 hover:text-brand-red'"
+              :aria-label="wishlist.isSaved('bike', bike.id) ? `Remove ${bike.name} from wishlist` : `Save ${bike.name} to wishlist`"
+              @click="toggleWishlist(bike)"
+            >
+              <Heart class="h-5 w-5" :class="{ 'fill-brand-red': wishlist.isSaved('bike', bike.id) }" :stroke-width="wishlist.isSaved('bike', bike.id) ? 2 : 1.8" />
+            </button>
+
+            <div class="absolute bottom-4 left-4 right-4">
+              <p class="text-[11px] font-semibold tracking-[0.2em] text-brand-grey uppercase">{{ bike.expand?.brand?.name || bike.brand || 'Motorcycle' }}</p>
+              <h3 class="mt-1 font-display text-2xl leading-snug font-bold tracking-display text-white">
+                <NuxtLink :to="bikePath(bike)" class="transition-colors hover:text-brand-red">{{ bike.name }}</NuxtLink>
+              </h3>
+            </div>
+          </div>
+
+          <div class="flex flex-1 flex-col gap-5 p-6">
+            <p class="text-sm leading-relaxed text-brand-grey line-clamp-2">{{ bike.description || `${bike.engine_cc || '—'}cc · ${bike.year || '—'} · ${bike.transmission || 'Manual'}` }}</p>
+
+            <div class="mt-auto flex items-end justify-between gap-3">
+              <div>
+                <p class="font-heading text-3xl text-brand-red">{{ formatPrice(currentPrice(bike)) }}</p>
+                <p v-if="bike.sale_price" class="text-sm text-brand-grey/60 line-through">KSh {{ formatPrice(bike.price) }}</p>
+              </div>
+              <span v-if="discount(bike)" class="rounded-full bg-brand-red/15 px-2.5 py-1 text-xs font-bold text-brand-red">{{ discount(bike) }} OFF</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <Button :to="bikePath(bike)" variant="secondary" size="sm" class="col-span-2">
+                <Eye class="h-4 w-4" />View Details
+              </Button>
+              <Button :to="`/service/test-ride?motorcycle=${bike.id}`" size="sm" variant="ghost">
+                <CalendarClock class="h-4 w-4" />Test Ride
+              </Button>
+              <Button :to="`/motorcycles/compare?compare=${bike.id}`" size="sm" variant="ghost">
+                <GitCompareArrows class="h-4 w-4" />Compare
+              </Button>
+            </div>
           </div>
         </motion.div>
       </div>
 
-      <div v-else class="rounded-sm border border-zinc-800 p-16 text-center">
-        <p class="font-display text-2xl tracking-display text-zinc-400">No featured machines yet</p>
-        <p class="mt-2 text-sm text-zinc-600">Check back soon for our latest arrivals</p>
+      <div v-else class="rounded-2xl border border-dashed border-white/15 p-16 text-center">
+        <p class="font-display text-2xl tracking-display text-brand-grey">No featured machines yet</p>
+        <p class="mt-2 text-sm text-brand-grey/60">Check back soon for our latest arrivals</p>
       </div>
     </div>
   </section>
@@ -55,29 +100,41 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { ArrowRight } from 'lucide-vue-next'
+import { ArrowRight, Eye, CalendarClock, GitCompareArrows, Heart, Bike } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { useWishlist } from '~/composables/useWishlist'
 
-interface Brand { id: string; name: string; logo?: string }
-interface Bike { id: string; name: string; brand: string; engine_cc?: number; cc?: number; price: number; sale_price?: number; offer_price?: number; horsepower?: number; description?: string; images?: string[]; expand?: { brand?: Brand } }
+interface Brand { id: string; name: string }
+interface Bike { id: string; name: string; brand: string; engine_cc?: number; year?: number; transmission?: string; price: number; sale_price?: number; description?: string; images?: string[]; new_arrival?: boolean; expand?: { brand?: Brand } }
 
 const pb = usePB()
 const loading = ref(true)
 const bikes = ref<Bike[]>([])
+const wishlist = useWishlist()
+
+function toggleWishlist(bike: Bike) {
+  wishlist.toggle('bike', bike)
+}
 
 function bikePath(b: any) { return `/motorcycles/${b.slug || encodeURIComponent(b.name)}` }
-function formatPrice(amount: number): string { return amount.toLocaleString('en-KE') }
+function formatPrice(v: number) { return `KSh ${Number(v).toLocaleString('en-KE')}` }
+function currentPrice(b: Bike) { return (b.sale_price || b.price) ?? 0 }
+function discount(b: Bike) {
+  if (!b.sale_price || !b.price || b.sale_price >= b.price) return ''
+  const pct = Math.round((1 - b.sale_price / b.price) * 100)
+  return pct > 0 ? `${pct}%` : ''
+}
 
 async function loadBikes() {
   try {
-    const records = await pb.collection('motorcycles').getList<Bike>(1, 50, { filter: 'featured = true && status = "available"', sort: '-created', expand: 'brand' })
+    const records = await pb.collection('motorcycles').getList<Bike>(1, 8, { filter: 'featured = true && status = "available"', sort: '-created', expand: 'brand' })
     bikes.value = records.items
   } catch { bikes.value = [] }
   finally { loading.value = false }
 }
 
 onMounted(async () => {
-  await loadBikes()
+  await Promise.all([loadBikes(), wishlist.load()])
   pb.collection('motorcycles').subscribe('*', () => loadBikes())
 })
 

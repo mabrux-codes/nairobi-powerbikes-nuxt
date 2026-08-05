@@ -1,130 +1,162 @@
 <template>
   <Teleport to="body">
     <AnimatePresence>
-      <div v-if="modelValue" class="fixed inset-0 z-50 flex">
+      <div v-if="modelValue" class="fixed inset-0 z-[90] flex">
         <motion.div
-          class="fixed inset-0 bg-brand-black/80 backdrop-blur-sm"
+          class="fixed inset-0 bg-black/70 backdrop-blur-sm"
           :initial="{ opacity: 0 }"
           :animate="{ opacity: 1 }"
           :exit="{ opacity: 0 }"
           @click="close"
         />
         <motion.div
-          class="relative ml-auto flex h-full w-full max-w-sm flex-col bg-brand-black border-l border-brand-grey/20"
+          class="relative ml-auto flex h-full w-full flex-col border-l border-white/10 bg-brand-black sm:max-w-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
           :initial="{ x: '100%' }"
           :animate="{ x: 0 }"
           :exit="{ x: '100%' }"
-          :transition="{ type: 'spring', damping: 30, stiffness: 300 }"
+          :transition="{ type: 'spring', damping: 32, stiffness: 320 }"
         >
-          <div class="flex items-center justify-between border-b border-brand-grey/20 px-6 py-4">
+          <!-- header -->
+          <div class="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
             <NuxtLink to="/" class="flex items-center" @click="close">
-              <img src="/NPB Logo.png" alt="Nairobi Powerbikes" class="h-10 w-auto" />
+              <img src="/NPB Logo.png" alt="Nairobi Powerbikes" class="h-9 w-auto" />
             </NuxtLink>
             <button
-              class="flex h-10 w-10 items-center justify-center text-brand-grey hover:text-white transition-colors"
-              @click="close"
+              class="flex h-10 w-10 items-center justify-center rounded-full text-brand-grey transition-colors hover:bg-white/5 hover:text-white"
               aria-label="Close menu"
+              @click="close"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+              <X class="h-5 w-5" />
             </button>
           </div>
 
-          <nav class="flex-1 overflow-y-auto px-6 py-6">
-            <ul class="space-y-1">
-              <li v-for="item in navItems" :key="item.label">
-                <NuxtLink
-                  v-if="!item.children"
-                  :to="item.to!"
-                  class="flex items-center gap-3 py-4 text-lg font-display tracking-display uppercase text-brand-light hover:text-brand-red transition-colors border-b border-brand-grey/10"
-                  :class="{ 'text-brand-red': isActive(item.to!) }"
-                  @click="close"
-                >
-                  <span v-html="item.icon" class="h-5 w-5 shrink-0" />
-                  {{ item.label }}
-                </NuxtLink>
-                <div v-else class="border-b border-brand-grey/10 py-3">
-                  <button
-                    class="flex w-full items-center justify-between py-1 text-lg font-display tracking-display uppercase text-brand-light hover:text-brand-red transition-colors"
-                    @click="toggleDropdown(item.label)"
-                  >
-                    <span class="flex items-center gap-3">
-                      <span v-html="item.icon" class="h-5 w-5 shrink-0" />
-                      {{ item.label }}
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="transition-transform duration-200"
-                      :class="{ 'rotate-180': openDropdowns.includes(item.label) }"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </button>
-                  <div
-                    v-if="openDropdowns.includes(item.label)"
-                    class="ml-8 mt-2 space-y-1"
-                  >
-                    <NuxtLink
-                      v-for="child in item.children"
-                      :key="child.label"
-                      :to="child.to!"
-                      class="block py-3 text-sm text-brand-grey hover:text-brand-red transition-colors"
-                      @click="close"
-                    >
-                      {{ child.label }}
-                    </NuxtLink>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </nav>
+          <!-- quick actions -->
+          <div class="flex gap-2 border-b border-white/[0.06] px-5 py-3">
+            <button
+              class="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-semibold text-brand-light/85 transition-colors hover:border-brand-red/50 hover:text-brand-red"
+              @click="emit('open-search'); close()"
+            >
+              <Search class="h-4 w-4" />Search
+            </button>
+            <NuxtLink
+              :to="wishlistRoute"
+              class="relative flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 text-brand-light/85 transition-colors hover:border-brand-red/50 hover:text-brand-red"
+              :aria-label="`Wishlist${wishlist.count.value ? `, ${wishlist.count.value} saved items` : ''}`"
+              @click="close"
+            >
+              <Heart class="h-4 w-4" />
+              <span v-if="wishlist.count.value > 0" class="absolute -top-1.5 -right-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-red px-1 text-[10px] font-bold text-white">
+                {{ wishlist.count.value > 99 ? '99+' : wishlist.count.value }}
+              </span>
+            </NuxtLink>
+          </div>
 
-          <div class="border-t border-brand-grey/20 px-6 py-6">
+          <!-- nav sections -->
+          <nav class="flex-1 overflow-y-auto px-5 py-4" aria-label="Mobile">
+            <p class="mb-2 px-1 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">Shop</p>
+            <ul class="space-y-0.5">
+              <li>
+                <NuxtLink to="/" class="mobile-link" :class="{ 'text-brand-red': isActive('/') }" @click="close">
+                  <Home class="h-4 w-4 shrink-0 text-brand-grey" />Home
+                </NuxtLink>
+              </li>
+
+              <li>
+                <button class="mobile-link w-full" :aria-expanded="expanded.includes('motorcycles')" @click="toggle('motorcycles')">
+                  <Bike class="h-4 w-4 shrink-0 text-brand-grey" />
+                  <span class="flex-1 text-left">Motorcycles</span>
+                  <ChevronDown class="h-4 w-4 text-brand-grey transition-transform duration-200" :class="{ 'rotate-180': expanded.includes('motorcycles') }" />
+                </button>
+                <Transition name="sub">
+                  <ul v-if="expanded.includes('motorcycles')" class="space-y-0.5 border-l border-white/[0.06] pl-4 ml-4 mt-0.5">
+                    <li v-for="t in BIKE_TYPES" :key="t">
+                      <NuxtLink :to="{ path: '/motorcycles', query: { type: t } }" class="mobile-sub" @click="close">{{ t }}</NuxtLink>
+                    </li>
+                    <li><NuxtLink to="/motorcycles" class="mobile-sub text-brand-red" @click="close">All Motorcycles</NuxtLink></li>
+                    <li><NuxtLink to="/brands" class="mobile-sub" @click="close">Brands</NuxtLink></li>
+                    <li><NuxtLink to="/motorcycles/compare" class="mobile-sub" @click="close">Compare</NuxtLink></li>
+                    <li><NuxtLink to="/new-arrivals" class="mobile-sub" @click="close">New Arrivals</NuxtLink></li>
+                  </ul>
+                </Transition>
+              </li>
+
+              <li>
+                <button class="mobile-link w-full" :aria-expanded="expanded.includes('accessories')" @click="toggle('accessories')">
+                  <Package class="h-4 w-4 shrink-0 text-brand-grey" />
+                  <span class="flex-1 text-left">Accessories</span>
+                  <ChevronDown class="h-4 w-4 text-brand-grey transition-transform duration-200" :class="{ 'rotate-180': expanded.includes('accessories') }" />
+                </button>
+                <Transition name="sub">
+                  <ul v-if="expanded.includes('accessories')" class="space-y-0.5 border-l border-white/[0.06] pl-4 ml-4 mt-0.5">
+                    <li v-for="c in ACCESSORY_CATEGORIES" :key="c">
+                      <NuxtLink :to="{ path: '/accessories', query: { category: c } }" class="mobile-sub" @click="close">{{ c }}</NuxtLink>
+                    </li>
+                    <li><NuxtLink to="/accessories" class="mobile-sub text-brand-red" @click="close">All Accessories</NuxtLink></li>
+                  </ul>
+                </Transition>
+              </li>
+
+              <li>
+                <button class="mobile-link w-full" :aria-expanded="expanded.includes('apparel')" @click="toggle('apparel')">
+                  <Shirt class="h-4 w-4 shrink-0 text-brand-grey" />
+                  <span class="flex-1 text-left">Apparel</span>
+                  <ChevronDown class="h-4 w-4 text-brand-grey transition-transform duration-200" :class="{ 'rotate-180': expanded.includes('apparel') }" />
+                </button>
+                <Transition name="sub">
+                  <ul v-if="expanded.includes('apparel')" class="space-y-0.5 border-l border-white/[0.06] pl-4 ml-4 mt-0.5">
+                    <li v-for="t in APPAREL_TYPES" :key="t">
+                      <NuxtLink :to="{ path: '/apparel', query: { type: t } }" class="mobile-sub" @click="close">{{ t }}</NuxtLink>
+                    </li>
+                    <li><NuxtLink to="/apparel" class="mobile-sub text-brand-red" @click="close">All Apparel</NuxtLink></li>
+                  </ul>
+                </Transition>
+              </li>
+
+              <li><NuxtLink to="/finance" class="mobile-link" @click="close"><Wallet class="h-4 w-4 shrink-0 text-brand-grey" />Finance</NuxtLink></li>
+            </ul>
+
+            <p class="mt-6 mb-2 px-1 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">Services</p>
+            <ul class="space-y-0.5">
+              <li><NuxtLink to="/service/booking" class="mobile-link" @click="close"><Wrench class="h-4 w-4 shrink-0 text-brand-grey" />Book a Service</NuxtLink></li>
+              <li><NuxtLink to="/service/test-ride" class="mobile-link" @click="close"><CalendarClock class="h-4 w-4 shrink-0 text-brand-grey" />Book a Test Ride</NuxtLink></li>
+            </ul>
+
+            <p class="mt-6 mb-2 px-1 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">Dealership</p>
+            <ul class="space-y-0.5">
+              <li><NuxtLink to="/about" class="mobile-link" @click="close"><Info class="h-4 w-4 shrink-0 text-brand-grey" />About Us</NuxtLink></li>
+              <li><NuxtLink to="/contact" class="mobile-link" @click="close"><Phone class="h-4 w-4 shrink-0 text-brand-grey" />Contact</NuxtLink></li>
+              <li><NuxtLink to="/brands" class="mobile-link" @click="close"><Building2 class="h-4 w-4 shrink-0 text-brand-grey" />Our Brands</NuxtLink></li>
+            </ul>
+
             <ClientOnly>
               <template v-if="auth.isAuthenticated">
-                <Button
-                  :to="auth.getDashboardRoute()"
-                  variant="primary"
-                  class="w-full"
-                  @click="close"
-                >
-                  Dashboard
-                </Button>
-                <Button
-                  variant="ghost"
-                  class="mt-3 w-full"
-                  @click="handleSignOut"
-                >
-                  Sign Out
+                <p class="mt-6 mb-2 px-1 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">My Account</p>
+                <ul class="space-y-0.5">
+                  <li><NuxtLink to="/dashboard" class="mobile-link" @click="close"><LayoutDashboard class="h-4 w-4 shrink-0 text-brand-grey" />Dashboard</NuxtLink></li>
+                  <li><NuxtLink to="/dashboard/my-wishlist" class="mobile-link" @click="close"><Heart class="h-4 w-4 shrink-0 text-brand-grey" />Wishlist</NuxtLink></li>
+                  <li><NuxtLink :to="notificationsRoute" class="mobile-link" @click="close"><Bell class="h-4 w-4 shrink-0 text-brand-grey" />Notifications</NuxtLink></li>
+                  <li v-if="auth.userRole !== 'admin'"><NuxtLink to="/dashboard/my-messages" class="mobile-link" @click="close"><MessageSquare class="h-4 w-4 shrink-0 text-brand-grey" />Messages</NuxtLink></li>
+                  <li><NuxtLink to="/dashboard/profile" class="mobile-link" @click="close"><User class="h-4 w-4 shrink-0 text-brand-grey" />Profile</NuxtLink></li>
+                  <li><NuxtLink :to="settingsRoute" class="mobile-link" @click="close"><Settings class="h-4 w-4 shrink-0 text-brand-grey" />Settings</NuxtLink></li>
+                </ul>
+              </template>
+            </ClientOnly>
+          </nav>
+
+          <!-- footer actions -->
+          <div class="border-t border-white/[0.06] px-5 py-5">
+            <ClientOnly>
+              <template v-if="auth.isAuthenticated">
+                <Button variant="danger" class="w-full" @click="handleSignOut">
+                  <LogOut class="h-4 w-4" />Sign Out
                 </Button>
               </template>
               <template v-else>
-                <Button
-                  to="/login"
-                  variant="primary"
-                  class="w-full"
-                  @click="close"
-                >
-                  Sign In
-                </Button>
-                <Button
-                  to="/register"
-                  variant="secondary"
-                  class="mt-3 w-full"
-                  @click="close"
-                >
-                  Create Account
-                </Button>
+                <Button to="/login" variant="primary" class="w-full" @click="close">Sign In</Button>
+                <Button to="/register" variant="secondary" class="mt-3 w-full" @click="close">Create Account</Button>
               </template>
             </ClientOnly>
           </div>
@@ -136,74 +168,94 @@
 
 <script setup lang="ts">
 import { motion, AnimatePresence } from 'motion-v'
+import {
+  X, Search, Heart, Home, Bike, Package, Shirt, ChevronDown, Wallet, Wrench, CalendarClock,
+  Info, Phone, Building2, LayoutDashboard, Bell, MessageSquare, User, Settings, LogOut,
+} from 'lucide-vue-next'
+import { useAuthStore } from '~/stores/auth'
+import { useWishlist } from '~/composables/useWishlist'
+import { usePB } from '~/composables/usePocketBase'
 
-interface NavChild {
-  label: string
-  to: string
-}
-
-interface NavItem {
-  label: string
-  to?: string
-  icon: string
-  children?: NavChild[]
-}
-
-defineProps<{ modelValue: boolean }>()
-const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
+const props = defineProps<{ modelValue: boolean }>()
+const emit = defineEmits<{ 'update:modelValue': [value: boolean]; 'open-search': [] }>()
 
 const auth = useAuthStore()
+const wishlist = useWishlist()
 const route = useRoute()
-const openDropdowns = ref<string[]>([])
+const expanded = ref<string[]>([])
 
-const navItems: NavItem[] = [
-  { label: 'Home', to: '/', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
-  {
-    label: 'Motorcycles',
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm0 0-3.5 5.5L9 9l-3.5 4"/><line x1="15" y1="6" x2="18.5" y2="17.5"/></svg>',
-    children: [
-      { label: 'All Motorcycles', to: '/motorcycles' },
-      { label: 'Brands', to: '/brands' },
-      { label: 'Compare', to: '/motorcycles/compare' },
-    ],
-  },
-  { label: 'New Arrivals', to: '/new-arrivals', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' },
-  { label: 'Accessories', to: '/accessories', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
-  { label: 'Apparel', to: '/apparel', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14h12V5M6 5a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4M6 5H3v5a2 2 0 0 0 2 2h1M18 5h3v5a2 2 0 0 1-2 2h-1"/></svg>' },
-  {
-    label: 'Service',
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
-    children: [
-      { label: 'Book a Service', to: '/service/booking' },
-      { label: 'Book a Test Ride', to: '/service/test-ride' },
-    ],
-  },
-  { label: 'Finance', to: '/finance', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
-  { label: 'About', to: '/about', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>' },
-  { label: 'Contact Us', to: '/contact', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>' },
-]
+const BIKE_TYPES = ['Sport', 'Adventure', 'Touring', 'Naked', 'Cruiser', 'Dirt', 'Scooter', 'Electric']
+const ACCESSORY_CATEGORIES = ['Helmets', 'Gloves', 'Covers', 'Locks', 'Bags', 'Tools', 'Electronics', 'Lighting', 'Other']
+const APPAREL_TYPES = ['T-Shirts', 'Jackets', 'Hoodies', 'Caps', 'Gloves', 'Pants', 'Vests', 'Other']
 
-function close() {
-  emit('update:modelValue', false)
-}
+const wishlistRoute = computed(() => (auth.isAuthenticated ? '/dashboard/my-wishlist' : '/login'))
+const notificationsRoute = computed(() => (auth.userRole === 'admin' ? '/dashboard/notifications' : '/dashboard/my-notifications'))
+const settingsRoute = computed(() => (auth.userRole === 'admin' ? '/dashboard/settings' : '/dashboard/my-settings'))
 
-function toggleDropdown(label: string) {
-  const idx = openDropdowns.value.indexOf(label)
-  if (idx > -1) {
-    openDropdowns.value.splice(idx, 1)
-  } else {
-    openDropdowns.value.push(label)
-  }
+function close() { emit('update:modelValue', false) }
+function toggle(key: string) {
+  const idx = expanded.value.indexOf(key)
+  if (idx > -1) expanded.value.splice(idx, 1)
+  else expanded.value.push(key)
 }
 
 function isActive(path: string): boolean {
   if (path === '/') return route.path === '/'
-  return route.path.startsWith(path)
+  return route.path === path || route.path.startsWith(`${path}/`)
 }
 
-function handleSignOut() {
-  auth.clear()
+async function handleSignOut() {
   close()
+  try { await usePB().collection('notifications').unsubscribe('*') } catch { /* ignore */ }
+  try { usePB().authStore.clear() } catch { /* ignore */ }
+  try { usePB().realtime.disconnect() } catch { /* ignore */ }
+  auth.clear()
+  localStorage.removeItem('pb_auth')
   navigateTo('/')
 }
+
+function handleKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') close()
+}
+onMounted(() => document.addEventListener('keydown', handleKey))
+onUnmounted(() => document.removeEventListener('keydown', handleKey))
+
+watch(() => props.modelValue, (v) => {
+  document.body.style.overflow = v ? 'hidden' : ''
+})
+onUnmounted(() => { document.body.style.overflow = '' })
+
+watch(() => route.fullPath, () => { if (props.modelValue) close() })
 </script>
+
+<style scoped>
+.mobile-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: rgb(242 242 242 / 0.88);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.mobile-link:hover {
+  color: #fff;
+  background-color: rgb(255 255 255 / 0.05);
+}
+.mobile-sub {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.6rem;
+  font-size: 0.82rem;
+  color: rgb(74 74 74);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.mobile-sub:hover {
+  color: #D6001C;
+  background-color: rgb(255 255 255 / 0.04);
+}
+.sub-enter-active, .sub-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.sub-enter-from, .sub-leave-to { opacity: 0; transform: translateY(-4px); }
+</style>

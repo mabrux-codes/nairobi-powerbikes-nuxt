@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-brand-black pt-24">
+  <div class="min-h-screen bg-brand-black pt-[calc(var(--nav-h)+24px)]">
     <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <motion.div :initial="{ opacity: 0, y: 40 }" :animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.6 }">
         <h1 class="font-heading text-4xl text-white sm:text-5xl lg:text-display-xl">Privacy <span class="text-brand-red">Policy</span></h1>

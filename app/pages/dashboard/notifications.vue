@@ -20,7 +20,7 @@
           <tr v-for="n in items" :key="n.id" class="transition-colors hover:bg-white/5">
             <td class="px-4 py-3 text-white">{{ n.title }}</td>
             <td class="px-4 py-3"><Badge size="sm">{{ n.type }}</Badge></td>
-            <td class="px-4 py-3 text-brand-grey">{{ n.expand?.user?.name || n.expand?.user?.email || 'All Users' }}</td>
+            <td class="px-4 py-3 text-brand-grey">{{ n.broadcast ? 'All Users (broadcast)' : (n.expand?.user?.name || n.expand?.user?.email || 'Admins') }}</td>
             <td class="px-4 py-3 text-brand-grey">{{ formatDate(n.created) }}</td>
             <td class="px-4 py-3"><Badge :variant="n.read ? 'success' : 'warning'">{{ n.read ? 'Read' : 'New' }}</Badge></td>
             <td class="px-4 py-3"><button class="text-xs text-brand-red hover:underline" :disabled="deleting" @click="confirmDelete(n)">Delete</button></td>
@@ -100,15 +100,13 @@ async function sendNotification() {
     if (notifForm.value.user) {
       await pb.collection('notifications').create({
         user: notifForm.value.user, title: notifForm.value.title,
-        type: notifForm.value.type, message: notifForm.value.message, link: notifForm.value.link, read: false,
+        type: notifForm.value.type, message: notifForm.value.message, link: notifForm.value.link, read: false, broadcast: false,
       })
     } else {
-      for (const u of users.value) {
-        await pb.collection('notifications').create({
-          user: u.id, title: notifForm.value.title,
-          type: notifForm.value.type, message: notifForm.value.message, link: notifForm.value.link, read: false,
-        })
-      }
+      await pb.collection('notifications').create({
+        title: notifForm.value.title,
+        type: notifForm.value.type, message: notifForm.value.message, link: notifForm.value.link, read: false, broadcast: true,
+      })
     }
     toast.add({ type: 'success', title: 'Notification sent' })
     closeModal(); await loadData()

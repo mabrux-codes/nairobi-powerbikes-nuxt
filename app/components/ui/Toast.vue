@@ -17,7 +17,7 @@
       </span>
       <div class="min-w-0 flex-1">
         <p :id="`toast-title-${toast.id}`" class="text-sm font-semibold text-white">{{ toast.title }}</p>
-        <p v-if="toast.message" class="mt-0.5 text-xs leading-snug text-brand-grey line-clamp-2">{{ toast.message }}</p>
+        <p v-if="toast.message" class="mt-0.5 text-xs leading-snug text-brand-grey whitespace-pre-line break-words">{{ toast.message }}</p>
         <NuxtLink
           v-if="toast.to"
           :to="toast.to"
@@ -28,7 +28,7 @@
         </NuxtLink>
       </div>
       <button
-        class="-mr-1 -mt-1 shrink-0 rounded-md p-1 text-brand-grey/50 transition-colors hover:bg-white/5 hover:text-white"
+        class="-mr-1.5 -mt-1.5 shrink-0 rounded-lg p-2 text-brand-grey/50 transition-colors hover:bg-white/5 hover:text-white"
         :aria-label="`Close ${toast.title}`"
         @click="$emit('close', toast.id)"
       >

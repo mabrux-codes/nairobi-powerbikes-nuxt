@@ -22,8 +22,6 @@ export const useAdminDataStore = defineStore('adminData', () => {
   const brands = ref<any[]>([])
   const categories = ref<any[]>([])
 
-  const toastQueue: any[] = []
-
   const serviceBookings = computed(() => bookings.value.filter(b => (b.type || 'service') === 'service'))
   const testRides = computed(() => bookings.value.filter(b => b.type === 'test_ride'))
   const subscriberCount = computed(() => subscribers.value.length)

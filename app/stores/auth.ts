@@ -1,4 +1,10 @@
 import { defineStore } from 'pinia'
+import {
+  isRememberExpired,
+  purgePersistentAuth,
+  persistUserCache,
+  readUserCache,
+} from '~/utils/authSession'
 
 interface PBUser {
   id: string
@@ -27,27 +33,25 @@ export const useAuthStore = defineStore('auth', () => {
   function setUser(u: PBUser | null) {
     user.value = u
     if (import.meta.client) {
-      localStorage.setItem('auth_user', u ? JSON.stringify(u) : '')
+      persistUserCache(u)
     }
   }
 
   function loadFromStorage() {
     if (import.meta.client) {
-      const stored = localStorage.getItem('auth_user')
-      if (stored) {
-        try {
-          user.value = JSON.parse(stored)
-        } catch {
-          localStorage.removeItem('auth_user')
-        }
+      if (isRememberExpired()) {
+        purgePersistentAuth()
+        user.value = null
+        return
       }
+      user.value = readUserCache()
     }
   }
 
   function clear() {
     user.value = null
     if (import.meta.client) {
-      localStorage.removeItem('auth_user')
+      persistUserCache(null)
     }
   }
 

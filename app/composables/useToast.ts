@@ -46,8 +46,8 @@ export function useToast() {
       remaining: t.duration ?? 6000,
       paused: false,
     }
-    toasts.value.push(item)
-    if (toasts.value.length > 6) toasts.value.shift()
+    toasts.value.unshift(item)
+    if (toasts.value.length > 6) toasts.value.pop()
     scheduleRemove(item)
 
     if (import.meta.client) {

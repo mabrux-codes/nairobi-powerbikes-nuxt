@@ -1,11 +1,11 @@
 <template>
   <div class="min-h-screen bg-brand-black text-white">
+    <AnnouncementBar />
     <Navbar />
     <main>
       <slot />
     </main>
     <FooterSection />
-    <ToastContainer />
   </div>
 </template>
 

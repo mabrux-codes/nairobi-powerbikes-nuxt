@@ -60,11 +60,11 @@
     </motion.div>
 
     <!-- Bulk bar -->
-    <div v-if="selectedIds.size > 0" class="flex items-center justify-between rounded-xl border border-brand-red/30 bg-brand-red/10 px-4 py-3">
+    <div v-if="selectedIds.size > 0" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-red/30 bg-brand-red/10 px-4 py-3">
       <p class="text-sm text-white"><span class="font-semibold text-brand-red">{{ selectedIds.size }}</span> selected</p>
-      <div class="flex gap-2">
-        <Button size="sm" variant="ghost" @click="exportCsv">Export CSV</Button>
-        <Button size="sm" variant="danger" :disabled="deleting" @click="bulkDelete">{{ deleting ? 'Deleting…' : 'Delete Selected' }}</Button>
+      <div class="flex flex-wrap gap-2">
+        <Button size="sm" variant="ghost" class="h-11 sm:h-9" @click="exportCsv">Export CSV</Button>
+        <Button size="sm" variant="danger" class="h-11 sm:h-9" :disabled="deleting" @click="bulkDelete">{{ deleting ? 'Deleting…' : 'Delete Selected' }}</Button>
       </div>
     </div>
 
@@ -173,12 +173,12 @@
           </tbody>
         </table>
       </div>
-      <div class="flex items-center justify-between border-t border-brand-grey/15 px-5 py-3">
-        <div class="flex gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-brand-grey/15 px-5 py-3">
+        <div class="flex flex-wrap items-center gap-3">
           <p class="text-xs text-brand-grey">Showing <span class="text-white font-semibold">{{ pageStart + 1 }}–{{ pageEnd }}</span> of <span class="text-white font-semibold">{{ filtered.length }}</span></p>
           <button class="text-xs font-semibold text-brand-grey hover:text-brand-red transition-colors" @click="exportCsv">Export CSV</button>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <button :disabled="page === 1" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page--">Prev</button>
           <button :disabled="page >= totalPages" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page++">Next</button>
         </div>
@@ -186,9 +186,9 @@
     </motion.div>
 
     <!-- Pagination (grid) -->
-    <div v-if="view === 'grid' && filtered.length > 0" class="flex items-center justify-between">
+    <div v-if="view === 'grid' && filtered.length > 0" class="flex flex-wrap items-center justify-between gap-3">
       <p class="text-xs text-brand-grey">Showing <span class="text-white font-semibold">{{ pageStart + 1 }}–{{ pageEnd }}</span> of <span class="text-white font-semibold">{{ filtered.length }}</span></p>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <button :disabled="page === 1" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page--">Prev</button>
         <button :disabled="page >= totalPages" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page++">Next</button>
       </div>
@@ -206,7 +206,7 @@
             </div>
             <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4 scrollbar-thin">
               <Input v-model="form.name" label="Name" placeholder="Apparel name" />
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Type</label>
                   <select v-model="form.type" class="input-field w-full"><option value="">Select</option><option v-for="t in types" :key="t" :value="t">{{ t }}</option></select>
@@ -216,7 +216,7 @@
                   <select v-model="form.size" class="input-field w-full"><option value="">Select</option><option v-for="s in sizes" :key="s" :value="s">{{ s }}</option></select>
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Input v-model="form.price" label="Price (KSh)" type="number" placeholder="0" />
                 <Input v-model="form.color" label="Color" placeholder="e.g. Black" />
               </div>

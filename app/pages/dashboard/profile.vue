@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-3xl">
     <div class="mb-8">
-      <h1 class="font-heading text-4xl text-white">My <span class="text-brand-red">Profile</span></h1>
+      <h1 class="font-heading text-3xl text-white sm:text-4xl">My <span class="text-brand-red">Profile</span></h1>
       <div class="mt-2 h-1 w-24 bg-brand-red" />
       <p class="mt-3 text-sm text-brand-grey">Manage your personal details and account security.</p>
     </div>

@@ -308,7 +308,7 @@
         :initial="{ opacity: 0, y: 20 }"
         :animate="{ opacity: 1, y: 0 }"
         :transition="{ delay: 0.35, duration: 0.4 }"
-        class="lg:col-span-2 rounded-xl border border-brand-grey/15 bg-brand-black/80 p-6"
+        class="lg:col-span-2 min-w-0 rounded-xl border border-brand-grey/15 bg-brand-black/80 p-6"
       >
         <div class="flex items-center justify-between">
           <div>
@@ -340,7 +340,7 @@
         </div>
       </motion.div>
 
-      <div class="space-y-6">
+      <div class="space-y-6 min-w-0">
         <motion.div
           :initial="{ opacity: 0, y: 20 }"
           :animate="{ opacity: 1, y: 0 }"
@@ -383,7 +383,7 @@
         >
           <h2 class="font-display text-lg tracking-display text-white">Jump Back In</h2>
           <p class="mt-0.5 text-xs text-brand-grey">Frequently used management pages</p>
-          <div class="mt-5 grid grid-cols-3 gap-2.5">
+          <div class="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             <NuxtLink
               v-for="link in quickLinks"
               :key="link.to"

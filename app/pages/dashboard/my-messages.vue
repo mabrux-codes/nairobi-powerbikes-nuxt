@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-5xl">
     <div class="mb-8">
-      <h1 class="font-heading text-4xl text-white">My <span class="text-brand-red">Messages</span></h1>
+      <h1 class="font-heading text-3xl text-white sm:text-4xl">My <span class="text-brand-red">Messages</span></h1>
       <div class="mt-2 h-1 w-24 bg-brand-red" />
       <p class="mt-3 text-sm text-brand-grey">Direct communication with our team, all in one inbox.</p>
     </div>
@@ -89,9 +89,9 @@
                   Received {{ formatDateTime(m.created) }}
                   <template v-if="m.expand?.from_user?.email">&middot; {{ m.expand.from_user.email }}</template>
                 </p>
-                <div class="flex gap-2">
-                  <Button size="sm" variant="ghost" @click="markRead(m)" :disabled="m.read"><Check class="h-4 w-4" />{{ m.read ? 'Read' : 'Mark as Read' }}</Button>
-                  <Button size="sm" variant="secondary" to="/contact"><Send class="h-4 w-4" />Reply</Button>
+                <div class="flex flex-wrap gap-2">
+                  <Button size="sm" class="h-11 sm:h-9" variant="ghost" @click="markRead(m)" :disabled="m.read"><Check class="h-4 w-4" />{{ m.read ? 'Read' : 'Mark as Read' }}</Button>
+                  <Button size="sm" class="h-11 sm:h-9" variant="secondary" to="/contact"><Send class="h-4 w-4" />Reply</Button>
                 </div>
               </div>
             </div>

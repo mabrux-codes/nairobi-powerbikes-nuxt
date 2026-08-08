@@ -9,6 +9,9 @@ interface PBUser {
   branch?: string
   status: string
   availability: string
+  soundEnabled?: boolean
+  email_notifications?: boolean
+  sms_notifications?: boolean
   collectionId?: string
   collectionName?: string
   expand?: Record<string, any>

@@ -130,6 +130,7 @@ async function loadBikes() {
       filter: 'new_arrival=true && status="available"',
       sort: '-created',
       expand: 'brand',
+      requestKey: 'home-new-arrivals',
     })
     bikes.value = records.items.map(b => ({ ...b, brand_name: (b as any).expand?.brand?.name || '' }))
   } catch { bikes.value = [] }

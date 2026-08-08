@@ -11,7 +11,7 @@
       >
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeOnBackdrop ? close() : undefined" />
 
-        <div ref="modalRef" class="relative w-full max-w-md rounded-xl border border-brand-grey/20 bg-brand-black/95 p-6 shadow-2xl shadow-black/50 backdrop-blur-md">
+        <div ref="modalRef" class="relative w-full max-w-md overflow-y-auto max-h-[90dvh] rounded-xl border border-brand-grey/20 bg-brand-black/95 p-6 shadow-2xl shadow-black/50 backdrop-blur-md">
           <div class="flex items-start justify-between gap-4">
             <div v-if="icon" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full" :class="iconBgClass">
               <component :is="icon" class="h-6 w-6" :class="iconColorClass" />

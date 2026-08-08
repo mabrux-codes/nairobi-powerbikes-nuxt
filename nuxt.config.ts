@@ -24,6 +24,7 @@ export default defineNuxtConfig({
     public: {
       pocketBaseUrl: process.env.NUXT_PUBLIC_POCKETBASE_URL || 'http://127.0.0.1:8090',
       mapboxToken: process.env.NUXT_PUBLIC_MAPBOX_TOKEN || '',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://www.nairobi-powerbikes.co.ke',
     },
   },
 

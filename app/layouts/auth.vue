@@ -1,16 +1,28 @@
 <template>
-  <div class="flex min-h-screen bg-brand-black">
+  <div class="flex min-h-screen bg-brand-black pt-[var(--announce-h)]">
+    <AnnouncementBar />
     <div class="relative hidden flex-1 overflow-hidden lg:block">
-      <div class="absolute inset-0">
+      <!-- Animated motorcycle gallery from PocketBase -->
+      <div class="absolute inset-0 bg-brand-black">
         <img
-          src="/images/bikes/tekken-2.jpeg"
-          alt="Motorcycle in a premium showroom"
-          class="h-full w-full object-cover"
-          loading="eager"
+          v-for="s in visibleSlides"
+          :key="s.id"
+          :src="s.url"
+          :alt="`${s.brand || 'Motorcycle'} showcase`"
+          class="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1600ms] ease-in-out"
+          :class="s.id === currentSlide?.id ? 'opacity-100 kenburns-active' : 'opacity-0'"
+          loading="lazy"
           decoding="async"
         />
-        <div class="absolute inset-0 bg-gradient-to-r from-brand-black via-brand-black/60 to-brand-black/20" />
-        <div class="absolute inset-0 bg-gradient-to-t from-brand-black/90 to-transparent" />
+        <div v-if="slides.length === 0 && !loading" class="absolute inset-0 flex flex-col items-center justify-center gap-6">
+          <span class="flex h-24 w-24 items-center justify-center rounded-full border border-brand-red/20 bg-brand-red/5">
+            <Bike class="h-12 w-12 text-brand-red" stroke-width="1.25" />
+          </span>
+          <p class="font-display text-sm font-semibold tracking-[0.3em] text-brand-grey uppercase">Showroom preview coming soon</p>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-r from-brand-black via-brand-black/55 to-brand-black/15" />
+        <div class="absolute inset-0 bg-gradient-to-t from-brand-black/95 via-transparent to-brand-black/30" />
+        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(214,0,28,0.14),transparent_55%)]" />
       </div>
 
       <div class="relative z-10 flex h-full flex-col justify-between p-14">
@@ -62,7 +74,16 @@
 
     <div class="relative flex w-full flex-col justify-center px-5 py-12 sm:px-10 lg:w-[46%] lg:min-w-[560px] lg:px-16">
       <div class="pointer-events-none absolute inset-0 lg:hidden">
-        <img src="/images/bikes/tekken-2.jpeg" alt="" aria-hidden="true" class="h-full w-full object-cover opacity-15" />
+        <img
+          v-if="currentSlide"
+          :key="currentSlide.id"
+          :src="currentSlide.url"
+          alt=""
+          aria-hidden="true"
+          class="absolute inset-0 h-full w-full object-cover opacity-15 transition-opacity duration-[1600ms] ease-in-out"
+          loading="lazy"
+          decoding="async"
+        />
         <div class="absolute inset-0 bg-gradient-to-b from-brand-black/70 via-brand-black/85 to-brand-black" />
       </div>
 
@@ -78,13 +99,21 @@
         </p>
       </div>
     </div>
-    <ToastContainer />
   </div>
 </template>
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { Check } from 'lucide-vue-next'
+import { Check, Bike } from 'lucide-vue-next'
+import { useAuthShowcase } from '~/composables/useAuthShowcase'
+
+const { slides, currentIndex, currentSlide, loading } = useAuthShowcase()
+
+const visibleSlides = computed(() => {
+  if (slides.value.length < 2) return [...slides.value]
+  const prev = (currentIndex.value - 1 + slides.value.length) % slides.value.length
+  return [slides.value[prev], slides.value[currentIndex.value]]
+})
 
 const benefits = [
   'Book services & test rides in seconds',
@@ -99,3 +128,19 @@ const sideStats = [
   { label: 'Satisfaction', value: '98%' },
 ]
 </script>
+
+<style scoped>
+.kenburns-active {
+  animation: animations-kenburns 6s ease-in-out forwards;
+}
+
+@keyframes animations-kenburns {
+  0% { transform: scale(1.02) translate3d(0, 0, 0); }
+  100% { transform: scale(1.14) translate3d(-1.5%, -2%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kenburns-active { animation: none !important; }
+  .transition-opacity { transition: none !important; }
+}
+</style>

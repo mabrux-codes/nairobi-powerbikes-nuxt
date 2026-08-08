@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-3xl">
     <div class="mb-8">
-      <h1 class="font-heading text-4xl text-white">Account <span class="text-brand-red">Settings</span></h1>
+      <h1 class="font-heading text-3xl text-white sm:text-4xl">Account <span class="text-brand-red">Settings</span></h1>
       <div class="mt-2 h-1 w-24 bg-brand-red" />
       <p class="mt-3 text-sm text-brand-grey">Personalise your account and notification preferences.</p>
     </div>
@@ -57,6 +57,18 @@
             </div>
             <input v-model="form.email_notifications" type="checkbox" class="h-5 w-5 accent-brand-red" />
           </label>
+          <label class="flex cursor-pointer items-center justify-between rounded-xl border border-brand-grey/15 bg-white/[0.02] px-4 py-3.5 transition-colors hover:border-brand-red/30">
+            <div class="flex items-center gap-3">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-red/10">
+                <Volume2 class="h-4 w-4 text-brand-red" />
+              </span>
+              <div>
+                <p class="text-sm font-medium text-white">Notification sounds</p>
+                <p class="text-xs text-brand-grey">Play a sound for new notifications, chat replies and confirmations</p>
+              </div>
+            </div>
+            <input v-model="form.soundEnabled" type="checkbox" class="h-5 w-5 accent-brand-red" />
+          </label>
         </div>
       </motion.div>
 
@@ -69,7 +81,7 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { User, Bell } from 'lucide-vue-next'
+import { User, Bell, Volume2 } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
@@ -81,12 +93,17 @@ const pb = usePB()
 const auth = useAuthStore()
 const toast = useToast()
 const saving = ref(false)
-const form = ref({ name: '', phone: '', email_notifications: true })
+const form = ref({ name: '', phone: '', email_notifications: true, soundEnabled: true })
 
 onMounted(() => {
   const u = auth.user
   if (u) {
-    form.value = { name: u.name || '', phone: (u as any).phone || '', email_notifications: (u as any).email_notifications ?? true }
+    form.value = {
+      name: u.name || '',
+      phone: (u as any).phone || '',
+      email_notifications: (u as any).email_notifications ?? true,
+      soundEnabled: (u as any).soundEnabled ?? true,
+    }
   }
 })
 
@@ -95,8 +112,12 @@ async function save() {
   try {
     const payload: Record<string, any> = { name: form.value.name }
     if (form.value.phone) payload.phone = form.value.phone
+    payload.email_notifications = form.value.email_notifications
+    payload.soundEnabled = form.value.soundEnabled
     await pb.collection('users').update(auth.user!.id, payload)
     auth.user!.name = form.value.name
+    auth.user!.email_notifications = form.value.email_notifications
+    auth.user!.soundEnabled = form.value.soundEnabled
     toast.add({ type: 'success', title: 'Settings saved' })
   } catch (e: any) {
     console.error('Settings save failed:', e?.data?.message || e?.message || e)

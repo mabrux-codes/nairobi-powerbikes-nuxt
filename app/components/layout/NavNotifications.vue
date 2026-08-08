@@ -76,14 +76,10 @@
 <script setup lang="ts">
 import { Bell, BellOff, ChevronRight, CalendarCheck, Bike, MessageSquare, Users, Shield, Settings, Image, LogIn, Newspaper } from 'lucide-vue-next'
 import { useNotificationStore, type NotificationItem } from '~/stores/notifications'
-import { useToast } from '~/composables/useToast'
 import { useAuthStore } from '~/stores/auth'
-import { usePB } from '~/composables/usePocketBase'
 
 const store = useNotificationStore()
-const toast = useToast()
 const auth = useAuthStore()
-const pb = usePB()
 
 const open = ref(false)
 const wrapRef = ref<HTMLElement | null>(null)
@@ -102,98 +98,19 @@ function handleKey(e: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
   document.addEventListener('keydown', handleKey)
-  store.loadFromStorage()
-  fetchNotifications()
-  subscribeToRealtime()
-})
-watch(() => auth.isAuthenticated, (v) => {
-  if (!v && pb.authStore.token) {
-    // unsubscribe while the token is still valid to avoid 403 auth-mismatch noise
-    try { pb.collection('notifications').unsubscribe('*') } catch { /* ignore */ }
-  }
+  store.init()
 })
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   document.removeEventListener('keydown', handleKey)
-  if (pb.authStore.token) {
-    try { pb.collection('notifications').unsubscribe('*') } catch { /* ignore */ }
-  }
 })
-
-function isVisibleForUser(r: any) {
-  if (auth.userRole === 'admin') return true
-  return r?.user === auth.user?.id || r?.broadcast === true
-}
-
-async function fetchNotifications() {
-  try {
-    const records = await pb.collection('notifications').getList(1, 50, { sort: '-created' })
-    const existingIds = new Set(store.notifications.map(n => n.id))
-    const items: NotificationItem[] = []
-    for (const r of records.items) {
-      if (!isVisibleForUser(r)) continue
-      const id = `notif-${r.id}`
-      if (!existingIds.has(id)) {
-        items.push({
-          id,
-          type: (r.type as NotificationItem['type']) || 'general',
-          title: r.title || '',
-          message: r.message || '',
-          link: r.link || '',
-          read: r.read || false,
-          createdAt: r.created,
-          broadcast: r.broadcast || false,
-        })
-      }
-    }
-    if (items.length) store.set([...items, ...store.notifications])
-  } catch { /* fail silently — PB collection may not exist yet */ }
-}
-
-function subscribeToRealtime() {
-  try {
-    const filter = auth.userRole === 'admin' ? undefined : pb.filter('user = {:uid} || broadcast = true', { uid: auth.user?.id })
-    pb.collection('notifications').subscribe('*', (e: any) => {
-      if (!isVisibleForUser(e.record)) return
-      if (e.action === 'create') {
-        store.addFromPB({
-          id: e.record.id,
-          type: e.record.type,
-          title: e.record.title,
-          message: e.record.message,
-          link: e.record.link || '',
-          read: false,
-          created: e.record.created,
-          broadcast: e.record.broadcast,
-        })
-        toast.add({ type: 'info', title: e.record.title, message: e.record.message })
-      } else if (e.action === 'update') {
-        const existing = store.notifications.find(n => n.id === `notif-${e.record.id}`)
-        if (existing) {
-          existing.read = e.record.read
-          existing.title = e.record.title || existing.title
-          existing.message = e.record.message || existing.message
-          existing.link = e.record.link || existing.link
-        }
-      } else if (e.action === 'delete') {
-        store.remove(`notif-${e.record.id}`)
-      }
-    }, filter ? { filter } : undefined)
-  } catch { /* realtime not available */ }
-}
 
 function markAllRead() {
   store.markAllRead()
-  try {
-    store.notifications.forEach(n => pb.collection('notifications').update(n.id.replace(/^notif-/, ''), { read: true }))
-  } catch { /* ignore */ }
 }
 
 function openNotification(n: NotificationItem) {
-  if (!n.read) {
-    store.markRead(n.id)
-    try { pb.collection('notifications').update(n.id.replace(/^notif-/, ''), { read: true }) } catch { /* ignore */ }
-  }
+  if (!n.read) store.markRead(n.id)
   open.value = false
   if (n.link) navigateTo(n.link)
 }

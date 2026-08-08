@@ -1,6 +1,6 @@
 <template>
   <span
-    class="hidden lg:inline-flex items-center gap-1.5 px-3 h-9 text-[10px] font-display tracking-[0.2em] uppercase rounded-xl border transition-all duration-300"
+    class="hidden xl:inline-flex items-center gap-1.5 px-3 h-9 text-[10px] font-display tracking-[0.2em] uppercase rounded-xl border transition-all duration-300"
     :class="status === 'connected'
       ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
       : status === 'reconnecting'
@@ -26,6 +26,8 @@
 import { useAdminDataStore } from '~/stores/adminData'
 
 const store = useAdminDataStore()
+
+const status = computed(() => store.status)
 
 const label = computed(() => {
   if (store.status === 'connected') return 'Live'

@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-7xl">
     <div class="mb-8">
-      <h1 class="font-heading text-4xl text-white">My <span class="text-brand-red">Wishlist</span></h1>
+      <h1 class="font-heading text-3xl text-white sm:text-4xl">My <span class="text-brand-red">Wishlist</span></h1>
       <div class="mt-2 h-1 w-24 bg-brand-red" />
       <p class="mt-3 text-sm text-brand-grey">The motorcycles that caught your eye, saved for later.</p>
     </div>
@@ -18,7 +18,7 @@
       <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/10">
         <Heart class="h-8 w-8 text-rose-400" />
       </div>
-      <p class="mt-5 font-heading text-2xl text-white">Your wishlist is empty.</p>
+      <p class="mt-5 font-heading text-2xl text-white">No motorcycles saved yet.</p>
       <p class="mt-2 text-sm text-brand-grey">Browse our showroom and tap the heart on any motorcycle to save it here.</p>
       <Button to="/" class="mt-6"><Bike class="h-4 w-4" />Browse Motorcycles</Button>
     </div>
@@ -46,7 +46,7 @@
         </NuxtLink>
 
         <button
-          class="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-brand-grey/25 bg-brand-black/70 backdrop-blur-sm text-rose-400 transition-all duration-200 hover:bg-brand-red hover:text-white hover:border-brand-red hover:scale-110"
+          class="absolute top-3 right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-brand-grey/25 bg-brand-black/70 backdrop-blur-sm text-rose-400 transition-all duration-200 hover:bg-brand-red hover:text-white hover:border-brand-red hover:scale-110"
           :disabled="removing[m.id]"
           :aria-label="`Remove ${m.name} from wishlist`"
           @click="removeFavorite(m)"
@@ -64,13 +64,21 @@
           <p class="mt-0.5 text-xs text-brand-grey">
             {{ m.year || '' }}<template v-if="m.engine_cc"> &middot; {{ m.engine_cc }}cc</template><template v-if="m.type"> &middot; {{ m.type }}</template>
           </p>
-          <div class="mt-2.5 flex items-baseline gap-2">
-            <p class="text-xl font-bold text-red-500">KES {{ ((m.sale_price || m.price) || 0).toLocaleString() }}</p>
-            <p v-if="m.sale_price" class="text-xs font-bold text-brand-grey/60 line-through">KES {{ Number(m.price).toLocaleString() }}</p>
+          <div class="mt-2.5 flex items-center justify-between gap-2">
+            <div class="flex items-baseline gap-2">
+              <p class="text-xl font-bold text-red-500">KES {{ ((m.sale_price || m.price) || 0).toLocaleString() }}</p>
+              <p v-if="m.sale_price" class="text-xs font-bold text-brand-grey/60 line-through">KES {{ Number(m.price).toLocaleString() }}</p>
+            </div>
+            <span
+              class="shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase"
+              :class="inStock(m) ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-brand-grey/30 bg-brand-grey/10 text-brand-grey'"
+            >
+              {{ inStock(m) ? 'In Stock' : 'Out of Stock' }}
+            </span>
           </div>
           <div class="mt-4">
             <NuxtLink :to="bikePath(m)">
-              <Button variant="ghost" size="sm" class="w-full"><Eye class="h-4 w-4" />View Details</Button>
+              <Button variant="ghost" size="sm" class="h-11 w-full sm:h-9"><Eye class="h-4 w-4" />View Details</Button>
             </NuxtLink>
           </div>
         </div>
@@ -84,83 +92,67 @@ import { motion } from 'motion-v'
 import { Heart, Bike, Eye, Trash2 } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
+import { useWishlistStore } from '~/stores/wishlist'
 import { useToast } from '~/composables/useToast'
 
-definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['customer'] })
+definePageMeta({
+  layout: 'dashboard',
+  middleware: [
+    (to) => {
+      const auth = useAuthStore()
+      auth.loadFromStorage()
+      if (!auth.isAuthenticated) {
+        useToast().add({ type: 'info', title: 'Please sign in to use your wishlist.' })
+        return navigateTo('/login')
+      }
+    },
+    'auth',
+  ],
+  roles: ['customer'],
+})
 useHead({ title: 'My Wishlist - Nairobi Powerbikes' })
 
 const pb = usePB()
-const auth = useAuthStore()
-const toast = useToast()
+const store = useWishlistStore()
 const loading = ref(true)
 const motorcycles = ref<any[]>([])
-const favIds = ref<Record<string, string>>({})
 const removing = ref<Record<string, boolean>>({})
+
+const bikeIds = computed(() => Object.keys(store.favorites))
 
 function bikePath(m: any) {
   return `/motorcycles/${m.slug || encodeURIComponent(m.name)}`
 }
 
-async function loadFavorites() {
-  try {
-    const uid = auth.user?.id
-    const favs = await pb.collection('favorites').getList(1, 100, { filter: `user = "${uid}"` }).catch(() => ({ items: [] }))
-    const favMap: Record<string, string> = {}
-    const bikeIds = (favs.items as any[]).map((f: any) => {
-      favMap[f.motorcycle] = f.id
-      return f.motorcycle
-    })
-    favIds.value = favMap
-    if (bikeIds.length > 0) {
-      const filter = bikeIds.map((id: string) => `id = "${id}"`).join(' || ')
-      const bikes = await pb.collection('motorcycles').getList(1, 50, { filter, expand: 'brand' }).catch(() => ({ items: [] }))
-      motorcycles.value = (bikes.items as any[]).map(m => ({ ...m, brand_name: m.expand?.brand?.name || '' }))
-    } else {
-      motorcycles.value = []
-    }
-  } catch (e) { console.error(e) }
+function inStock(m: any) {
+  return m.status !== 'coming_soon' && !!m.in_stock
+}
+
+async function loadMotorcycles() {
+  const ids = bikeIds.value
+  if (!ids.length) {
+    motorcycles.value = []
+    return
+  }
+  const filter = ids.map(id => `id = "${id}"`).join(' || ')
+  const bikes = await pb.collection('motorcycles').getList(1, 100, { filter, expand: 'brand' }).catch(() => ({ items: [] }))
+  motorcycles.value = (bikes.items as any[]).map(m => ({ ...m, brand_name: m.expand?.brand?.name || '' }))
 }
 
 async function removeFavorite(m: any) {
-  const favId = favIds.value[m.id]
-  if (!favId) return
   removing.value[m.id] = true
   try {
-    await pb.collection('favorites').delete(favId)
-    motorcycles.value = motorcycles.value.filter(x => x.id !== m.id)
-    delete favIds.value[m.id]
-    toast.add({ type: 'success', title: 'Removed from wishlist', message: `${m.name} was removed from your wishlist.` })
-  } catch (err: any) {
-    toast.add({ type: 'error', title: 'Failed to remove', message: err?.message || 'Something went wrong' })
+    await store.toggle('bike', m)
   } finally {
     removing.value[m.id] = false
   }
 }
 
-function handleRealtime(e: any) {
-  const record = e.record as any
-  if (record.user !== auth.user?.id) return
-  if (e.action === 'delete') {
-    const id = Object.keys(favIds.value).find(k => favIds.value[k] === record.id)
-    if (id) {
-      motorcycles.value = motorcycles.value.filter(m => m.id !== id)
-      delete favIds.value[id]
-    }
-  } else {
-    loadFavorites()
-  }
-}
+watch(bikeIds, loadMotorcycles)
 
 onMounted(async () => {
-  await loadFavorites()
+  await store.load()
+  await loadMotorcycles()
   loading.value = false
-  const userId = auth.user?.id
-  if (userId) {
-    pb.collection('favorites').subscribe('*', handleRealtime)
-  }
-})
-
-onUnmounted(() => {
-  pb.collection('favorites').unsubscribe('*')
 })
 </script>

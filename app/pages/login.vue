@@ -110,8 +110,10 @@ const handleLogin = handleSubmit(async (values) => {
   try {
     await login(values.email, values.password)
     if (!rememberMe.value) localStorage.removeItem('pb_auth')
+    useAudio().playLogin()
     await navigateTo('/dashboard')
   } catch (err: any) {
+    useAudio().playError()
     const msg = err?.data?.message || err?.message || 'Invalid email or password.'
     setFieldError('email', msg)
     errorMsg.value = msg
@@ -119,16 +121,18 @@ const handleLogin = handleSubmit(async (values) => {
 })
 
 async function sendReset() {
-  if (!resetEmail.value || !resetEmail.value.includes('@')) { resetMsg.value = 'Enter a valid email address'; resetOk.value = false; return }
+  if (!resetEmail.value || !resetEmail.value.includes('@')) { resetMsg.value = 'Enter a valid email address'; resetOk.value = false; useAudio().playError(); return }
   resetting.value = true
   resetMsg.value = ''
   try {
     await pb.collection('users').requestPasswordReset(resetEmail.value)
     resetOk.value = true
     resetMsg.value = 'Reset link sent — check your inbox.'
+    useAudio().playSuccess()
   } catch (err: any) {
     resetOk.value = false
     resetMsg.value = err?.data?.message || err?.message || 'Could not send reset link.'
+    useAudio().playError()
   } finally { resetting.value = false }
 }
 </script>

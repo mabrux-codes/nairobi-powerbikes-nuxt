@@ -2,12 +2,12 @@
   <div ref="elRef" class="flex flex-col items-center">
     <motion.div :initial="{ opacity: 0, y: 30 }" :while-in-view="{ opacity: 1, y: 0 }" :viewport="{ once: true }" :transition="{ duration: 0.5 }">
       <div class="relative overflow-hidden">
-        <span class="font-heading text-5xl leading-none text-brand-red sm:text-6xl lg:text-7xl">
+        <span class="font-heading leading-none text-brand-red text-[clamp(2.25rem,9vw,3.5rem)] md:text-[clamp(2.5rem,6vw,4rem)] xl:text-7xl">
           <span v-if="displayedValue !== null">{{ formatNumber(displayedValue) }}</span><span v-else>{{ formatNumber(target) }}</span>
           <span v-if="suffix" class="ml-1">{{ suffix }}</span>
         </span>
       </div>
-      <span class="mt-2 text-sm text-brand-grey uppercase tracking-display">{{ label }}</span>
+      <span class="mt-2 text-center text-sm uppercase tracking-display text-brand-grey sm:text-base md:text-sm">{{ label }}</span>
     </motion.div>
   </div>
 </template>

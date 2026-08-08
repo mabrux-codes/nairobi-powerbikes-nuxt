@@ -332,12 +332,12 @@
                     Your test ride request has been received. Our team will call to confirm your slot and verify your documents.
                   </p>
 
-                  <dl class="mx-auto mt-8 max-w-md divide-y divide-white/[0.06] rounded-2xl border border-white/[0.08] bg-white/[0.02] text-left">
-                    <div v-for="row in reviewRows" :key="row.label" class="flex items-center justify-between gap-6 px-5 py-3.5">
+                  <div class="mx-auto mt-8 max-w-md overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] text-left">
+                    <div v-for="(row, i) in confirmationRows" :key="row.label" class="flex items-start justify-between gap-6 px-5 py-3.5" :class="i > 0 ? 'divide-x-0 border-t border-white/[0.06]' : ''">
                       <dt class="text-sm text-brand-grey">{{ row.label }}</dt>
-                      <dd class="text-sm font-semibold text-white">{{ row.value }}</dd>
+                      <dd class="max-w-[60%] text-right text-sm font-semibold break-words whitespace-normal text-white">{{ row.value }}</dd>
                     </div>
-                  </dl>
+                  </div>
 
                   <div class="mt-9 flex flex-wrap justify-center gap-4">
                     <Button to="/motorcycles" variant="primary"><Bike class="h-5 w-5" />Browse More Bikes</Button>
@@ -396,10 +396,10 @@ import {
   Upload, FileText, X, Sprout, Map, Gauge, Trophy,
 } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
-import { formatDate, formatTime } from '~/composables/useFormat'
+import { formatDate, formatTime, formatFullDate } from '~/composables/useFormat'
 import { useAuthStore } from '~/stores/auth'
 
-interface Motorcycle { id: string; name: string; year?: number; engine_cc?: number; type?: string; price: number; sale_price?: number; images?: string[] }
+interface Motorcycle { id: string; name: string; year?: number; engine_cc?: number; type?: string; price: number; sale_price?: number; images?: string[]; brand_name?: string; expand?: { brand?: { name: string } } }
 
 useHead({
   title: 'Test Ride Booking - Nairobi Powerbikes',
@@ -422,6 +422,7 @@ const steps = [
 const step = ref(0)
 const submitting = ref(false)
 const submitError = ref('')
+const createdBooking = ref<Record<string, any> | null>(null)
 const motorcycles = ref<Motorcycle[]>([])
 const motorcyclesLoading = ref(true)
 const branches = ref<any[]>([])
@@ -440,10 +441,10 @@ const form = reactive({
 const errors = reactive<Record<string, string>>({})
 
 const levels = [
-  { value: 'beginner', label: 'Beginner', desc: 'First or second year of riding — we\'ll take it easy', icon: Sprout },
-  { value: 'intermediate', label: 'Intermediate', desc: 'Rode regularly for 2–5 years', icon: Map },
-  { value: 'experienced', label: 'Experienced', desc: '5+ years across multiple bike types', icon: Gauge },
-  { value: 'professional', label: 'Professional', desc: 'Instructor, racer or daily professional rider', icon: Trophy },
+  { value: 'beginner', label: 'Beginner Rider', desc: 'First or second year of riding — we\'ll take it easy', icon: Sprout },
+  { value: 'intermediate', label: 'Intermediate Rider', desc: 'Rode regularly for 2–5 years', icon: Map },
+  { value: 'experienced', label: 'Experienced Rider', desc: '5+ years across multiple bike types', icon: Gauge },
+  { value: 'professional', label: 'Professional Rider', desc: 'Instructor, racer or daily professional rider', icon: Trophy },
 ]
 
 const isLoggedIn = computed(() => auth.isAuthenticated)
@@ -463,6 +464,43 @@ const timeSlots = computed(() => {
 })
 
 const levelLabel = computed(() => levels.find(l => l.value === form.level)?.label || '—')
+
+// Motorcycle lookup by NAME (the booking stores the name text, not a relation).
+function matchedMotorcycle(bikeName: string) {
+  if (!bikeName) return null
+  return motorcycles.value.find(m => m.name === bikeName) || null
+}
+
+// Confirmation is rendered from the ACTUAL record created in PocketBase —
+// never from the (cleared) form, so no valid value is shown as '—'.
+const confirmationRows = computed(() => {
+  const b = createdBooking.value
+  const rows: { label: string; value: string }[] = []
+  if (!b) return rows
+
+  const bikeName = (b.motorcycle || '').trim()
+  const bk = matchedMotorcycle(bikeName)
+  const brand = (bk?.brand_name || bk?.expand?.brand?.name || '').trim()
+  const bikeTitle = brand && !bikeName.toLowerCase().startsWith(brand.toLowerCase())
+    ? `${brand} ${bikeName}`
+    : bikeName
+  rows.push({ label: 'Motorcycle', value: bikeTitle || 'Not provided' })
+
+  rows.push({ label: 'Experience', value: b.ride_experience || 'Not provided' })
+  rows.push({ label: 'Branch', value: b.branch || 'Not provided' })
+  rows.push({ label: 'Date', value: b.preferred_date ? formatFullDate(b.preferred_date) : 'Not provided' })
+  rows.push({ label: 'Time', value: b.preferred_time ? formatTime(b.preferred_time) : 'Not provided' })
+  if (b.name) {
+    rows.push({ label: 'Customer Name', value: b.name || 'Not provided' })
+  }
+  if (b.phone || b.email) {
+    rows.push({ label: 'Contact', value: [b.phone, b.email].filter(Boolean).join(' · ') || 'Not provided' })
+  }
+  if (b.notes) {
+    rows.push({ label: 'Notes', value: b.notes })
+  }
+  return rows
+})
 
 const reviewRows = computed(() => [
   { label: 'Motorcycle', value: form.motorcycle || '—' },
@@ -556,7 +594,8 @@ async function loadBookedTimes() {
 
 async function loadMotorcycles() {
   try {
-    motorcycles.value = await pb.collection('motorcycles').getFullList<Motorcycle>({ sort: 'name', filter: 'status!="sold"' })
+    const list = await pb.collection('motorcycles').getFullList<Motorcycle>({ sort: 'name', filter: 'status!="sold"', expand: 'brand', requestKey: 'tr-wizard-bikes' })
+    motorcycles.value = list.map(m => ({ ...m, brand_name: (m as any).expand?.brand?.name || '' }))
     const bikeId = route.query.motorcycle as string | undefined
     if (bikeId) {
       const match = motorcycles.value.find(m => m.id === bikeId)
@@ -568,7 +607,8 @@ async function loadMotorcycles() {
 
 async function loadBranches() {
   try {
-    branches.value = await pb.collection('branches').getFullList({ sort: 'name' })
+    const list = await pb.collection('branches').getFullList({ sort: 'name', requestKey: 'tr-wizard-branches' })
+    branches.value = list
   } catch { branches.value = [] }
   if (!branches.value.length) {
     branches.value = [{ id: 'mombasa-road', name: 'Mombasa Road Branch', address: 'DTB Centre Annex 2, Mombasa Road, Opposite Airtel Kenya, Nairobi', phone: '+254 712 345 678', hours: 'Mon-Sat: 8:00 AM - 6:00 PM\nSun: 10:00 AM - 4:00 PM' }]
@@ -605,12 +645,14 @@ async function submitRide() {
     fd.append('branch', form.branch)
     fd.append('preferred_date', form.date)
     fd.append('preferred_time', form.time)
-    fd.append('notes', `${form.level ? `Riding experience: ${levelLabel.value}. ` : ''}${form.notes || ''}`.trim())
+    fd.append('ride_experience', levelLabel.value)
+    fd.append('notes', form.notes || '')
     fd.append('status', 'pending')
     if (userId) fd.append('user', userId)
     fd.append('id_document', idDocument.value!)
     fd.append('drivers_license', driversLicense.value!)
-    await pb.collection('service_bookings').create(fd)
+    const created = await pb.collection('service_bookings').create<Record<string, any>>(fd)
+    createdBooking.value = created
     form.motorcycle = ''; form.name = ''; form.phone = ''; form.email = ''
     form.level = ''; form.notes = ''; form.date = ''; form.time = ''
     bookedTimes.value = new Set()

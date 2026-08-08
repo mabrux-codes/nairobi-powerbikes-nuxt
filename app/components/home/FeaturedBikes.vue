@@ -65,14 +65,38 @@
           </div>
 
           <div class="flex flex-1 flex-col gap-5 p-6">
-            <p class="text-sm leading-relaxed text-brand-grey line-clamp-2">{{ bike.description || `${bike.engine_cc || '—'}cc · ${bike.year || '—'} · ${bike.transmission || 'Manual'}` }}</p>
+            <p class="text-sm leading-relaxed text-brand-grey line-clamp-2">{{ bike.description || 'Premium performance motorcycle' }}</p>
+
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <span v-if="bike.year" class="flex items-center gap-1.5 text-sm text-brand-grey">
+                <Calendar class="h-4 w-4 text-brand-red" />{{ bike.year }}
+              </span>
+              <span v-if="bike.engine_cc" class="flex items-center gap-1.5 text-sm text-brand-grey">
+                <Gauge class="h-4 w-4 text-brand-red" />{{ bike.engine_cc }}cc
+              </span>
+              <span v-if="bike.transmission" class="flex items-center gap-1.5 text-sm text-brand-grey">
+                <Settings2 class="h-4 w-4 text-brand-red" />{{ bike.transmission }}
+              </span>
+            </div>
 
             <div class="mt-auto flex items-end justify-between gap-3">
               <div>
                 <p class="font-heading text-3xl text-brand-red">{{ formatPrice(currentPrice(bike)) }}</p>
                 <p v-if="bike.sale_price" class="text-sm text-brand-grey/60 line-through">KSh {{ formatPrice(bike.price) }}</p>
               </div>
-              <span v-if="discount(bike)" class="rounded-full bg-brand-red/15 px-2.5 py-1 text-xs font-bold text-brand-red">{{ discount(bike) }} OFF</span>
+              <div class="flex flex-col items-end gap-2">
+                <span v-if="discount(bike)" class="rounded-full bg-brand-red/15 px-2.5 py-1 text-xs font-bold text-brand-red">{{ discount(bike) }} OFF</span>
+                <span
+                  v-if="isAvailable(bike)"
+                  class="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400"
+                >
+                  <span class="relative flex h-1.5 w-1.5">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  </span>
+                  Available
+                </span>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2.5">
@@ -80,7 +104,7 @@
                 <Eye class="h-4 w-4" />View Details
               </Button>
               <Button :to="`/service/test-ride?motorcycle=${bike.id}`" size="sm" variant="ghost">
-                <CalendarClock class="h-4 w-4" />Test Ride
+                <CalendarClock class="h-4 w-4" />Book Test Ride
               </Button>
               <Button :to="`/motorcycles/compare?compare=${bike.id}`" size="sm" variant="ghost">
                 <GitCompareArrows class="h-4 w-4" />Compare
@@ -90,9 +114,13 @@
         </motion.div>
       </div>
 
-      <div v-else class="rounded-2xl border border-dashed border-white/15 p-16 text-center">
-        <p class="font-display text-2xl tracking-display text-brand-grey">No featured machines yet</p>
-        <p class="mt-2 text-sm text-brand-grey/60">Check back soon for our latest arrivals</p>
+      <div v-else class="flex flex-col items-center rounded-2xl border border-dashed border-white/15 px-6 py-16 text-center">
+        <Bike class="h-14 w-14 text-brand-grey/40" stroke-width="1.2" />
+        <p class="mt-4 font-display text-2xl tracking-display text-white">No featured machines yet</p>
+        <p class="mt-2 max-w-md text-sm text-brand-grey/70">Featured models are on the way. Browse the full collection to find your next ride.</p>
+        <Button to="/motorcycles" variant="secondary" size="sm" class="mt-6">
+          <ArrowRight class="h-4 w-4" />Browse All Motorcycles
+        </Button>
       </div>
     </div>
   </section>
@@ -100,12 +128,12 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { ArrowRight, Eye, CalendarClock, GitCompareArrows, Heart, Bike } from 'lucide-vue-next'
+import { ArrowRight, Eye, CalendarClock, GitCompareArrows, Heart, Bike, Calendar, Gauge, Settings2 } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useWishlist } from '~/composables/useWishlist'
 
 interface Brand { id: string; name: string }
-interface Bike { id: string; name: string; brand: string; engine_cc?: number; year?: number; transmission?: string; price: number; sale_price?: number; description?: string; images?: string[]; new_arrival?: boolean; expand?: { brand?: Brand } }
+interface Bike { id: string; name: string; brand: string; engine_cc?: string; year?: number; transmission?: string; price: number; sale_price?: number; description?: string; images?: string[]; new_arrival?: boolean; status?: string; expand?: { brand?: Brand } }
 
 const pb = usePB()
 const loading = ref(true)
@@ -125,9 +153,13 @@ function discount(b: Bike) {
   return pct > 0 ? `${pct}%` : ''
 }
 
+function isAvailable(b: Bike) {
+  return !b.status || b.status === 'available'
+}
+
 async function loadBikes() {
   try {
-    const records = await pb.collection('motorcycles').getList<Bike>(1, 8, { filter: 'featured = true && status = "available"', sort: '-created', expand: 'brand' })
+    const records = await pb.collection('motorcycles').getList<Bike>(1, 8, { filter: 'featured = true && status = "available"', sort: 'sort_order, -created', expand: 'brand', requestKey: 'home-featured-bikes' })
     bikes.value = records.items
   } catch { bikes.value = [] }
   finally { loading.value = false }

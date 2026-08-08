@@ -1,8 +1,8 @@
 <template>
-  <header class="h-16 lg:h-[4.5rem] bg-brand-black/70 backdrop-blur-xl border-b border-brand-grey/15 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-40">
+  <header ref="headerEl" class="safe-top h-16 lg:h-[4.5rem] bg-brand-black/70 backdrop-blur-xl border-b border-brand-grey/15 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-50">
     <div class="flex items-center gap-2 lg:gap-3 min-w-0">
       <button
-        class="lg:hidden p-2 text-brand-grey hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200"
+        class="lg:hidden p-2.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200"
         @click="$emit('toggle-sidebar')"
         aria-label="Toggle sidebar"
       >
@@ -12,7 +12,7 @@
       </button>
 
       <button
-        class="hidden lg:flex p-2 text-brand-grey hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200"
+        class="hidden lg:flex p-2.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200"
         @click="$emit('toggle-collapse')"
         aria-label="Collapse sidebar"
       >
@@ -26,7 +26,7 @@
         <img src="/NPB Logo.png" alt="Nairobi Powerbikes" class="h-9 w-auto" />
       </NuxtLink>
 
-      <div v-if="isAdmin" class="hidden md:flex items-center gap-1.5 px-2.5 h-9 text-[10px] font-display tracking-[0.25em] uppercase text-brand-grey/70 border border-brand-grey/15 rounded-xl bg-white/[0.02]">
+      <div v-if="isAdmin" class="hidden xl:flex items-center gap-1.5 px-2.5 h-9 text-[10px] font-display tracking-[0.25em] uppercase text-brand-grey/70 border border-brand-grey/15 rounded-xl bg-white/[0.02]">
         <span class="h-1.5 w-1.5 rounded-full bg-brand-red animate-pulse" />
         Control Center
       </div>
@@ -41,7 +41,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="Search bikes, gear, bookings…"
-          class="w-44 lg:w-64 h-9 pl-9 pr-8 text-sm text-white bg-white/[0.04] border border-brand-grey/15 rounded-xl placeholder:text-brand-grey/50 focus:outline-none focus:border-brand-red/60 focus:ring-2 focus:ring-brand-red/20 transition-all duration-200"
+          class="w-44 xl:w-64 h-9 pl-9 pr-8 text-sm text-white bg-white/[0.04] border border-brand-grey/15 rounded-xl placeholder:text-brand-grey/50 focus:outline-none focus:border-brand-red/60 focus:ring-2 focus:ring-brand-red/20 transition-all duration-200"
           @focus="onSearchFocus"
           @keydown.enter="goSearch"
           @keydown.esc="searchOpen = false"
@@ -103,7 +103,7 @@
 
       <NuxtLink
         to="/"
-        class="hidden xl:flex items-center gap-2 px-3.5 h-9 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-brand-grey/20 transition-all duration-200"
+        class="hidden 2xl:flex items-center gap-2 px-3.5 h-9 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-brand-grey/20 transition-all duration-200"
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -114,7 +114,7 @@
       <NuxtLink
         v-if="isAdmin"
         to="/dashboard/messages"
-        class="relative p-2.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-brand-grey/20 transition-all duration-200"
+        class="relative p-3 text-brand-grey hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-brand-grey/20 transition-all duration-200"
         aria-label="Messages"
       >
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -130,11 +130,53 @@
 
       <RealtimeStatus v-if="isAdmin" />
 
+      <div v-if="isAdmin" class="relative" ref="availRef">
+        <button
+          class="hidden lg:flex items-center gap-1.5 px-3 h-9 text-xs font-semibold rounded-xl border transition-all duration-200"
+          :class="availClass"
+          :aria-label="`Availability: ${availLabel}. Click to change.`"
+          @click="availOpen = !availOpen"
+        >
+          <span class="h-1.5 w-1.5 rounded-full" :class="availDotClass" />
+          {{ availLabel }}
+          <svg class="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+
+        <transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-y-2 scale-95"
+          enter-to-class="opacity-100 translate-y-0 scale-100"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0 scale-100"
+          leave-to-class="opacity-0 -translate-y-2 scale-95"
+        >
+          <div
+            v-if="availOpen"
+            class="absolute right-0 top-full mt-2 w-44 bg-brand-black/95 backdrop-blur-xl border border-brand-grey/20 rounded-xl shadow-2xl shadow-black/50 z-50 py-1.5 overflow-hidden"
+            role="menu"
+          >
+            <p class="px-4 pt-2 pb-1.5 text-[10px] font-display tracking-[0.25em] text-brand-grey/60 uppercase">Availability</p>
+            <button
+              v-for="opt in availOptions"
+              :key="opt.value"
+              role="menuitem"
+              class="w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors"
+              :class="currentAvail === opt.value ? 'text-white bg-white/5' : 'text-brand-grey hover:text-white hover:bg-white/5'"
+              @click="setAvail(opt.value)"
+            >
+              <span class="h-2 w-2 rounded-full" :class="opt.dot" />
+              {{ opt.label }}
+              <Check v-if="currentAvail === opt.value" class="h-4 w-4 ml-auto text-brand-red" />
+            </button>
+          </div>
+        </transition>
+      </div>
+
       <NotificationBell />
 
       <div v-if="isAdmin" class="relative" ref="actionsRef">
         <button
-          class="hidden lg:flex items-center gap-2 px-3.5 h-9 text-xs font-semibold text-white bg-brand-red hover:bg-brand-red/90 rounded-xl shadow-lg shadow-brand-red/25 transition-all duration-200"
+          class="hidden 2xl:flex items-center gap-2 px-3.5 h-9 text-xs font-semibold text-white bg-brand-red hover:bg-brand-red/90 rounded-xl shadow-lg shadow-brand-red/25 transition-all duration-200"
           @click="actionsOpen = !actionsOpen"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
@@ -260,22 +302,70 @@
 import { useAuthStore } from '~/stores/auth'
 import { useAuth } from '~/composables/useAuth'
 import { useAdminDataStore } from '~/stores/adminData'
+import { useChatStore } from '~/stores/chat'
+import { Check } from 'lucide-vue-next'
 
 const store = useAdminDataStore()
-
-defineProps<{ collapsed?: boolean }>()
-defineEmits<{ 'toggle-sidebar': []; 'toggle-collapse': [] }>()
-
+const chatStore = useChatStore()
 const auth = useAuthStore()
 const { logout } = useAuth()
 const pb = usePB()
 const router = useRouter()
+
+const availOptions = [
+  { value: 'online', label: 'Online', dot: 'bg-emerald-400' },
+  { value: 'away', label: 'Away', dot: 'bg-amber-400' },
+  { value: 'offline', label: 'Offline', dot: 'bg-brand-grey/60' },
+]
+
+const availRef = ref<HTMLElement | null>(null)
+const availOpen = ref(false)
+
+const currentAvail = computed(() => {
+  const a = auth.user?.availability
+  return availOptions.some(o => o.value === a) ? a : 'online'
+})
+
+const availLabel = computed(() => {
+  const map: Record<string, string> = { online: 'Online', away: 'Away', offline: 'Offline' }
+  return map[currentAvail.value] || 'Online'
+})
+
+const availDotClass = computed(() => {
+  const map: Record<string, string> = { online: 'bg-emerald-400', away: 'bg-amber-400', offline: 'bg-brand-grey/60' }
+  return map[currentAvail.value] || 'bg-emerald-400'
+})
+
+const availClass = computed(() => {
+  const map: Record<string, string> = {
+    online: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400',
+    away: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+    offline: 'border-brand-grey/20 bg-white/[0.03] text-brand-grey',
+  }
+  return map[currentAvail.value] || 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+})
+
+async function setAvail(value: string) {
+  availOpen.value = false
+  try {
+    await chatStore.setMyAvailability(value as any)
+  } catch { /* ignore */ }
+}
+
+defineProps<{ collapsed?: boolean }>()
+defineEmits<{ 'toggle-sidebar': []; 'toggle-collapse': [] }>()
 
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const actionsOpen = ref(false)
 const actionsRef = ref<HTMLElement | null>(null)
 const searchRef = ref<HTMLElement | null>(null)
+const headerEl = ref<HTMLElement | null>(null)
+
+function syncAdminH() {
+  if (headerEl.value) document.documentElement.style.setProperty('--admin-h', `${headerEl.value.offsetHeight}px`)
+}
+let adminResizeObs: ResizeObserver | null = null
 
 const user = computed(() => auth.user)
 const isAdmin = computed(() => user.value?.role === 'admin')
@@ -297,10 +387,24 @@ function handleClickOutside(e: MouseEvent) {
   if (dropdownRef.value && !dropdownRef.value.contains(node)) dropdownOpen.value = false
   if (actionsRef.value && !actionsRef.value.contains(node)) actionsOpen.value = false
   if (searchRef.value && !searchRef.value.contains(node)) searchOpen.value = false
+  if (availRef.value && !availRef.value.contains(node)) availOpen.value = false
 }
 
-onMounted(() => document.addEventListener('mousedown', handleClickOutside))
-onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+  syncAdminH()
+  adminResizeObs = new ResizeObserver(syncAdminH)
+  if (headerEl.value) adminResizeObs.observe(headerEl.value)
+  window.addEventListener('resize', syncAdminH)
+  if (isAdmin.value) store.ensureActive()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+  adminResizeObs?.disconnect()
+  adminResizeObs = null
+  window.removeEventListener('resize', syncAdminH)
+})
 
 async function handleSignOut() {
   dropdownOpen.value = false
@@ -398,8 +502,4 @@ function goSearch() {
   searchOpen.value = false
   router.push(`/dashboard/motorcycles?q=${encodeURIComponent(q)}`)
 }
-
-onMounted(() => {
-  if (isAdmin.value) store.ensureActive()
-})
 </script>

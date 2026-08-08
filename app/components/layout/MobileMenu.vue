@@ -42,7 +42,8 @@
               <Search class="h-4 w-4" />Search
             </button>
             <NuxtLink
-              :to="wishlistRoute"
+              v-if="auth.isAuthenticated"
+              to="/dashboard/my-wishlist"
               class="relative flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 text-brand-light/85 transition-colors hover:border-brand-red/50 hover:text-brand-red"
               :aria-label="`Wishlist${wishlist.count.value ? `, ${wishlist.count.value} saved items` : ''}`"
               @click="close"
@@ -147,7 +148,7 @@
           </nav>
 
           <!-- footer actions -->
-          <div class="border-t border-white/[0.06] px-5 py-5">
+          <div class="safe-bottom border-t border-white/[0.06] px-5 py-5">
             <ClientOnly>
               <template v-if="auth.isAuthenticated">
                 <Button variant="danger" class="w-full" @click="handleSignOut">
@@ -188,7 +189,6 @@ const BIKE_TYPES = ['Sport', 'Adventure', 'Touring', 'Naked', 'Cruiser', 'Dirt',
 const ACCESSORY_CATEGORIES = ['Helmets', 'Gloves', 'Covers', 'Locks', 'Bags', 'Tools', 'Electronics', 'Lighting', 'Other']
 const APPAREL_TYPES = ['T-Shirts', 'Jackets', 'Hoodies', 'Caps', 'Gloves', 'Pants', 'Vests', 'Other']
 
-const wishlistRoute = computed(() => (auth.isAuthenticated ? '/dashboard/my-wishlist' : '/login'))
 const notificationsRoute = computed(() => (auth.userRole === 'admin' ? '/dashboard/notifications' : '/dashboard/my-notifications'))
 const settingsRoute = computed(() => (auth.userRole === 'admin' ? '/dashboard/settings' : '/dashboard/my-settings'))
 

@@ -20,7 +20,7 @@
       <Transition name="notif">
         <div
           v-if="open"
-          class="fixed right-4 top-16 z-[150] w-80 rounded-xl border border-brand-grey/20 bg-brand-black/95 shadow-2xl shadow-black/50 backdrop-blur-md"
+          class="fixed right-4 top-16 z-[150] w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-brand-grey/20 bg-brand-black/95 shadow-2xl shadow-black/50 backdrop-blur-md"
           @click.self
         >
           <div class="flex items-center justify-between border-b border-brand-grey/10 px-4 py-3">
@@ -70,15 +70,12 @@
 </template>
 
 <script setup lang="ts">
-import { useNotificationStore, type NotificationItem } from '~/stores/notifications'
-import { useToast } from '~/composables/useToast'
-import { useAuthStore } from '~/stores/auth'
+import { useNotificationStore } from '~/stores/notifications'
 import {
   CalendarCheck, Bike, MessageSquare, Newspaper, Users, Shield, Settings, Image, LogIn, Bell,
 } from 'lucide-vue-next'
 
 const store = useNotificationStore()
-const toast = useToast()
 const open = ref(false)
 const bellRef = ref<HTMLElement | null>(null)
 
@@ -92,33 +89,27 @@ function handleClickOutside(e: MouseEvent) {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
-  store.loadFromStorage()
-  fetchNotifications()
-  subscribeToRealtime()
+  store.init()
 })
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
-  try {
-    pb.collection('notifications').unsubscribe('*')
-  } catch { /* ignore */ }
 })
 
 function markAllRead() {
   store.markAllRead()
-  try {
-    const pbIds = store.notifications.map(n => n.id.replace(/^notif-/, ''))
-    pbIds.forEach(id => pb.collection('notifications').update(id, { read: true }))
-  } catch { /* ignore */ }
 }
 
 function clearAll() {
   store.clearAll()
-  try {
-    pb.collection('notifications').getList(1, 200, { sort: '-created' }).then((res) => {
-      res.items.forEach(r => pb.collection('notifications').delete(r.id))
-    })
-  } catch { /* ignore */ }
+}
+
+function markRead(id: string) {
+  store.markRead(id)
+}
+
+function removeNotification(id: string) {
+  store.remove(id)
 }
 
 function typeIcon(type: string) {
@@ -160,89 +151,6 @@ function timeAgo(iso: string): string {
   const days = Math.floor(hrs / 24)
   if (days < 7) return `${days}d ago`
   return new Date(iso).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })
-}
-
-function markRead(id: string) {
-  store.markRead(id)
-  try {
-    const pbId = id.replace(/^notif-/, '')
-    pb.collection('notifications').update(pbId, { read: true })
-  } catch { /* ignore */ }
-}
-
-function removeNotification(id: string) {
-  store.remove(id)
-  try {
-    const pbId = id.replace(/^notif-/, '')
-    pb.collection('notifications').delete(pbId)
-  } catch { /* ignore */ }
-}
-
-const pb = usePB()
-const auth = useAuthStore()
-
-async function fetchNotifications() {
-  try {
-    const records = await pb.collection('notifications').getList(1, 50, { sort: '-created' })
-    const existingIds = new Set(store.notifications.map(n => n.id))
-    const items: NotificationItem[] = []
-    for (const r of records.items) {
-      const id = `notif-${r.id}`
-      if (!existingIds.has(id)) {
-        items.push({
-          id,
-          type: (r.type as NotificationItem['type']) || 'general',
-          title: r.title || '',
-          message: r.message || '',
-          link: r.link || '',
-          read: r.read || false,
-          createdAt: r.created,
-          broadcast: r.broadcast || false,
-        })
-      }
-    }
-    if (items.length > 0) {
-      store.set([...items, ...store.notifications])
-    }
-  } catch { /* fail silently — PB collection may not exist yet */ }
-}
-
-function isVisibleForUser(r: any) {
-  if (auth.user?.role === 'admin') return true
-  return r?.user === auth.user?.id || r?.broadcast === true
-}
-
-function subscribeToRealtime() {
-  if (!pb) return
-  try {
-    const filter = auth.user?.role === 'admin' ? undefined : pb.filter('user = {:uid} || broadcast = true', { uid: auth.user?.id })
-    pb.collection('notifications').subscribe('*', (e) => {
-      if (!isVisibleForUser(e.record)) return
-      if (e.action === 'create') {
-        store.addFromPB({
-          id: e.record.id,
-          type: e.record.type,
-          title: e.record.title,
-          message: e.record.message,
-          link: e.record.link || '',
-          read: false,
-          created: e.record.created,
-          broadcast: e.record.broadcast,
-        })
-        toast.add({ type: 'info', title: e.record.title, message: e.record.message })
-      } else if (e.action === 'update') {
-        const existing = store.notifications.find(n => n.id === `notif-${e.record.id}`)
-        if (existing) {
-          existing.read = e.record.read
-          existing.title = e.record.title || existing.title
-          existing.message = e.record.message || existing.message
-          existing.link = e.record.link || existing.link
-        }
-      } else if (e.action === 'delete') {
-        store.remove(`notif-${e.record.id}`)
-      }
-    }, filter ? { filter } : undefined)
-  } catch { /* realtime not available */ }
 }
 </script>
 

@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-7xl">
     <div class="mb-8">
-      <h1 class="font-heading text-4xl text-white">My <span class="text-brand-red">Service Bookings</span></h1>
+      <h1 class="font-heading text-3xl text-white sm:text-4xl">My <span class="text-brand-red">Service Bookings</span></h1>
       <div class="mt-2 h-1 w-24 bg-brand-red" />
       <p class="mt-3 text-sm text-brand-grey">Track your motorcycle service requests from booking to completion.</p>
     </div>
@@ -16,12 +16,12 @@
           class="input-field h-11 w-full pl-11"
         />
       </div>
-      <div class="flex gap-3">
-        <select v-model="statusFilter" class="input-field h-11 w-auto min-w-44">
+      <div class="flex flex-wrap gap-3">
+        <select v-model="statusFilter" class="input-field h-11 w-full min-w-0 sm:w-auto sm:min-w-44">
           <option value="">All Statuses</option>
           <option v-for="(meta, key) in STATUS" :key="key" :value="key">{{ meta.label }}</option>
         </select>
-        <select v-model="sortOrder" class="input-field h-11 w-auto min-w-36">
+        <select v-model="sortOrder" class="input-field h-11 w-full min-w-0 sm:w-auto sm:min-w-36">
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
         </select>
@@ -83,7 +83,7 @@
                 {{ formatDateTime(b.created) }}
               </span>
               <button
-                class="flex h-9 w-9 items-center justify-center rounded-full border border-brand-grey/20 text-brand-grey transition-all duration-300 group-hover:border-brand-red/50 group-hover:text-brand-red"
+                class="flex h-11 w-11 items-center justify-center rounded-full border border-brand-grey/20 text-brand-grey transition-all duration-300 group-hover:border-brand-red/50 group-hover:text-brand-red"
                 :class="expanded[b.id] ? 'rotate-180 border-brand-red/50 text-brand-red' : ''"
                 aria-label="Toggle details"
               >
@@ -222,9 +222,9 @@
                       </div>
                     </div>
                     <div class="mt-5 flex flex-wrap items-center gap-3">
-                      <Button size="sm" :disabled="quoteDecision[b.id] === 'approved'" @click="approveQuote(b)"><Check class="h-4 w-4" />{{ quoteDecision[b.id] === 'approved' ? 'Approved' : 'Approve Quote' }}</Button>
-                      <Button size="sm" variant="danger" :disabled="quoteDecision[b.id] === 'rejected'" @click="rejectQuote(b)"><X class="h-4 w-4" />{{ quoteDecision[b.id] === 'rejected' ? 'Rejected' : 'Reject Quote' }}</Button>
-                      <Button size="sm" variant="ghost" @click="downloadQuote(b)"><Download class="h-4 w-4" />Download Quote</Button>
+                      <Button class="h-11 sm:h-9" :disabled="quoteDecision[b.id] === 'approved'" @click="approveQuote(b)"><Check class="h-4 w-4" />{{ quoteDecision[b.id] === 'approved' ? 'Approved' : 'Approve Quote' }}</Button>
+                      <Button class="h-11 sm:h-9" variant="danger" :disabled="quoteDecision[b.id] === 'rejected'" @click="rejectQuote(b)"><X class="h-4 w-4" />{{ quoteDecision[b.id] === 'rejected' ? 'Rejected' : 'Reject Quote' }}</Button>
+                      <Button class="h-11 sm:h-9" variant="ghost" @click="downloadQuote(b)"><Download class="h-4 w-4" />Download Quote</Button>
                     </div>
                   </div>
                   <p v-else class="text-sm text-brand-grey/70">Quotation will be available after diagnosis.</p>
@@ -321,12 +321,12 @@
 
     <Teleport to="body">
       <div v-if="preview" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4" @click.self="preview = null">
-        <div class="relative max-h-full max-w-4xl">
-          <img :src="fileUrl(preview.booking, preview.file)" class="max-h-[80vh] w-auto rounded-lg border border-brand-grey/30 object-contain" />
-          <div class="mt-4 flex items-center justify-center gap-3">
-            <Button size="sm" variant="ghost" @click="preview = null">Close</Button>
+        <div class="relative max-h-full w-full max-w-4xl overflow-auto">
+          <img :src="fileUrl(preview.booking, preview.file)" class="mx-auto max-h-[80vh] w-auto max-w-full rounded-lg border border-brand-grey/30 object-contain" />
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Button size="sm" class="h-11 sm:h-9" variant="ghost" @click="preview = null">Close</Button>
             <a :href="fileUrl(preview.booking, preview.file)" target="_blank" rel="noopener" download>
-              <Button size="sm"><Download class="h-4 w-4" />Download</Button>
+              <Button size="sm" class="h-11 sm:h-9"><Download class="h-4 w-4" />Download</Button>
             </a>
           </div>
         </div>

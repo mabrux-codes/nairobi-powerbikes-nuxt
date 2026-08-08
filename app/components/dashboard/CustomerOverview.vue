@@ -269,9 +269,9 @@
               </span>
             </div>
             <p class="mt-0.5 text-xs text-brand-grey">{{ b.year || '' }}<template v-if="b.engine_cc">&middot; {{ b.engine_cc }}cc</template><template v-if="b.type">&middot; {{ b.type }}</template></p>
-            <div class="mt-2 flex items-baseline gap-2">
-              <p class="text-lg font-bold text-red-500">KES {{ ((b.sale_price || b.price) || 0).toLocaleString() }}</p>
-              <p v-if="b.sale_price" class="text-xs font-bold text-brand-grey/60 line-through">KES {{ Number(b.price).toLocaleString() }}</p>
+            <div class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p class="font-heading text-xl font-bold tracking-tight text-brand-red sm:text-2xl">{{ formatPriceKes(currentPrice(b)) }}</p>
+              <p v-if="currentPrice(b) < originalPrice(b)" class="text-xs font-semibold text-brand-grey/70 line-through">KES {{ originalPrice(b).toLocaleString('en-KE') }}</p>
             </div>
           </div>
         </NuxtLink>
@@ -286,13 +286,15 @@ import { CalendarClock, Wrench, Bike, Heart, Bell, MapPin, ChevronRight, Sparkle
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
 import { useNotificationStore } from '~/stores/notifications'
+import { useWishlistStore } from '~/stores/wishlist'
 import { formatDate, formatTime, formatDateTime } from '~/composables/useFormat'
 
 const pb = usePB()
 const auth = useAuthStore()
 const notifStore = useNotificationStore()
+const wishlistStore = useWishlistStore()
 const loading = ref(true)
-const stats = ref({ testRides: 0, serviceBookings: 0, favorites: 0 })
+const stats = ref({ testRides: 0, serviceBookings: 0 })
 const testRides = ref<any[]>([])
 const serviceBookings = ref<any[]>([])
 const featuredBikes = ref<any[]>([])
@@ -340,7 +342,7 @@ const heroBike = computed(() => {
 const statCards = computed(() => [
   { label: 'Test Rides', desc: 'Rides you have booked', icon: Bike, iconBg: 'bg-sky-500/15', iconColor: 'text-sky-400', count: stats.value.testRides, to: '/dashboard/my-test-rides' },
   { label: 'Service Bookings', desc: 'Services in your garage', icon: Wrench, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400', count: stats.value.serviceBookings, to: '/dashboard/my-bookings' },
-  { label: 'Wishlist', desc: 'Motorcycles you love', icon: Heart, iconBg: 'bg-rose-500/15', iconColor: 'text-rose-400', count: stats.value.favorites, to: '/dashboard/my-wishlist' },
+  { label: 'Wishlist', desc: 'Motorcycles you love', icon: Heart, iconBg: 'bg-rose-500/15', iconColor: 'text-rose-400', count: wishlistStore.count, to: '/dashboard/my-wishlist' },
   { label: 'Unread Notifications', desc: 'Updates from our team', icon: Bell, iconBg: 'bg-brand-red/15', iconColor: 'text-brand-red', count: notifStore.unreadCount, to: '/dashboard/my-notifications' },
 ])
 
@@ -442,20 +444,39 @@ function bikePath(m: any) {
   return `/motorcycles/${m.slug || encodeURIComponent(m.name)}`
 }
 
+function num(v: any) {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+// Lowest applicable selling price: any discounted price below list wins.
+function currentPrice(b: any) {
+  const price = num(b.price)
+  const discounts = [num(b.sale_price), num(b.offer_price)].filter(d => d > 0 && d < price)
+  if (discounts.length) return Math.min(...discounts)
+  return price || 0
+}
+
+function originalPrice(b: any) {
+  return num(b.price)
+}
+
+function formatPriceKes(v: number) {
+  return `KES ${Number(v).toLocaleString('en-KE')}`
+}
+
 async function loadData() {
   const userId = auth.user?.id
   if (!userId) return
 
-  const [testRidesRes, serviceRes, favRes] = await Promise.all([
+  const [testRidesRes, serviceRes] = await Promise.all([
     pb.collection('service_bookings').getList(1, 100, { filter: `type="test_ride" && user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
     pb.collection('service_bookings').getList(1, 100, { filter: `type="service" && user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
-    pb.collection('favorites').getList(1, 1, { filter: `user = "${userId}"` }).catch(() => ({ totalItems: 0 })),
   ])
 
   stats.value = {
     testRides: testRidesRes.totalItems,
     serviceBookings: serviceRes.totalItems,
-    favorites: favRes.totalItems,
   }
 
   testRides.value = (testRidesRes.items as any[]).sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
@@ -513,18 +534,9 @@ function handleRealtime(e: any) {
   }
 }
 
-function handleFavRealtime(e: any) {
-  const record = e.record as any
-  if (record.user !== auth.user?.id) return
-  if (e.action === 'delete') {
-    stats.value.favorites = Math.max(0, stats.value.favorites - 1)
-  } else {
-    stats.value.favorites += 1
-  }
-}
-
 onMounted(async () => {
   loadFeaturedBikes()
+  wishlistStore.load()
   await loadData()
   loading.value = false
 
@@ -532,11 +544,9 @@ onMounted(async () => {
   if (!userId) return
 
   pb.collection('service_bookings').subscribe('*', handleRealtime, { filter: `user = "${userId}"` })
-  pb.collection('favorites').subscribe('*', handleFavRealtime)
 })
 
 onUnmounted(() => {
   pb.collection('service_bookings').unsubscribe('*')
-  pb.collection('favorites').unsubscribe('*')
 })
 </script>

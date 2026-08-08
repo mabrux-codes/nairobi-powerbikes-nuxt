@@ -6,7 +6,7 @@
     </div>
 
     <!-- Timeline -->
-    <div v-else class="relative mx-auto max-w-5xl">
+    <div v-else class="relative mx-auto max-w-5xl overflow-x-clip">
       <!-- Connecting line -->
       <div
         class="absolute bottom-4 top-2 w-[3px] rounded-full bg-gradient-to-b from-brand-red/60 via-brand-red/15 to-transparent left-[22px] md:left-1/2 md:-translate-x-1/2"

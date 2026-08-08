@@ -140,8 +140,10 @@ const handleRegister = handleSubmit(async (values) => {
   }
   try {
     await register(values.email, values.password, { name: values.name, phone: values.phone })
+    useAudio().playSuccess()
     await navigateTo('/login')
   } catch (err: any) {
+    useAudio().playError()
     const msg = err?.data?.message || err?.message || 'Registration failed.'
     setFieldError('email', msg)
     errorMsg.value = msg

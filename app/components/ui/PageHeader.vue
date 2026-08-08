@@ -30,7 +30,7 @@
           <span class="h-px w-10 bg-brand-red" aria-hidden="true" />
           {{ eyebrow }}
         </p>
-        <h1 class="font-heading text-[2.6rem] leading-[1.05] text-white sm:text-6xl lg:text-7xl">
+        <h1 class="font-heading text-[2.2rem] leading-[1.08] text-white sm:text-6xl lg:text-7xl">
           {{ title }}<span v-if="accent" class="text-brand-red">&nbsp;{{ accent }}</span>
         </h1>
         <p v-if="description" class="mt-4 max-w-2xl text-base leading-relaxed text-brand-grey sm:text-lg">

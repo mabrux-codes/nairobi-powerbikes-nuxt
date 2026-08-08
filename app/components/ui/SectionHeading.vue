@@ -1,6 +1,6 @@
 <template>
   <motion.div
-    class="mb-12"
+    class="mb-12 min-w-0"
     :class="align === 'center' ? 'mx-auto text-center' : 'text-left'"
     :initial="{ opacity: 0, y: 30 }"
     :while-in-view="{ opacity: 1, y: 0 }"
@@ -11,7 +11,7 @@
       <span v-if="align !== 'center'" class="h-px w-10 bg-brand-red" aria-hidden="true" />
       {{ eyebrow }}
     </p>
-    <h2 class="font-heading text-4xl leading-[1.08] text-white sm:text-5xl lg:text-6xl">
+    <h2 class="font-heading text-3xl leading-[1.1] text-white sm:text-5xl lg:text-6xl">
       {{ title }}<span v-if="accent" class="text-brand-red">&nbsp;{{ accent }}</span>
     </h2>
     <div v-if="align === 'center'" class="mx-auto mt-4 h-1 w-24 bg-brand-red" aria-hidden="true" />

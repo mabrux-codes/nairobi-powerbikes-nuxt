@@ -1,8 +1,14 @@
-interface ToastItem {
+export type ToastType =
+  | 'success' | 'error' | 'warning' | 'info'
+  | 'booking' | 'test_ride' | 'contact' | 'user' | 'motorcycle' | 'stock' | 'gear' | 'system'
+
+export interface ToastItem {
   id: string
-  type: 'success' | 'error' | 'warning' | 'info'
+  key?: string
+  type: ToastType
   title: string
   message?: string
+  to?: string
   duration: number
   createdAt: number
   remaining: number
@@ -12,21 +18,43 @@ interface ToastItem {
 const toasts = ref<ToastItem[]>([])
 let counter = 0
 
+export interface ToastInput {
+  type: ToastType
+  title: string
+  message?: string
+  to?: string
+  duration?: number
+  key?: string
+}
+
 export function useToast() {
-  function add(toast: { type: ToastItem['type']; title: string; message?: string; duration?: number }) {
+  function add(t: ToastInput) {
+    // Exactly one toast per event: if the caller supplied a dedupe key
+    // (e.g. a PocketBase record id) and it is still on screen, skip.
+    if (t.key && toasts.value.some(x => x.key === t.key)) return
+
     const id = `toast-${++counter}`
     const item: ToastItem = {
       id,
-      type: toast.type,
-      title: toast.title,
-      message: toast.message,
-      duration: toast.duration ?? 4000,
+      key: t.key,
+      type: t.type,
+      title: t.title,
+      message: t.message,
+      to: t.to,
+      duration: t.duration ?? 6000,
       createdAt: Date.now(),
-      remaining: toast.duration ?? 4000,
+      remaining: t.duration ?? 6000,
       paused: false,
     }
-    toasts.value.unshift(item)
+    toasts.value.push(item)
+    if (toasts.value.length > 6) toasts.value.shift()
     scheduleRemove(item)
+
+    if (import.meta.client) {
+      const audio = useAudio()
+      if (t.type === 'success' || t.type === 'info') audio.playSuccess()
+      else if (t.type === 'error' || t.type === 'warning') audio.playError()
+    }
   }
 
   function scheduleRemove(item: ToastItem) {

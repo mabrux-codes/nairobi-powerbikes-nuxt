@@ -1,7 +1,7 @@
 <template>
   <header
     ref="headerEl"
-    class="fixed inset-x-0 top-0 z-50 transition-all duration-300"
+    class="safe-top fixed inset-x-0 top-[var(--announce-h)] z-50 transition-all duration-300"
     :class="scrolled
       ? 'border-b border-white/[0.07] bg-brand-black/85 shadow-lg shadow-black/40 backdrop-blur-xl'
       : 'border-b border-transparent bg-gradient-to-b from-black/70 via-black/25 to-transparent'"
@@ -32,7 +32,7 @@
           >
             <button
               :id="`nav-${item.slug}`"
-              class="nav-link flex items-center gap-1.5 px-3 py-2 text-[13px] font-semibold tracking-wide transition-colors"
+              class="nav-link flex items-center gap-1.5 px-2.5 py-2 text-[13px] font-semibold tracking-wide transition-colors xl:px-3"
               :class="[isActive(item.to) ? 'text-brand-red' : 'text-brand-light/90 hover:text-white', openMegaMenu === item.label && 'text-white']"
               :aria-expanded="openMegaMenu === item.label"
               :aria-controls="`mega-${item.slug}`"
@@ -59,8 +59,8 @@
           <NuxtLink
             v-else
             :to="item.to"
-            class="nav-link relative flex items-center px-3 py-2 text-[13px] font-semibold tracking-wide transition-colors"
-            :class="isActive(item.to) ? 'text-brand-red' : 'text-brand-light/90 hover:text-white'"
+            class="nav-link relative flex items-center px-2.5 py-2 text-[13px] font-semibold tracking-wide transition-colors xl:px-3"
+            :class="[isActive(item.to) ? 'text-brand-red' : 'text-brand-light/90 hover:text-white', item.hideLg ? 'hidden xl:flex' : '']"
             :aria-current="isActive(item.to) ? 'page' : undefined"
           >
             {{ item.label }}
@@ -79,9 +79,10 @@
           <Search class="h-5 w-5" />
         </button>
 
-        <!-- wishlist -->
+        <!-- wishlist (authenticated only) -->
         <NuxtLink
-          :to="wishlistRoute"
+          v-if="auth.isAuthenticated"
+          to="/dashboard/my-wishlist"
           class="icon-btn relative"
           :aria-label="`Wishlist${wishlist.count.value ? `, ${wishlist.count.value} saved items` : ''}`"
         >
@@ -147,7 +148,7 @@ const mobileOpen = ref(false)
 const searchOpen = ref(false)
 const closeTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
-const wishlistRoute = computed(() => (auth.isAuthenticated ? '/dashboard/my-wishlist' : '/login'))
+const wishlistRoute = '/dashboard/my-wishlist'
 
 interface MegaItem {
   label: string
@@ -159,6 +160,7 @@ interface PlainItem {
   label: string
   to: string
   mega?: never
+  hideLg?: boolean
 }
 
 const navItems: Array<MegaItem | PlainItem> = [
@@ -166,10 +168,10 @@ const navItems: Array<MegaItem | PlainItem> = [
   { label: 'Motorcycles', slug: 'motorcycles', to: '/motorcycles', mega: 'motorcycles' },
   { label: 'Accessories', slug: 'accessories', to: '/accessories', mega: 'accessories' },
   { label: 'Apparel', slug: 'apparel', to: '/apparel', mega: 'apparel' },
-  { label: 'Book a Service', to: '/service/booking' },
-  { label: 'Book a Test Ride', to: '/service/test-ride' },
-  { label: 'About Us', to: '/about' },
-  { label: 'Contact', to: '/contact' },
+  { label: 'Book a Service', to: '/service/booking', hideLg: true },
+  { label: 'Book a Test Ride', to: '/service/test-ride', hideLg: true },
+  { label: 'About Us', to: '/about', hideLg: true },
+  { label: 'Contact', to: '/contact', hideLg: true },
 ]
 
 function isActive(path: string): boolean {
@@ -206,12 +208,18 @@ const headerEl = ref<HTMLElement | null>(null)
 function syncNavHeight() {
   const el = headerEl.value
   if (!el) return
-  document.documentElement.style.setProperty('--nav-h', `${el.offsetHeight}px`)
+  const announceH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--announce-h')) || 0
+  document.documentElement.style.setProperty('--nav-h', `${el.offsetHeight + announceH}px`)
+}
+
+function onAnnounceResize() {
+  syncNavHeight()
 }
 
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
   window.addEventListener('keydown', onKey)
+  window.addEventListener('announce:resize', onAnnounceResize)
   store.ensureActive()
   wishlist.load()
   onScroll()
@@ -225,6 +233,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll)
   window.removeEventListener('keydown', onKey)
+  window.removeEventListener('announce:resize', onAnnounceResize)
   window.removeEventListener('resize', syncNavHeight)
   ;(headerEl.value as any)?.__navRo?.disconnect()
   store.release()

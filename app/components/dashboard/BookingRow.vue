@@ -35,11 +35,11 @@
       <p v-if="isPending" class="mt-1 text-[10px] text-amber-400 font-medium">{{ relativeTime(booking.created, now) }}</p>
     </td>
     <td class="px-5 py-3.5 text-right">
-      <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button class="p-2 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Print invoice" @click.stop="emit('print', booking)">
+      <div class="flex items-center justify-end gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+        <button class="p-2.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Print invoice" @click.stop="emit('print', booking)">
           <Printer class="h-4 w-4" />
         </button>
-        <button class="p-2 text-brand-red hover:text-white hover:bg-brand-red/15 rounded-md transition-colors" title="View booking">
+        <button class="p-2.5 text-brand-red hover:text-white hover:bg-brand-red/15 rounded-md transition-colors" title="View booking">
           <ChevronRight class="h-4 w-4" />
         </button>
       </div>

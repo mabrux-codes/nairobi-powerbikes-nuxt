@@ -1,6 +1,12 @@
 <template>
   <div class="min-h-screen bg-brand-black text-white flex">
-    <DashboardSidebar :isOpen="sidebarOpen" :collapsed="sidebarCollapsed" @close="sidebarOpen = false" />
+    <DashboardSidebar
+      :isOpen="sidebarOpen"
+      :collapsed="sidebarCollapsed"
+      @close="sidebarOpen = false"
+      @navigate="sidebarOpen = false"
+      @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
+    />
     <div class="flex-1 flex flex-col min-h-screen transition-all duration-300" :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
       <DashboardHeader @toggle-sidebar="sidebarOpen = !sidebarOpen" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" />
       <main class="flex-1 p-4 sm:p-6">
@@ -16,15 +22,13 @@
           </div>
           <h2 class="font-display text-xl tracking-display text-white">Inactivity Warning</h2>
           <p class="mt-2 text-sm text-brand-grey">You've been inactive for a while. For your security, you'll be automatically logged out in <span class="text-amber-400 font-bold">{{ countdown }}</span> seconds.</p>
-          <div class="mt-6 flex gap-3 justify-center">
+          <div class="mt-6 flex flex-wrap justify-center gap-3">
             <Button @click="stayLoggedIn">Stay Logged In</Button>
             <Button variant="ghost" @click="logoutNow">Log Out Now</Button>
           </div>
         </div>
       </div>
     </Teleport>
-    <RealtimeToasts v-if="isAdmin" />
-    <ToastContainer />
   </div>
 </template>
 
@@ -32,16 +36,45 @@
 import { cn } from '~/utils/cn'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import DashboardHeader from '~/components/dashboard/DashboardHeader.vue'
-import RealtimeToasts from '~/components/dashboard/RealtimeToasts.vue'
 import { useInactivityLogout } from '~/composables/useInactivityLogout'
+import { useMediaQuery } from '@vueuse/core'
 import { useAuthStore } from '~/stores/auth'
 
 const auth = useAuthStore()
 const isAdmin = computed(() => auth.user?.role === 'admin')
 
+const route = useRoute()
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
 const { showWarning, warningCountdown, setupListeners, stayLoggedIn, forceLogout } = useInactivityLogout()
+
+const isMobile = useMediaQuery('(max-width: 1023px)')
+
+watch(() => route.fullPath, () => {
+  sidebarOpen.value = false
+})
+
+watch(sidebarOpen, (open) => {
+  if (!isMobile.value) return
+  if (open) {
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
+    document.body.style.overscrollBehavior = 'none'
+  } else {
+    document.documentElement.style.overflow = ''
+    document.body.style.overflow = ''
+    document.body.style.touchAction = ''
+    document.body.style.overscrollBehavior = ''
+  }
+})
+
+onBeforeUnmount(() => {
+  document.documentElement.style.overflow = ''
+  document.body.style.overflow = ''
+  document.body.style.touchAction = ''
+  document.body.style.overscrollBehavior = ''
+})
 
 const inactivityWarning = computed(() => showWarning.value)
 const countdown = computed(() => warningCountdown.value)

@@ -1,11 +1,28 @@
 <template>
   <aside
     :class="cn(
-      'fixed top-0 left-0 z-40 h-screen bg-brand-black/95 backdrop-blur-xl border-r border-brand-grey/20 flex flex-col transition-all duration-300 lg:translate-x-0',
+      'fixed left-0 z-40 flex flex-col bg-brand-black/95 backdrop-blur-xl border-r border-brand-grey/20 transition-all duration-300 lg:translate-x-0',
+      'top-[var(--admin-h)] h-[calc(100vh-var(--admin-h))] lg:top-0 lg:h-screen',
       collapsed ? 'w-20' : 'w-72',
       isOpen ? 'translate-x-0' : '-translate-x-full',
     )"
+    role="navigation"
+    aria-label="Sidebar navigation"
   >
+    <div class="flex items-center justify-between h-16 shrink-0 border-b border-brand-grey/15 lg:hidden px-4">
+      <div class="flex items-center gap-2 min-w-0">
+        <img src="/NPB Logo.png" alt="Nairobi Powerbikes" class="h-8 w-auto" />
+        <span class="text-[10px] font-display tracking-[0.35em] text-brand-grey/70 uppercase truncate">{{ portalLabel }}</span>
+      </div>
+      <button
+        class="p-2 text-brand-grey hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+        aria-label="Close sidebar"
+        @click="$emit('close')"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+
     <div class="relative hidden lg:flex items-center justify-center h-20 border-b border-brand-grey/15 shrink-0 overflow-hidden" :class="collapsed ? 'px-2' : 'px-4'">
       <div class="absolute inset-0 bg-gradient-to-b from-brand-red/10 via-transparent to-transparent" />
       <NuxtLink to="/" class="relative flex items-center justify-center gap-2 group min-w-0">
@@ -31,6 +48,7 @@
             :key="item.to"
             :to="item.to"
             :title="collapsed ? item.label : undefined"
+            :aria-current="isActive(item.to) ? 'page' : undefined"
             :class="cn(
               'group relative flex items-center gap-3 text-sm font-medium rounded-xl transition-all duration-200',
               collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
@@ -38,6 +56,7 @@
                 ? 'text-white bg-gradient-to-r from-brand-red/15 to-transparent border-l-2 border-brand-red'
                 : 'text-brand-grey hover:text-white hover:bg-white/5 hover:translate-x-0.5',
             )"
+            @click="$emit('navigate')"
           >
             <span class="w-5 h-5 shrink-0 opacity-80 transition-all duration-200 group-hover:opacity-100" v-html="item.icon" />
             <span v-if="!collapsed">{{ item.label }}</span>
@@ -54,7 +73,7 @@
       </template>
     </nav>
 
-    <div class="border-t border-brand-grey/15 p-4 shrink-0 bg-gradient-to-b from-transparent to-brand-black">
+    <div class="safe-bottom border-t border-brand-grey/15 p-4 shrink-0 bg-gradient-to-b from-transparent to-brand-black">
       <div
         v-if="user"
         class="rounded-xl border border-brand-grey/15 bg-white/[0.03] mb-3 transition-all duration-300"
@@ -106,6 +125,7 @@
   <div
     v-if="isOpen"
     class="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+    aria-hidden="true"
     @click="$emit('close')"
   />
 </template>
@@ -116,13 +136,20 @@ import { useAuthStore } from '~/stores/auth'
 import { useAuth } from '~/composables/useAuth'
 import { useDashRoute } from '~/composables/useDashRoute'
 
-defineProps<{ isOpen?: boolean; collapsed?: boolean }>()
-defineEmits<{ close: []; 'toggle-collapse': [] }>()
+const props = defineProps<{ isOpen?: boolean; collapsed?: boolean }>()
+const emit = defineEmits<{ close: []; navigate: []; 'toggle-collapse': [] }>()
 
 const route = useRoute()
 const auth = useAuthStore()
 const { logout } = useAuth()
 const { routes } = useDashRoute()
+
+watch(() => props.isOpen, (open) => {
+  if (!open) return
+  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') emit('close') }
+  document.addEventListener('keydown', onKey)
+  onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+})
 
 const user = computed(() => auth.user)
 

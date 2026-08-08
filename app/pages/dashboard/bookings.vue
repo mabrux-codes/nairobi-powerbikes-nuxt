@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-7xl">
     <div class="mb-6">
-      <h1 class="font-heading text-4xl text-white">Bookings</h1>
+      <h1 class="font-heading text-3xl text-white sm:text-4xl">Bookings</h1>
       <p class="mt-1 text-sm text-brand-grey">Manage test ride and service bookings</p>
     </div>
     <div v-if="loading" class="space-y-3">

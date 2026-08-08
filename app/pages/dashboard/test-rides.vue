@@ -113,7 +113,7 @@
             </tbody>
           </table>
         </div>
-        <div class="flex items-center justify-between border-t border-brand-grey/15 px-5 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-brand-grey/15 px-5 py-3">
           <p class="text-xs text-brand-grey">Showing <span class="text-white font-semibold">{{ pageStart + 1 }}–{{ pageEnd }}</span> of <span class="text-white font-semibold">{{ filtered.length }}</span></p>
           <div class="flex gap-2">
             <button :disabled="page === 1" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page--">Prev</button>
@@ -126,7 +126,7 @@
     <!-- Calendar view -->
     <template v-else>
       <motion.div :initial="{ opacity: 0, y: 16 }" :animate="{ opacity: 1, y: 0 }" :transition="{ delay: 0.1, duration: 0.4 }" class="rounded-xl border border-brand-grey/15 bg-brand-black/80 p-6">
-        <div class="flex items-center justify-between mb-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
           <h2 class="font-display text-xl tracking-display text-white">{{ calendarLabel }}</h2>
           <div class="flex items-center gap-2">
             <button class="h-9 w-9 flex items-center justify-center text-brand-grey hover:text-white hover:bg-white/5 rounded-lg transition-colors" @click="shiftMonth(-1)"><ChevronLeft class="h-4 w-4" /></button>

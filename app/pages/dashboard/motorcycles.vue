@@ -66,11 +66,11 @@
     </motion.div>
 
     <!-- Bulk bar -->
-    <div v-if="selectedIds.size > 0" class="flex items-center justify-between rounded-xl border border-brand-red/30 bg-brand-red/10 px-4 py-3">
+    <div v-if="selectedIds.size > 0" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-red/30 bg-brand-red/10 px-4 py-3">
       <p class="text-sm text-white"><span class="font-semibold text-brand-red">{{ selectedIds.size }}</span> selected</p>
-      <div class="flex gap-2">
-        <Button size="sm" variant="ghost" @click="exportCsv">Export CSV</Button>
-        <Button size="sm" variant="danger" :disabled="deleting" @click="bulkDelete">{{ deleting ? 'Deleting…' : 'Delete Selected' }}</Button>
+      <div class="flex flex-wrap gap-2">
+        <Button size="sm" variant="ghost" class="h-11 sm:h-9" @click="exportCsv">Export CSV</Button>
+        <Button size="sm" variant="danger" class="h-11 sm:h-9" :disabled="deleting" @click="bulkDelete">{{ deleting ? 'Deleting…' : 'Delete Selected' }}</Button>
       </div>
     </div>
 
@@ -201,12 +201,12 @@
           </tbody>
         </table>
       </div>
-      <div class="flex items-center justify-between border-t border-brand-grey/15 px-5 py-3">
-        <div class="flex gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-brand-grey/15 px-5 py-3">
+        <div class="flex flex-wrap items-center gap-3">
           <p class="text-xs text-brand-grey">Showing <span class="text-white font-semibold">{{ pageStart + 1 }}–{{ pageEnd }}</span> of <span class="text-white font-semibold">{{ filtered.length }}</span></p>
           <button class="text-xs font-semibold text-brand-grey hover:text-brand-red transition-colors" @click="exportCsv">Export CSV</button>
         </div>
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
           <button :disabled="page === 1" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page--">Prev</button>
           <button :disabled="page >= totalPages" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page++">Next</button>
         </div>
@@ -214,9 +214,9 @@
     </motion.div>
 
     <!-- Pagination (grid) -->
-    <div v-if="view === 'grid' && filtered.length > 0" class="flex items-center justify-between">
+    <div v-if="view === 'grid' && filtered.length > 0" class="flex flex-wrap items-center justify-between gap-3">
       <p class="text-xs text-brand-grey">Showing <span class="text-white font-semibold">{{ pageStart + 1 }}–{{ pageEnd }}</span> of <span class="text-white font-semibold">{{ filtered.length }}</span></p>
-      <div class="flex gap-2">
+      <div class="flex items-center gap-2">
         <button :disabled="page === 1" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page--">Prev</button>
         <button :disabled="page >= totalPages" class="h-8 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 disabled:opacity-30 rounded-lg transition-colors" @click="page++">Next</button>
       </div>
@@ -233,8 +233,8 @@
               <button class="p-2 text-brand-grey hover:text-white hover:bg-white/5 rounded-lg transition-colors" @click="closeModal" aria-label="Close"><X class="h-5 w-5" /></button>
             </div>
             <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4 scrollbar-thin">
-              <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Name *</label>
                   <Input v-model="form.name" placeholder="e.g. Ninja ZX-6R" />
                 </div>
@@ -251,40 +251,40 @@
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Type</label>
                   <select v-model="form.type" class="input-field w-full"><option value="">Select type</option><option v-for="t in bikeTypes" :key="t" :value="t">{{ t }}</option></select>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.year" label="Year" type="number" placeholder="2025" />
                   <Input v-model="form.price" label="Price (KSh)" type="number" placeholder="1000000" />
                   <Input v-model="form.sale_price" label="Sale Price" type="number" placeholder="900000" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.engine_cc" label="Engine CC" placeholder="e.g. 636" />
                   <Input v-model="form.engine" label="Engine Details" placeholder="e.g. 636cc liquid-cooled inline-4" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.horsepower" label="Horsepower" placeholder="e.g. 130hp @ 13,500rpm" />
                   <Input v-model="form.torque" label="Torque" placeholder="e.g. 71Nm @ 11,500rpm" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.transmission" label="Transmission" placeholder="e.g. 6-speed" />
                   <Input v-model="form.top_speed" label="Top Speed" placeholder="e.g. 260km/h" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.fuel_capacity" label="Fuel Capacity" placeholder="e.g. 17L" />
                   <Input v-model="form.weight" label="Weight" placeholder="e.g. 198kg" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.fuel_system" label="Fuel System" placeholder="e.g. EFI" />
                   <Input v-model="form.cooling" label="Cooling System" placeholder="e.g. Liquid-cooled" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.starter" label="Starter" placeholder="e.g. Electric" />
                   <Input v-model="form.ignition" label="Ignition" placeholder="e.g. CDI" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.battery" label="Battery" placeholder="e.g. 12V 8Ah" />
                   <Input v-model="form.headlight" label="Headlight" placeholder="e.g. LED" />
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input v-model="form.seat_height" label="Seat Height" placeholder="e.g. 830mm" />
                   <Input v-model="form.ground_clearance" label="Ground Clearance" placeholder="e.g. 160mm" />
                 </div>
@@ -292,15 +292,15 @@
                 <Input v-model="form.suspension" label="Suspension" placeholder="e.g. 41mm USD fork (front); Mono-shock (rear)" />
                 <Input v-model="form.colors" label="Available Colors" placeholder="e.g. Lime Green, Metallic Spark Black" />
                 <Input v-model="form.warranty" label="Warranty" placeholder="e.g. 2 years" />
-                <div class="col-span-2">
+                <div class="sm:col-span-2">
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Description</label>
                   <textarea v-model="form.description" rows="3" class="input-field w-full resize-none" placeholder="Motorcycle description..." />
                 </div>
-                <div class="col-span-2">
+                <div class="sm:col-span-2">
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Status</label>
                   <select v-model="form.status" class="input-field w-full"><option value="available">Available</option><option value="sold">Sold</option><option value="coming_soon">Coming Soon</option></select>
                 </div>
-                <div class="col-span-2 flex flex-wrap items-center gap-4 pb-1">
+                <div class="sm:col-span-2 flex flex-wrap items-center gap-4 pb-1">
                   <label class="flex items-center gap-2 cursor-pointer text-sm text-brand-grey" :class="{ 'opacity-40 pointer-events-none': form.status === 'sold' }">
                     <input v-model="form.featured" type="checkbox" class="accent-brand-red" :disabled="form.status === 'sold'" /> Featured
                   </label>
@@ -311,7 +311,7 @@
                     <input v-model="form.in_stock" type="checkbox" class="accent-brand-red" :disabled="form.status !== 'available'" /> In Stock
                   </label>
                 </div>
-                <div class="col-span-2">
+                <div class="sm:col-span-2">
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Images</label>
                   <input type="file" accept="image/*" multiple @change="onImagesChange" class="input-field w-full text-sm file:mr-3 file:border-0 file:bg-brand-red file:px-3 file:py-1 file:text-xs file:text-white file:rounded-lg" />
                   <div v-if="imagePreviews.length" class="mt-2 flex flex-wrap gap-2">

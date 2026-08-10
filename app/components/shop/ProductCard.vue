@@ -1,6 +1,7 @@
 <template>
   <div
-    class="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.05] to-white/[0.01] transition-all duration-300 ease-out hover:-translate-y-2 hover:border-brand-red/40 hover:shadow-[0_24px_60px_-20px_rgba(214,0,28,0.35)] hover:shadow-black/60"
+    class="group relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-b from-white/[0.05] to-white/[0.01] transition-all duration-300 ease-out"
+    :class="rootCls"
     :aria-label="item.name"
   >
     <NuxtLink :to="href" class="relative block aspect-[4/5] overflow-hidden bg-black" tabindex="-1" aria-hidden="true">
@@ -9,20 +10,31 @@
         :alt="item.name"
         loading="lazy"
         decoding="async"
-        class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+        class="h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
+        :class="isOosBike ? 'opacity-85 grayscale-[0.5] saturate-[0.6]' : ''"
       />
       <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+      <div v-if="isOosBike" class="pointer-events-none absolute inset-0 bg-brand-grey/15 mix-blend-normal" aria-hidden="true" />
 
       <div class="absolute left-3 top-3 flex flex-col items-start gap-1.5">
         <span v-if="isComingSoon" class="rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold tracking-wider text-black uppercase">Coming Soon</span>
         <template v-else>
           <span v-if="item.new_arrival" class="rounded-full bg-brand-red px-2.5 py-1 text-[10px] font-bold tracking-wider text-white uppercase">New Arrival</span>
           <span v-if="item.featured" class="rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold tracking-wider text-brand-black uppercase">Featured</span>
+          <span v-if="isOosBike" class="rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-bold tracking-wider text-white uppercase border border-white/20">Out of Stock</span>
         </template>
         <span v-if="item.sale_price" class="rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-bold tracking-wider text-black uppercase">Sale</span>
       </div>
 
+      <StockBadge
+        v-if="kind === 'bike' && !isComingSoon"
+        :item="item"
+        size="sm"
+        :show-count="false"
+        class="absolute bottom-3 left-3 !px-2.5 !py-1"
+      />
       <span
+        v-else
         class="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase backdrop-blur-md"
         :class="inStock ? 'text-emerald-400' : 'text-brand-grey'"
       >
@@ -32,7 +44,7 @@
     </NuxtLink>
 
     <button
-      class="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border bg-black/55 backdrop-blur-md transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red"
+      class="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border bg-black/55 backdrop-blur-md transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red"
       :class="saved
         ? 'border-brand-red/60 text-brand-red hover:bg-brand-red hover:text-white'
         : 'border-white/15 text-white hover:border-brand-red/50 hover:text-brand-red'"
@@ -44,7 +56,7 @@
       </motion.span>
     </button>
 
-    <div class="flex flex-1 flex-col gap-3 p-5">
+    <div class="flex flex-1 flex-col gap-3 p-5" :class="isOosBike ? 'opacity-80' : ''">
       <div class="flex items-center justify-between gap-2">
         <p class="truncate text-[11px] font-display tracking-[0.22em] text-brand-grey uppercase">{{ eyebrow }}</p>
         <span class="shrink-0 rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-brand-light/70">{{ categoryLabel }}</span>
@@ -79,7 +91,7 @@
           <Scan class="h-4 w-4" />
         </Button>
         <Button
-          v-if="kind === 'bike' && !isComingSoon"
+          v-if="kind === 'bike' && !isComingSoon && !isOosBike"
           size="sm"
           variant="ghost"
           class="h-9 w-10 px-0"
@@ -87,6 +99,16 @@
           :to="`/service/test-ride?motorcycle=${item.id}`"
         >
           <CalendarClock class="h-4 w-4" />
+        </Button>
+        <Button
+          v-else-if="kind === 'bike' && isOosBike"
+          size="sm"
+          variant="ghost"
+          class="h-9 w-10 px-0 border border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
+          :aria-label="`Get an arrival reminder for ${item.name}`"
+          @click.prevent="$emit('remind')"
+        >
+          <BellRing class="h-4 w-4" />
         </Button>
         <Button
           v-else
@@ -105,9 +127,11 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { Heart, Eye, Scan, CalendarClock, MessageSquare } from 'lucide-vue-next'
+import { Heart, Eye, Scan, CalendarClock, MessageSquare, BellRing } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import type { CatalogKind } from '~/composables/useCatalogFilters'
+import { stockOf, isOutOfStock } from '~/utils/stockStatus'
+import StockBadge from '~/components/motorcycles/StockBadge.vue'
 
 const props = withDefaults(defineProps<{
   item: any
@@ -116,7 +140,7 @@ const props = withDefaults(defineProps<{
   saved?: boolean
 }>(), { saved: false })
 
-defineEmits<{ 'toggle-wishlist': []; 'quick-view': []; enquire: [] }>()
+defineEmits<{ 'toggle-wishlist': []; 'quick-view': []; enquire: []; remind: [] }>()
 
 const pb = usePB()
 
@@ -126,6 +150,15 @@ const imageUrl = computed(() => {
     : props.item.image
   if (!img) return ''
   return pb.files.getURL(props.item, img, { thumb: '800x0' })
+})
+
+const isComingSoon = computed(() => props.item.status === 'coming_soon')
+
+const isOosBike = computed(() => props.kind === 'bike' && !isComingSoon.value && isOutOfStock(props.item))
+
+const rootCls = computed(() => {
+  if (!isOosBike.value) return 'border-white/[0.06] hover:-translate-y-2 hover:border-brand-red/40 hover:shadow-[0_24px_60px_-20px_rgba(214,0,28,0.35)] hover:shadow-black/60'
+  return 'border-white/[0.04]'
 })
 
 const eyebrow = computed(() => {
@@ -159,12 +192,10 @@ const meta = computed(() => {
 const inStock = computed(() => {
   if (props.kind === 'bike') {
     if (props.item.status === 'coming_soon') return false
-    return !!props.item.in_stock
+    return stockOf(props.item) > 0
   }
   return !!props.item.in_stock
 })
-
-const isComingSoon = computed(() => props.item.status === 'coming_soon')
 
 const currentPrice = computed(() => (props.item.sale_price || props.item.price) ?? 0)
 

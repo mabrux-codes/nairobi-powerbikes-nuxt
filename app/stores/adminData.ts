@@ -21,6 +21,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
   const subscribers = ref<any[]>([])
   const brands = ref<any[]>([])
   const categories = ref<any[]>([])
+  const reminders = ref<any[]>([])
 
   const serviceBookings = computed(() => bookings.value.filter(b => (b.type || 'service') === 'service'))
   const testRides = computed(() => bookings.value.filter(b => b.type === 'test_ride'))
@@ -58,6 +59,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
     subscribers,
     brands,
     categories,
+    stock_reminders: reminders,
   }
 
   function enqueueToast(t: { type: AdminToastType; title: string; message: string; to?: string }, key?: string) {
@@ -132,7 +134,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
 
   async function fetchAll() {
     const opts: any = { sort: '-created' }
-    const [b, m, a, ap, u, c, s, br, ca] = await Promise.all([
+    const [b, m, a, ap, u, c, s, br, ca, r] = await Promise.all([
       pb.collection('service_bookings').getFullList({ ...opts, expand: 'user' }).catch(() => []),
       pb.collection('motorcycles').getFullList(opts).catch(() => []),
       pb.collection('accessories').getFullList(opts).catch(() => []),
@@ -142,6 +144,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
       pb.collection('subscribers').getFullList(opts).catch(() => []),
       pb.collection('brands').getFullList({ sort: 'name' }).catch(() => []),
       pb.collection('categories').getFullList({ sort: 'name' }).catch(() => []),
+      pb.collection('stock_reminders').getFullList({ ...opts, expand: 'user' }).catch(() => []),
     ])
     bookings.value = sortCreated(b as any[])
     motorcycles.value = sortCreated(m as any[])
@@ -152,6 +155,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
     subscribers.value = s as any[]
     brands.value = br as any[]
     categories.value = ca as any[]
+    reminders.value = sortCreated(r as any[])
     lastUpdated.value = new Date().toLocaleString()
   }
 
@@ -218,7 +222,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
 
   return {
     ready, status, lastUpdated,
-    bookings, motorcycles, accessories, apparel, users, contacts, subscribers, brands, categories,
+    bookings, motorcycles, accessories, apparel, users, contacts, subscribers, brands, categories, reminders,
     serviceBookings, testRides, subscriberCount, unreadContacts,
     enqueueToast,
     ensureActive, release, refreshData,

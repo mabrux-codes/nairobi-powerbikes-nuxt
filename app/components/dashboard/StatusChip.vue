@@ -53,6 +53,10 @@ const STATUS_STYLES: Record<string, { cls: string; dot: string }> = {
   test_ride: { cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', dot: 'bg-amber-400' },
   in_stock: { cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', dot: 'bg-emerald-400' },
   out_of_stock: { cls: 'bg-rose-500/10 text-rose-400 border border-rose-500/20', dot: 'bg-rose-400' },
+  few_remaining: { cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', dot: 'bg-amber-400' },
+  low_stock: { cls: 'bg-rose-500/15 text-rose-400 border border-rose-500/30', dot: 'bg-rose-400' },
+  notified: { cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', dot: 'bg-emerald-400' },
+  waiting: { cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', dot: 'bg-amber-400' },
 }
 
 const style = computed(() => STATUS_STYLES[props.status] || { cls: 'bg-brand-grey/10 text-brand-grey border border-brand-grey/20', dot: 'bg-brand-grey' })

@@ -30,7 +30,7 @@
         <div class="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
           <!-- Gallery -->
           <motion.div :initial="{ opacity: 0, x: -30 }" :animate="{ opacity: 1, x: 0 }" :transition="{ duration: 0.6 }">
-            <div class="group relative overflow-hidden rounded-3xl border border-white/[0.06] bg-black">
+            <div class="relative group overflow-hidden rounded-3xl border border-white/[0.06] bg-black">
               <button
                 class="relative block aspect-[4/3] w-full cursor-zoom-in overflow-hidden focus-visible:outline-none"
                 :aria-label="'View larger image of ' + item.name"
@@ -44,7 +44,9 @@
                   :src="mainImageUrl"
                   :alt="item.name"
                   class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                  :class="isOutOfStock ? 'opacity-85 grayscale-[0.5] saturate-[0.6]' : ''"
                 />
+                <div v-if="isOutOfStock" class="absolute inset-0 bg-brand-grey/15" aria-hidden="true" />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                 <span v-if="images.length > 1" class="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 py-1.5 text-[11px] font-bold tracking-wider backdrop-blur-md">
                   <Move3D class="h-3.5 w-3.5" />Drag to rotate
@@ -79,9 +81,14 @@
           <!-- Info -->
           <motion.div :initial="{ opacity: 0, x: 30 }" :animate="{ opacity: 1, x: 0 }" :transition="{ duration: 0.6, delay: 0.1 }">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="flex items-center gap-1.5 rounded-full border border-brand-red/30 bg-brand-red/10 px-3 py-1 text-[11px] font-bold tracking-wider uppercase">
-                <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-red" />
-                {{ availabilityLabel }}
+              <span
+                class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold tracking-wider uppercase"
+                :class="availabilityPill.cls"
+                role="status"
+                :aria-label="availabilityPill.label + (stockStatus.level !== 'out' ? ' — ' + stockStatus.message : '')"
+              >
+                <span class="h-1.5 w-1.5 rounded-full" :class="availabilityPill.dot" />
+                {{ availabilityPill.label }}
               </span>
               <span v-if="item.featured" class="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold tracking-wider uppercase">Featured</span>
               <span v-if="item.new_arrival" class="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold tracking-wider uppercase">New Arrival</span>
@@ -116,8 +123,11 @@
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-              <Button v-if="!isComingSoon" :to="`/service/test-ride?motorcycle=${item.id}`" variant="primary" size="lg">
+              <Button v-if="!isComingSoon && !isOutOfStock" :to="`/service/test-ride?motorcycle=${item.id}`" variant="primary" size="lg">
                 <CalendarClock class="h-5 w-5" />Book Test Ride
+              </Button>
+              <Button v-else-if="!isComingSoon && isOutOfStock" variant="primary" size="lg" class="border border-rose-500/50 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25" @click="openReminder(item)">
+                <BellRing class="h-5 w-5" />Notify Me When Available
               </Button>
               <Button :to="`/finance?motorcycle=${item.id}`" variant="secondary" size="lg">
                 <BadgeDollarSign class="h-5 w-5" />Finance Options
@@ -194,6 +204,7 @@
               @toggle-wishlist="wishlist.toggle('bike', b)"
               @quick-view="quickViewItem = b; quickViewOpen = true"
               @enquire="enquiryItem = b; enquiryOpen = true"
+              @remind="openReminder(b)"
             />
           </div>
         </motion.section>
@@ -275,6 +286,8 @@
       />
 
       <ShopEnquiryModal :open="enquiryOpen" :item="enquiryItem" :kind="enquiryKind" @close="enquiryOpen = false" />
+
+      <ArrivalReminder :open="remindOpen" :item="remindItem || item" @close="remindOpen = false" />
     </template>
 
     <div v-else class="mx-auto max-w-[90rem] px-4 py-32 sm:px-6 lg:px-8">
@@ -290,12 +303,14 @@
 import { motion } from 'motion-v'
 import {
   ChevronRight, Move3D, Heart, Scale, CalendarClock, BadgeDollarSign,
-  MessageSquare, Share2, ShieldCheck, PackageCheck, MapPin, X,
+  MessageSquare, Share2, ShieldCheck, PackageCheck, MapPin, X, BellRing,
 } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog'
 import { useWishlist } from '~/composables/useWishlist'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
+import { stockOf, getStockStatus, isOutOfStock as isStockOut } from '~/utils/stockStatus'
+import ArrivalReminder from '~/components/motorcycles/ArrivalReminder.vue'
 import type { CatalogKind } from '~/composables/useCatalogFilters'
 
 useHead({ title: 'Motorcycle Details - Nairobi Powerbikes' })
@@ -313,6 +328,8 @@ const quickViewOpen = ref(false)
 const quickViewItem = ref<any>(null)
 const enquiryOpen = ref(false)
 const enquiryItem = ref<any>(null)
+const remindOpen = ref(false)
+const remindItem = ref<any>(null)
 const branches = ref<any[]>([])
 
 const item = computed(() => {
@@ -347,12 +364,23 @@ const metaLine = computed(() => {
     .filter(Boolean).join('  ·  ')
 })
 
-const availabilityLabel = computed(() => {
-  if (!item.value) return ''
-  if (item.value.status === 'coming_soon') return 'Coming Soon'
-  if (item.value.status === 'sold') return 'Sold'
-  return item.value.in_stock ? 'In Stock' : 'Low Stock'
+const stockStatus = computed(() => getStockStatus(stockOf(item.value)))
+
+const availabilityPill = computed(() => {
+  if (!item.value) return { label: '', dot: 'bg-brand-grey', cls: '' }
+  if (item.value.status === 'coming_soon') return { label: 'Coming Soon', dot: 'bg-amber-400', cls: 'border-amber-500/30 bg-amber-500/10 text-amber-400' }
+  if (item.value.status === 'sold') return { label: 'Sold', dot: 'bg-brand-grey', cls: 'border-white/10 bg-brand-black/70 text-brand-grey' }
+  const s = stockStatus.value
+  const cls: Record<string, string> = {
+    out: 'border-brand-grey/30 bg-brand-black/70 text-brand-grey',
+    low: 'border-rose-500/40 bg-rose-500/15 text-rose-400',
+    few: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+    in: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+  }
+  return { label: s.label, dot: s.dot, cls: cls[s.level] }
 })
+
+const isOutOfStock = computed(() => item.value && item.value.status !== 'coming_soon' && item.value.status !== 'sold' && isStockOut(item.value))
 
 const isComingSoon = computed(() => item.value?.status === 'coming_soon')
 const currentPrice = computed(() => (item.value?.sale_price || item.value?.price) ?? 0)
@@ -409,9 +437,13 @@ const fullSpecs = [
 const trustItems = computed(() => {
   const it = item.value
   if (!it) return []
+  let stockValue = 'Contact dealer'
+  if (isComingSoon.value) stockValue = 'Pre-order'
+  else if (it.status === 'sold') stockValue = 'Sold out'
+  else stockValue = stockStatus.value.label + (stockStatus.value.level !== 'out' ? ` — ${stockStatus.value.message}` : '')
   return [
     { icon: ShieldCheck, label: 'Warranty', value: it.warranty || 'Dealer warranty' },
-    { icon: PackageCheck, label: 'Stock', value: isComingSoon.value ? 'Pre-order' : (it.in_stock ? 'Available now' : 'Contact dealer') },
+    { icon: PackageCheck, label: 'Stock', value: stockValue },
     { icon: BadgeDollarSign, label: 'Finance', value: 'Flexible plans' },
   ]
 })
@@ -459,6 +491,11 @@ const isSaved = computed(() => item.value ? wishlist.isSaved('bike', item.value.
 
 function bikePath(b: any) {
   return `/motorcycles/${b.slug || encodeURIComponent(b.name)}`
+}
+
+function openReminder(b: any) {
+  remindItem.value = b
+  remindOpen.value = true
 }
 
 function formatPrice(v: number) { return `KSh ${Number(v).toLocaleString('en-KE')}` }

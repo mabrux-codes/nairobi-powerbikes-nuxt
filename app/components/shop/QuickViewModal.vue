@@ -61,7 +61,8 @@
               </div>
 
               <div class="mt-3 flex items-center gap-2">
-                <span class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase" :class="inStock ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-white/10 bg-white/5 text-brand-grey'">
+                <StockBadge v-if="kind === 'bike' && !isComingSoon" :item="item" size="md" />
+                <span v-else class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase" :class="inStock ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-white/10 bg-white/5 text-brand-grey'">
                   <span class="h-1.5 w-1.5 rounded-full" :class="inStock ? 'bg-emerald-400' : 'bg-brand-grey'" />
                   {{ inStock ? 'In Stock' : 'Out of Stock' }}
                 </span>
@@ -80,11 +81,14 @@
               <div class="mt-6 grid gap-2.5 sm:grid-cols-2">
                 <Button :to="href" variant="primary" class="sm:col-span-2"><Eye class="h-4 w-4" />Full Details</Button>
                 <Button
-                  v-if="kind === 'bike' && !isComingSoon"
+                  v-if="kind === 'bike' && !isComingSoon && !oosBike"
                   :to="`/service/test-ride?motorcycle=${item?.id}`"
                   variant="secondary"
                 >
                   <CalendarClock class="h-4 w-4" />Book Test Ride
+                </Button>
+                <Button v-else-if="kind === 'bike' && oosBike" variant="secondary" @click="$emit('remind')">
+                  <BellRing class="h-4 w-4" />Notify Me When Available
                 </Button>
                 <Button v-else variant="secondary" @click="$emit('enquire')">
                   <MessageSquare class="h-4 w-4" />Enquire Now
@@ -104,9 +108,11 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { X, Eye, CalendarClock, MessageSquare, Heart } from 'lucide-vue-next'
+import { X, Eye, CalendarClock, MessageSquare, Heart, BellRing } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import type { CatalogKind } from '~/composables/useCatalogFilters'
+import { isOutOfStock } from '~/utils/stockStatus'
+import StockBadge from '~/components/motorcycles/StockBadge.vue'
 
 const props = defineProps<{
   open: boolean
@@ -116,7 +122,7 @@ const props = defineProps<{
   saved?: boolean
 }>()
 
-const emit = defineEmits<{ close: []; 'toggle-wishlist': []; enquire: [] }>()
+const emit = defineEmits<{ close: []; 'toggle-wishlist': []; enquire: []; remind: [] }>()
 
 const pb = usePB()
 const activeImage = ref(0)
@@ -175,10 +181,12 @@ const meta = computed(() => {
 const inStock = computed(() => {
   if (props.kind === 'bike') {
     if (props.item?.status === 'coming_soon') return false
-    return !!props.item?.in_stock
+    return !isOutOfStock(props.item)
   }
   return !!props.item?.in_stock
 })
+
+const oosBike = computed(() => props.kind === 'bike' && props.item?.status !== 'coming_soon' && isOutOfStock(props.item))
 
 const isComingSoon = computed(() => props.item?.status === 'coming_soon')
 const currentPrice = computed(() => (props.item?.sale_price || props.item?.price) ?? 0)

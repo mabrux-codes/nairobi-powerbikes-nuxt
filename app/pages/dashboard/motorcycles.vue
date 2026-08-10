@@ -19,6 +19,21 @@
       </div>
     </motion.div>
 
+    <!-- Inventory summary (live) -->
+    <div>
+      <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div v-for="card in inventoryStats" :key="card.label" class="rounded-xl border border-brand-grey/15 bg-brand-black/80 p-4 flex items-center gap-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" :class="card.iconBg">
+            <component :is="card.icon" class="h-5 w-5" :class="card.iconColor" />
+          </span>
+          <div class="min-w-0">
+            <p class="font-heading text-2xl text-white">{{ card.value }}</p>
+            <p class="truncate text-[11px] font-display tracking-wider text-brand-grey uppercase">{{ card.label }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Stats -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
       <div v-for="card in stats" :key="card.label" class="group relative overflow-hidden rounded-xl border border-brand-grey/15 bg-brand-black/80 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-red/40">
@@ -52,6 +67,13 @@
         <option value="available">Available</option>
         <option value="sold">Sold</option>
         <option value="coming_soon">Coming Soon</option>
+      </select>
+      <select v-model="stockFilter" class="h-9 text-sm bg-brand-black/60 border border-brand-grey/15 rounded-lg text-white px-3 focus:outline-none focus:border-brand-red/60" aria-label="Filter by stock level">
+        <option value="">All Stock</option>
+        <option value="in_stock">In Stock</option>
+        <option value="few_remaining">Few Remaining</option>
+        <option value="low_stock">Low Stock</option>
+        <option value="out_of_stock">Out of Stock</option>
       </select>
       <button class="h-9 px-3 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5" :class="featuredOnly ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'text-brand-grey hover:text-white hover:bg-white/5'" @click="featuredOnly = !featuredOnly">
         <Star class="h-3.5 w-3.5" :class="featuredOnly ? 'fill-amber-400' : ''" />Featured
@@ -132,15 +154,25 @@
               <StatusChip :status="m.status || 'available'" size="sm" />
             </div>
             <p class="mt-1 text-xs text-brand-grey">{{ m.year || '—' }} · {{ m.engine_cc || '—' }}cc · {{ m.type || 'Street' }}</p>
-            <div class="mt-3 flex items-end justify-between">
+            <div class="mt-3 flex items-end justify-between gap-2">
               <div>
                 <p v-if="m.sale_price" class="text-sm font-semibold text-brand-red">KSh {{ formatPrice(m.sale_price) }}</p>
                 <p class="text-lg font-bold" :class="m.sale_price ? 'text-brand-grey line-through decoration-brand-grey/50 text-sm' : 'text-brand-red'">KSh {{ formatPrice(m.price) }}</p>
               </div>
-              <span class="inline-flex items-center gap-1 text-xs" :class="m.in_stock ? 'text-emerald-400' : 'text-rose-400'">
-                <span class="h-1.5 w-1.5 rounded-full" :class="m.in_stock ? 'bg-emerald-400' : 'bg-rose-400'" />{{ m.in_stock ? 'In stock' : 'Out of stock' }}
-              </span>
+              <StatusChip :status="stockChip(m)" size="sm" />
             </div>
+            <div class="mt-3 flex items-center justify-between gap-2 rounded-lg border border-brand-grey/15 bg-white/[0.02] px-3 py-2">
+              <span class="text-xs text-brand-grey">Stock</span>
+              <div class="flex items-center gap-1">
+                <button class="flex h-7 w-7 items-center justify-center rounded-md border border-brand-grey/20 text-brand-grey hover:text-white hover:border-brand-red/50 transition-colors" :aria-label="`Decrease stock for ${m.name}`" @click="quickStock(m, -1)"><Minus class="h-3.5 w-3.5" /></button>
+                <button class="min-w-9 px-1 text-center font-display text-sm font-bold text-white hover:text-brand-red transition-colors" :title="`${m.name} — ${stockQty(m)} in stock. Click to set exact value.`" @click="openStockEditor(m)">{{ stockQty(m) }}</button>
+                <button class="flex h-7 w-7 items-center justify-center rounded-md border border-brand-grey/20 text-brand-grey hover:text-white hover:border-brand-red/50 transition-colors" :aria-label="`Increase stock for ${m.name}`" @click="quickStock(m, 1)"><Plus class="h-3.5 w-3.5" /></button>
+              </div>
+              <button class="text-xs font-semibold text-brand-grey hover:text-brand-red transition-colors" @click="openStockEditor(m)">Update</button>
+            </div>
+            <button class="mt-2 inline-flex items-center gap-1 text-[11px] text-brand-grey hover:text-brand-red transition-colors" :aria-label="`View customers waiting for ${m.name}`" @click="openReminders(m)">
+              <BellRing class="h-3.5 w-3.5" />Waiting: {{ waitingCount(m.id) }}
+            </button>
             <div class="mt-4 grid grid-cols-3 gap-2">
               <Button variant="ghost" size="sm" @click="openEditModal(m)">Edit</Button>
               <Button variant="ghost" size="sm" @click="duplicate(m)">Copy</Button>
@@ -165,6 +197,7 @@
               <th class="sticky top-0 px-4 py-3.5 font-display text-[10px] tracking-[0.2em] text-brand-grey uppercase bg-brand-black/95 cursor-pointer select-none hover:text-white" @click="setSort('year')">Year <span v-if="sortKey === 'year'" class="text-brand-red">{{ sortDir === 'asc' ? '↑' : '↓' }}</span></th>
               <th class="sticky top-0 px-4 py-3.5 font-display text-[10px] tracking-[0.2em] text-brand-grey uppercase bg-brand-black/95">Engine</th>
               <th class="sticky top-0 px-4 py-3.5 font-display text-[10px] tracking-[0.2em] text-brand-grey uppercase bg-brand-black/95">Status</th>
+              <th class="sticky top-0 px-4 py-3.5 font-display text-[10px] tracking-[0.2em] text-brand-grey uppercase bg-brand-black/95">Stock</th>
               <th class="sticky top-0 px-4 py-3.5 font-display text-[10px] tracking-[0.2em] text-brand-grey uppercase bg-brand-black/95 text-right">Actions</th>
             </tr>
           </thead>
@@ -192,6 +225,15 @@
               <td class="px-4 py-3 text-brand-grey">{{ m.year || '—' }}</td>
               <td class="px-4 py-3 text-brand-grey">{{ m.engine_cc || '—' }}cc</td>
               <td class="px-4 py-3"><StatusChip :status="m.status || 'available'" size="sm" /></td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <div class="flex items-center gap-1">
+                  <button class="p-1 text-brand-grey hover:text-white hover:bg-white/5 rounded transition-colors" :aria-label="`Decrease stock for ${m.name}`" @click="quickStock(m, -1)"><Minus class="h-3.5 w-3.5" /></button>
+                  <button class="min-w-9 px-1 text-center text-sm font-bold text-white hover:text-brand-red transition-colors" :title="`Set exact stock for ${m.name}`" @click="openStockEditor(m)">{{ stockQty(m) }}</button>
+                  <button class="p-1 text-brand-grey hover:text-white hover:bg-white/5 rounded transition-colors" :aria-label="`Increase stock for ${m.name}`" @click="quickStock(m, 1)"><Plus class="h-3.5 w-3.5" /></button>
+                  <StatusChip :status="stockChip(m)" size="sm" class="ml-1.5" />
+                </div>
+                <button class="mt-1.5 inline-flex items-center gap-1 text-[11px] text-brand-grey hover:text-brand-red transition-colors" @click="openReminders(m)"><BellRing class="h-3 w-3" />Waiting: {{ waitingCount(m.id) }}</button>
+              </td>
               <td class="px-4 py-3 text-right whitespace-nowrap">
                 <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Edit" @click="openEditModal(m)"><Pencil class="h-4 w-4" /></button>
                 <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Duplicate" @click="duplicate(m)"><Copy class="h-4 w-4" /></button>
@@ -307,9 +349,25 @@
                   <label class="flex items-center gap-2 cursor-pointer text-sm text-brand-grey" :class="{ 'opacity-40 pointer-events-none': form.status !== 'available' }">
                     <input v-model="form.new_arrival" type="checkbox" class="accent-brand-red" :disabled="form.status !== 'available'" /> New Arrival
                   </label>
-                  <label class="flex items-center gap-2 cursor-pointer text-sm text-brand-grey" :class="{ 'opacity-40 pointer-events-none': form.status !== 'available' }">
-                    <input v-model="form.in_stock" type="checkbox" class="accent-brand-red" :disabled="form.status !== 'available'" /> In Stock
-                  </label>
+                </div>
+                <div class="sm:col-span-2 rounded-xl border border-brand-grey/15 bg-white/[0.02] p-3">
+                  <label for="stock-qty-input" class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Stock Quantity</label>
+                  <div class="flex flex-wrap items-center gap-3">
+                    <input
+                      id="stock-qty-input"
+                      v-model="form.stock_quantity"
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputmode="numeric"
+                      class="input-field w-32 rounded-lg"
+                      placeholder="0"
+                      :aria-invalid="!!stockInputError"
+                      :aria-describedby="stockInputError ? 'stock-qty-error' : undefined"
+                    />
+                    <p v-if="stockInputError" id="stock-qty-error" class="text-xs text-rose-400">{{ stockInputError }}</p>
+                    <p v-else class="text-xs text-brand-grey/70">Availability is derived from stock — 0 means Out of Stock. Whole numbers only.</p>
+                  </div>
                 </div>
                 <div class="sm:col-span-2">
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Images</label>
@@ -331,6 +389,9 @@
         </div>
       </Transition>
     </Teleport>
+
+    <StockEditorModal :open="stockEditorOpen" :motorcycle="stockEditorItem" @close="stockEditorOpen = false" />
+    <StockRemindersModal :open="remindersOpen" :motorcycle="remindersItem" @close="remindersOpen = false" />
   </div>
 </template>
 
@@ -338,14 +399,17 @@
 import { motion } from 'motion-v'
 import {
   Bike, Plus, Search, X, Star, LayoutGrid, List, Check, ExternalLink, Pencil, Copy,
-  Trash2, PackageCheck, Clock3, Wallet, Tag, Sparkles,
+  Trash2, PackageCheck, Clock3, Wallet, Tag, Sparkles, Minus, BellRing, Boxes, AlertTriangle,
 } from 'lucide-vue-next'
 import StatusChip from '~/components/dashboard/StatusChip.vue'
 import RealtimeStatus from '~/components/dashboard/RealtimeStatus.vue'
+import StockEditorModal from '~/components/dashboard/StockEditorModal.vue'
+import StockRemindersModal from '~/components/dashboard/StockRemindersModal.vue'
 import { useAdminDataStore } from '~/stores/adminData'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import { useConfirm } from '~/composables/useConfirm'
+import { getStockStatus, stockOf } from '~/utils/stockStatus'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Motorcycles - Nairobi Powerbikes' })
@@ -361,6 +425,7 @@ const searchQuery = ref((route.query.q as string) || '')
 const brandFilter = ref('')
 const typeFilter = ref('')
 const statusFilter = ref('')
+const stockFilter = ref('')
 const featuredOnly = ref(route.query.featured === '1')
 const page = ref(1)
 const PAGE_SIZE = 9
@@ -372,6 +437,11 @@ const editingId = ref<string | null>(null)
 const imageFiles = ref<File[]>([])
 const imagePreviews = ref<string[]>([])
 const selectedIds = ref<Set<string>>(new Set())
+const stockEditorOpen = ref(false)
+const stockEditorItem = ref<any>(null)
+const remindersOpen = ref(false)
+const remindersItem = ref<any>(null)
+const stockInputError = ref('')
 
 const sortKey = ref('name')
 const sortDir = ref<'asc' | 'desc'>('asc')
@@ -386,7 +456,7 @@ const form = ref({
   starter: '', ignition: '', battery: '', headlight: '',
   seat_height: '', ground_clearance: '', braking: '', suspension: '',
   colors: '', warranty: '',
-  featured: false, new_arrival: false, in_stock: true,
+  featured: false, new_arrival: false, in_stock: true, stock_quantity: '',
 })
 
 watch(() => form.value.status, (status) => {
@@ -394,10 +464,26 @@ watch(() => form.value.status, (status) => {
     form.value.featured = false
     form.value.new_arrival = false
     form.value.in_stock = false
+    form.value.stock_quantity = '0'
   } else if (status === 'coming_soon') {
     form.value.new_arrival = false
     form.value.in_stock = false
+    form.value.stock_quantity = '0'
   }
+})
+
+const inventoryStats = computed(() => {
+  const all = store.motorcycles.filter(m => m.status === 'available')
+  const level = (m: any) => getStockStatus(stockOf(m)).level
+  const inStock = all.filter(m => level(m) === 'in').length
+  const low = all.filter(m => level(m) === 'low' || level(m) === 'few').length
+  const out = all.filter(m => level(m) === 'out').length
+  return [
+    { label: 'Total Bikes', value: all.length, icon: Bike, iconBg: 'bg-brand-red/15', iconColor: 'text-brand-red' },
+    { label: 'In Stock', value: inStock, icon: PackageCheck, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400' },
+    { label: 'Low Stock', value: low, icon: AlertTriangle, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
+    { label: 'Out of Stock', value: out, icon: Boxes, iconBg: 'bg-brand-grey/15', iconColor: 'text-brand-grey' },
+  ]
 })
 
 const stats = computed(() => {
@@ -417,7 +503,7 @@ function brandName(id: string) {
   return store.brands.find(b => b.id === id)?.name || 'Unknown'
 }
 
-const hasFilters = computed(() => searchQuery.value || brandFilter.value || typeFilter.value || statusFilter.value || featuredOnly.value || selectedIds.value.size > 0)
+const hasFilters = computed(() => searchQuery.value || brandFilter.value || typeFilter.value || statusFilter.value || stockFilter.value || featuredOnly.value || selectedIds.value.size > 0)
 
 const filtered = computed(() => {
   let list = store.motorcycles.slice()
@@ -428,6 +514,7 @@ const filtered = computed(() => {
   if (brandFilter.value) list = list.filter(m => m.brand === brandFilter.value)
   if (typeFilter.value) list = list.filter(m => m.type === typeFilter.value)
   if (statusFilter.value) list = list.filter(m => m.status === statusFilter.value)
+  if (stockFilter.value) list = list.filter(m => stockChip(m) === stockFilter.value)
   if (featuredOnly.value) list = list.filter(m => m.featured)
   const dir = sortDir.value === 'asc' ? 1 : -1
   list.sort((a, b) => {
@@ -445,7 +532,7 @@ const paginated = computed(() => filtered.value.slice(pageStart.value, pageEnd.v
 
 const pageAllSelected = computed(() => paginated.value.length > 0 && paginated.value.every(m => selectedIds.value.has(m.id)))
 
-watch([searchQuery, brandFilter, typeFilter, statusFilter, featuredOnly, view], () => { page.value = 1 })
+watch([searchQuery, brandFilter, typeFilter, statusFilter, stockFilter, featuredOnly, view], () => { page.value = 1 })
 
 function setSort(key: string) {
   if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
@@ -471,6 +558,7 @@ function resetFilters() {
   brandFilter.value = ''
   typeFilter.value = ''
   statusFilter.value = ''
+  stockFilter.value = ''
   featuredOnly.value = false
   selectedIds.value = new Set()
 }
@@ -478,6 +566,41 @@ function resetFilters() {
 function formatPrice(p: number) { return p ? p.toLocaleString() : '0' }
 
 function filesUrl(rec: any, file: string) { return pb.files.getURL(rec, file) }
+
+function validateStockInput(): number | null {
+  const raw = String(form.value.stock_quantity ?? '')
+  if (raw.trim() === '') return 0
+  const n = Number(raw)
+  if (!Number.isFinite(n)) { stockInputError.value = 'Enter a valid number.'; return null }
+  if (n < 0) { stockInputError.value = 'Stock cannot be negative.'; return null }
+  if (!Number.isInteger(n)) { stockInputError.value = 'Stock must be a whole number.'; return null }
+  stockInputError.value = ''
+  return n
+}
+
+watch(() => form.value.stock_quantity, () => { if (stockInputError.value) stockInputError.value = '' })
+
+function stockQty(m: any) { return stockOf(m) }
+
+function stockChip(m: any) { return getStockStatus(stockOf(m)).chip }
+
+function waitingCount(id: string) { return store.reminders.filter(r => r.motorcycle === id && r.status === 'active').length }
+
+function openStockEditor(m: any) { stockEditorItem.value = m; stockEditorOpen.value = true }
+
+function openReminders(m: any) { remindersItem.value = m; remindersOpen.value = true }
+
+async function quickStock(m: any, delta: number) {
+  const current = stockOf(m)
+  const next = Math.max(0, current + delta)
+  if (next === current) return
+  try {
+    await pb.collection('motorcycles').update(m.id, { stock_quantity: next })
+    toast.add({ type: 'success', title: 'Stock updated', message: `${m.name} — ${next} in stock.` })
+  } catch (e: any) {
+    toast.add({ type: 'error', title: 'Could not update stock', message: e?.message || 'Please try again.' })
+  }
+}
 
 function resetForm() {
   form.value = {
@@ -487,13 +610,14 @@ function resetForm() {
     fuel_capacity: '', weight: '', fuel_system: '', cooling: '',
     starter: '', ignition: '', battery: '', headlight: '',
     seat_height: '', ground_clearance: '', braking: '', suspension: '',
-    colors: '', warranty: '', featured: false, new_arrival: false, in_stock: true,
+    colors: '', warranty: '', featured: false, new_arrival: false, in_stock: true, stock_quantity: '10',
   }
 }
 
 function openCreateModal() {
   editingId.value = null
   resetForm()
+  stockInputError.value = ''
   imageFiles.value = []
   imagePreviews.value = []
   showModal.value = true
@@ -516,7 +640,9 @@ function openEditModal(m: any) {
     braking: m.braking || '', suspension: m.suspension || '',
     colors: m.colors || '', warranty: m.warranty || '',
     featured: m.featured || false, new_arrival: m.new_arrival || false, in_stock: m.in_stock ?? true,
+    stock_quantity: m.stock_quantity !== undefined && m.stock_quantity !== null ? String(m.stock_quantity) : (m.in_stock ? '10' : '0'),
   }
+  stockInputError.value = ''
   imageFiles.value = []
   imagePreviews.value = (m.images || []).map((img: string) => pb.files.getURL(m, img))
   showModal.value = true
@@ -538,6 +664,11 @@ function removeImage(i: number) {
 }
 
 async function saveMotorcycle() {
+  const stockQ = validateStockInput()
+  if (stockQ === null) {
+    toast.add({ type: 'error', title: 'Invalid stock', message: stockInputError.value || 'Stock must be a whole number of 0 or more.' })
+    return
+  }
   saving.value = true
   try {
     const data = new FormData()
@@ -553,7 +684,8 @@ async function saveMotorcycle() {
     if (form.value.sale_price) data.append('sale_price', form.value.sale_price)
     data.append('featured', form.value.featured ? 'true' : 'false')
     data.append('new_arrival', form.value.new_arrival ? 'true' : 'false')
-    data.append('in_stock', form.value.in_stock ? 'true' : 'false')
+    data.append('stock_quantity', String(stockQ))
+    data.append('in_stock', (stockQ > 0 && form.value.status === 'available') ? 'true' : 'false')
 
     for (const file of imageFiles.value) data.append('images', file)
 
@@ -623,8 +755,8 @@ async function bulkDelete() {
 }
 
 function exportCsv() {
-  const rows = filtered.value.map(m => [m.name, brandName(m.brand), m.type || '', m.year || '', m.status || '', m.sale_price || m.price || '', m.engine_cc || ''].join(','))
-  const csv = ['Name,Brand,Type,Year,Status,Price,EngineCC', ...rows].join('\n')
+  const rows = filtered.value.map(m => [m.name, brandName(m.brand), m.type || '', m.year || '', m.status || '', m.sale_price || m.price || '', m.engine_cc || '', stockOf(m)].join(','))
+  const csv = ['Name,Brand,Type,Year,Status,Price,EngineCC,Stock', ...rows].join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)

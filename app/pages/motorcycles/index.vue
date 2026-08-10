@@ -102,6 +102,7 @@
                   @toggle-wishlist="wishlist.toggle('bike', bike)"
                   @quick-view="openQuickView(bike)"
                   @enquire="openEnquiry(bike)"
+                  @remind="openReminder(bike)"
                 />
               </motion.div>
             </div>
@@ -128,9 +129,14 @@
       @close="quickViewOpen = false"
       @toggle-wishlist="quickViewItem && wishlist.toggle('bike', quickViewItem)"
       @enquire="openEnquiry(quickViewItem)"
+      @remind="openReminder(quickViewItem)"
     />
 
     <ShopEnquiryModal :open="enquiryOpen" :item="enquiryItem" kind="bike" @close="enquiryOpen = false" />
+
+    <ArrivalReminder :open="reminderOpen" :item="reminderItem" @close="reminderOpen = false" />
+
+    <ArrivalReminder :open="remindOpen" :item="remindItem" @close="remindOpen = false" />
   </div>
 </template>
 
@@ -141,6 +147,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { useCatalogStore } from '~/stores/catalog'
 import { useWishlist } from '~/composables/useWishlist'
 import { useCatalogFilters, SORT_OPTIONS } from '~/composables/useCatalogFilters'
+import ArrivalReminder from '~/components/motorcycles/ArrivalReminder.vue'
 
 useHead({
   title: 'Motorcycles For Sale in Nairobi - Nairobi Powerbikes',
@@ -160,6 +167,10 @@ const quickViewOpen = ref(false)
 const quickViewItem = ref<any>(null)
 const enquiryOpen = ref(false)
 const enquiryItem = ref<any>(null)
+const reminderOpen = ref(false)
+const reminderItem = ref<any>(null)
+const remindOpen = ref(false)
+const remindItem = ref<any>(null)
 
 const PAGE_SIZE = 8
 
@@ -221,6 +232,8 @@ function resetFilters() {
 
 function openQuickView(b: any) { quickViewItem.value = b; quickViewOpen.value = true }
 function openEnquiry(b: any) { enquiryItem.value = b; enquiryOpen.value = true }
+function openReminder(b: any) { reminderItem.value = b; reminderOpen.value = true }
+function openRemind(b: any) { remindItem.value = b; remindOpen.value = true }
 
 onMounted(async () => {
   if (typeof route.query.type === 'string' && route.query.type) filters.type = route.query.type

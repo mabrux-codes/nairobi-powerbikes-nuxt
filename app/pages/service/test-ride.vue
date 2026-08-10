@@ -69,10 +69,14 @@
                     v-for="b in motorcycles"
                     :key="b.id"
                     class="group relative overflow-hidden rounded-2xl border text-left transition-all duration-300"
-                    :class="form.motorcycle === b.name
-                      ? 'border-brand-red/70 shadow-xl shadow-brand-red/15'
-                      : 'border-white/[0.08] hover:border-brand-red/40'"
+                    :class="bikeUnavailable(b)
+                      ? 'border-white/[0.06] opacity-60 cursor-not-allowed'
+                      : form.motorcycle === b.name
+                        ? 'border-brand-red/70 shadow-xl shadow-brand-red/15'
+                        : 'border-white/[0.08] hover:border-brand-red/40'"
                     :aria-pressed="form.motorcycle === b.name"
+                    :disabled="bikeUnavailable(b)"
+                    :aria-label="bikeUnavailable(b) ? `${b.name} — out of stock` : `Select ${b.name} for a test ride`"
                     @click="form.motorcycle = b.name"
                   >
                     <div class="relative aspect-[16/10] overflow-hidden bg-black">
@@ -83,6 +87,7 @@
                         loading="lazy"
                         decoding="async"
                         class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        :class="bikeUnavailable(b) ? 'grayscale-[0.6]' : ''"
                       />
                       <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
                       <span
@@ -92,6 +97,10 @@
                       >
                         <Check class="h-4 w-4 text-white" />
                       </span>
+                      <span
+                        v-if="bikeUnavailable(b)"
+                        class="absolute right-3 top-3 rounded-full border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase"
+                      >Out of Stock</span>
                       <div class="absolute bottom-3 left-4 right-4">
                         <p class="font-display text-lg font-bold tracking-display text-white">{{ b.name }}</p>
                         <p class="text-xs text-brand-grey">{{ b.year }} · {{ b.engine_cc }}cc</p>
@@ -396,6 +405,7 @@ import {
   Upload, FileText, X, Sprout, Map, Gauge, Trophy,
 } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { isOutOfStock } from '~/utils/stockStatus'
 import { formatDate, formatTime, formatFullDate } from '~/composables/useFormat'
 import { useAuthStore } from '~/stores/auth'
 
@@ -594,8 +604,12 @@ async function loadBookedTimes() {
 
 async function loadMotorcycles() {
   try {
-    const list = await pb.collection('motorcycles').getFullList<Motorcycle>({ sort: 'name', filter: 'status!="sold"', expand: 'brand', requestKey: 'tr-wizard-bikes' })
+    const list = await pb.collection('motorcycles').getFullList<Motorcycle>({ sort: 'name', filter: 'status!="sold" && status != "coming_soon"', expand: 'brand', requestKey: 'tr-wizard-bikes' })
     motorcycles.value = list.map(m => ({ ...m, brand_name: (m as any).expand?.brand?.name || '' }))
+    if (form.motorcycle) {
+      const selected = motorcycles.value.find(m => m.name === form.motorcycle)
+      if (!selected || bikeUnavailable(selected)) form.motorcycle = ''
+    }
     const bikeId = route.query.motorcycle as string | undefined
     if (bikeId) {
       const match = motorcycles.value.find(m => m.id === bikeId)
@@ -603,6 +617,10 @@ async function loadMotorcycles() {
     }
   } catch { motorcycles.value = [] }
   finally { motorcyclesLoading.value = false }
+}
+
+function bikeUnavailable(b: any) {
+  return b.status === 'coming_soon' || b.status === 'sold' || isOutOfStock(b)
 }
 
 async function loadBranches() {

@@ -83,31 +83,33 @@
         :initial="{ opacity: 0, y: 20 }"
         :animate="{ opacity: 1, y: 0 }"
         :transition="{ delay: 0.08 + i * 0.05, duration: 0.4 }"
-        class="group relative overflow-hidden rounded-xl border border-brand-grey/15 bg-brand-black/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-brand-red/40 hover:shadow-lg hover:shadow-brand-red/5"
+        class="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-brand-grey/15 bg-brand-black/80 p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 hover:border-brand-red/40 hover:shadow-lg hover:shadow-brand-red/5"
       >
         <NuxtLink v-if="card.to" :to="card.to" class="absolute inset-0 z-10" :aria-label="card.label" />
-        <div class="flex items-center justify-between">
-          <span class="flex h-10 w-10 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110" :class="card.iconBg">
+        <div class="flex items-start justify-between gap-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110" :class="card.iconBg">
             <component :is="card.icon" class="h-5 w-5" :class="card.iconColor" />
           </span>
-          <span class="font-heading text-3xl text-white transition-transform duration-300 group-hover:scale-110">{{ card.display }}</span>
-        </div>
-        <p class="mt-4 font-display text-sm tracking-display text-white uppercase">{{ card.label }}</p>
-        <div class="mt-1.5 flex items-center justify-between gap-2">
-          <span class="inline-flex items-center gap-1 text-xs" :class="card.trend >= 0 ? 'text-emerald-400' : 'text-red-400'">
-            <TrendingUp v-if="card.trend >= 0" class="h-3.5 w-3.5" />
-            <TrendingDown v-else class="h-3.5 w-3.5" />
+          <span
+            v-if="card.trend !== undefined"
+            class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            :class="card.trend >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'"
+          >
+            <TrendingUp v-if="card.trend >= 0" class="h-3 w-3" />
+            <TrendingDown v-else class="h-3 w-3" />
             {{ Math.abs(card.trend) }}%
           </span>
-          <div v-if="card.spark.length" class="flex items-end gap-0.5 h-6">
+        </div>
+        <p class="mt-4 min-w-0 truncate font-heading text-3xl text-white lg:text-[1.45rem] xl:text-3xl">{{ card.display }}</p>
+        <p class="mt-1 font-display text-xs tracking-display text-brand-grey/90 uppercase">{{ card.label }}</p>
+        <div v-if="card.spark && card.spark.length" class="mt-auto flex h-9 min-w-0 items-end gap-1 overflow-hidden pt-3 sm:h-10" :aria-hidden="true">
+          <span v-for="(v, k) in card.spark" :key="k" class="flex h-full min-w-0 flex-1 items-end">
             <span
-              v-for="(v, k) in card.spark"
-              :key="k"
-              class="w-1.5 rounded-sm transition-all duration-300"
-              :class="v > 0 ? 'bg-brand-red/80' : 'bg-brand-grey/20'"
-              :style="{ height: v > 0 ? Math.max(4, v * 2) + 'px' : '4px' }"
+              class="w-full rounded-t-sm transition-all duration-300"
+              :class="v > 0 ? 'bg-brand-red/70' : 'bg-brand-grey/20'"
+              :style="{ height: sparkHeight(v, maxSpark(card.spark)) }"
             />
-          </div>
+          </span>
         </div>
         <span class="absolute top-0 left-0 h-0.5 w-0 bg-brand-red transition-all duration-300 group-hover:w-full" />
       </motion.div>
@@ -498,7 +500,7 @@ const kpis = computed(() => {
   const rev = monthlySeries.value.revenue
   const cus = bucketSeries(store.users, 'created', u => u.role === 'customer')
   return [
-    { label: 'Revenue', display: fmtK(rev[5]), icon: Gauge, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', trend: trend(rev[5], rev[4]), spark: rev.map(v => v / 10000), to: '/dashboard/service-bookings' },
+    { label: 'Revenue', display: fmtK(rev[5]), icon: Gauge, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', trend: trend(rev[5], rev[4]), spark: rev, to: '/dashboard/service-bookings' },
     { label: 'Service Bookings', display: String(svc[5]), icon: Wrench, iconBg: 'bg-brand-red/15', iconColor: 'text-brand-red', trend: trend(svc[5], svc[4]), spark: svc, to: '/dashboard/service-bookings' },
     { label: 'Test Rides', display: String(tr[5]), icon: CalendarCheck2, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400', trend: trend(tr[5], tr[4]), spark: tr, to: '/dashboard/test-rides' },
     { label: 'Customers', display: String(customerCount.value), icon: Users, iconBg: 'bg-sky-500/15', iconColor: 'text-sky-400', trend: trend(cus[5], cus[4]), spark: cus, to: '/dashboard/staff' },
@@ -638,6 +640,17 @@ function fmtK(n: number) {
 }
 
 function hasChartData(arr: number[]) { return arr.some(v => v > 0) }
+
+function maxSpark(arr: number[]) {
+  let m = 0
+  for (const v of arr) m = Math.max(m, v)
+  return m
+}
+
+function sparkHeight(v: number, max: number) {
+  if (v <= 0 || max <= 0) return '8%'
+  return Math.max(8, Math.round((v / max) * 84)) + '%'
+}
 
 function maxOf(...arrs: number[][]) {
   let m = 0

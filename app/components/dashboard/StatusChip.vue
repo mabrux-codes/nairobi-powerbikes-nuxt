@@ -57,6 +57,11 @@ const STATUS_STYLES: Record<string, { cls: string; dot: string }> = {
   low_stock: { cls: 'bg-rose-500/15 text-rose-400 border border-rose-500/30', dot: 'bg-rose-400' },
   notified: { cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', dot: 'bg-emerald-400' },
   waiting: { cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', dot: 'bg-amber-400' },
+  reserved: { cls: 'bg-violet-500/10 text-violet-400 border border-violet-500/20', dot: 'bg-violet-400' },
+  financed: { cls: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20', dot: 'bg-indigo-400' },
+  partially_paid: { cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', dot: 'bg-amber-400' },
+  fully_paid: { cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', dot: 'bg-emerald-400' },
+  defaulted: { cls: 'bg-rose-500/10 text-rose-400 border border-rose-500/20', dot: 'bg-rose-400' },
 }
 
 const style = computed(() => STATUS_STYLES[props.status] || { cls: 'bg-brand-grey/10 text-brand-grey border border-brand-grey/20', dot: 'bg-brand-grey' })

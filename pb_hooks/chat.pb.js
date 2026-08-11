@@ -541,6 +541,53 @@ onRecordAfterCreateSuccess((e) => {
     })
   }
 
+  // Email the customer/guest that a support reply arrived.
+  if (st === "agent" && body) {
+    try {
+      const queue = require(__hooks + "/lib/email/queue.js")
+      const tpl = require(__hooks + "/lib/email/templates.js")
+      const agentId = msg.getString("sender")
+      let supportAgentName = "A member of our team"
+      if (agentId) {
+        try { supportAgentName = app.findRecordById("users", agentId).getString("name") || supportAgentName } catch (err) {}
+      }
+      let email = ""
+      let recipientName = conv.getString("guest_name") || ""
+      const customerId = conv.getString("customer")
+      if (customerId) {
+        try {
+          const u = app.findRecordById("users", customerId)
+          email = u.getString("email")
+          recipientName = u.getString("name") || recipientName
+        } catch (err) {}
+      }
+      if (!email && conv.getString("guest_email")) email = conv.getString("guest_email")
+      if (email) {
+        const vars = tpl.deepMergeVars(tpl.DEFAULT_VARS(app), {
+          customerName: recipientName || email,
+          firstName: (recipientName || "").split(" ")[0] || "",
+          supportAgentName,
+          messagePreview: body.slice(0, 240),
+          chatUrl: (app.settings().meta.appURL || "") + "/",
+          chatSubject: conv.getString("subject") || "Support conversation",
+        })
+        queue.enqueueEmail(app, {
+          recipient: email,
+          recipientName,
+          template: "chat_reply",
+          category: "chat",
+          priority: "normal",
+          payload: { subject: "You have a new message from Nairobi PowerBikes", body: "", vars },
+          idempotencyKey: "chat-reply:" + msg.id,
+          relatedType: "chat_message",
+          relatedId: msg.id,
+        })
+      }
+    } catch (err) {
+      app.logger().error("chat reply email: " + (err && err.message))
+    }
+  }
+
   if (conv.getString("guest_token")) {
     chat.realtimeSend(app, "chat_" + convId, { action: "create", record: chat.publicMsg(msg) })
   }
@@ -601,6 +648,41 @@ onRecordAfterUpdateSuccess((e) => {
           message: "Your enquiry has been resolved by our support team. If you need further assistance, please start a new conversation.",
           link: "",
         })
+      }
+      try {
+        const queue = require(__hooks + "/lib/email/queue.js")
+        const tpl = require(__hooks + "/lib/email/templates.js")
+        let email = ""
+        let recipientName = conv.getString("guest_name") || ""
+        if (customer) {
+          try {
+            const u = app.findRecordById("users", customer)
+            email = u.getString("email")
+            recipientName = u.getString("name") || recipientName
+          } catch (err) {}
+        }
+        if (!email && conv.getString("guest_email")) email = conv.getString("guest_email")
+        if (email) {
+          const vars = tpl.deepMergeVars(tpl.DEFAULT_VARS(app), {
+            customerName: recipientName || email,
+            firstName: (recipientName || "").split(" ")[0] || "",
+            chatUrl: (app.settings().meta.appURL || "") + "/",
+            chatSubject: conv.getString("subject") || "Support conversation",
+          })
+          queue.enqueueEmail(app, {
+            recipient: email,
+            recipientName,
+            template: "chat_resolved",
+            category: "chat",
+            priority: "normal",
+            payload: { subject: "Your conversation is resolved", body: "", vars },
+            idempotencyKey: "chat-resolved:" + conv.id,
+            relatedType: "chat_conversation",
+            relatedId: conv.id,
+          })
+        }
+      } catch (err) {
+        app.logger().error("chat resolved email: " + (err && err.message))
       }
     }
     if (data.oldAssigned !== assigned && data.oldAssigned && customer) {

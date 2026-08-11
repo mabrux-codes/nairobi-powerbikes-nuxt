@@ -31,7 +31,10 @@ function sendQueued(app, queueRecord) {
   let text = resolved.text
 
   if (!html) html = payload.body || ""
-  if (html && html.indexOf("<!DOCTYPE") !== 0) html = tpl.layout(html, vars)
+  // Admin-authored override fragments (no <!DOCTYPE>) get the branded shell.
+  if (html && String(html).indexOf("<!DOCTYPE") !== 0 && String(html).indexOf("<html") !== 0) html = tpl.layout(html, vars)
+  // The full renderer already wraps the document — never double-wrap.
+  vars.previewText = vars.previewText || payload.previewText || ""
 
   const meta = app.settings().meta
   const message = new MailerMessage({

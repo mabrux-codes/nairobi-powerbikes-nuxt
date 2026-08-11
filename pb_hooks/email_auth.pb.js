@@ -68,3 +68,20 @@ onRecordRequestEmailChangeRequest((e) => {
     e.app.logger().error("auth_emailchange: " + (err && err.message))
   }
 }, "_pb_users_auth_")
+
+// --- New sign-in detected (valid password auth) ---
+onRecordAuthWithPasswordRequest((e) => {
+  try {
+    const auth = require(__hooks + "/lib/email/auth.js")
+    if (!e.record) { e.next(); return } // failed auth -> no user matched
+    let ua = ""
+    try {
+      const header = e.httpContext.request().Header
+      if (header && header.Get) ua = header.Get("User-Agent") || ""
+    } catch (err) { /* UA is best-effort */ }
+    auth.buildNewLogin(e, ua)
+  } catch (err) {
+    e.app.logger().error("auth_newlogin: " + (err && err.message))
+  }
+  e.next()
+}, "_pb_users_auth_")

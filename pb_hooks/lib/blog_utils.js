@@ -76,6 +76,39 @@ function notifyIfPublished(e) {
         link: "/dashboard/blog",
       })
     } catch (_) {}
+    try {
+      const marketing = require(__hooks + "/lib/email/marketing.js")
+      const tpl = require(__hooks + "/lib/email/templates.js")
+      const site = marketing.siteBase(e.app)
+      const image = (() => {
+        try {
+          const multi = e.app.findRecordById("blog_posts", r.id)
+          const imgs = multi ? multi.getStringSlice("images") : []
+          if (imgs.length > 0) return e.app.files().getURL(multi, imgs[0], { thumb: "800x0" })
+          if (r.getString("image")) return e.app.files().getURL(r, r.getString("image"), { thumb: "800x0" })
+        } catch (err) {}
+        return ""
+      })()
+      const vars = tpl.deepMergeVars({}, {
+        blogTitle: r.getString("title") || "A fresh read",
+        blogExcerpt: r.getString("excerpt") || "",
+        blogCategory: r.getString("category") || "Riding Culture",
+        blogReadingTime: String(r.getInt("reading_time") || 3) + " min read",
+        blogUrl: site + "/blog/" + (r.getString("slug") || r.id),
+        blogImage: image,
+      })
+      marketing.broadcastMarketing(e.app, {
+        template: "new_blog_article",
+        campaignCategory: "blog",
+        subject: "New from the garage: " + vars.blogTitle,
+        vars,
+        idempotencyKey: "blog-published:" + r.id,
+        relatedType: "blog_post",
+        relatedId: r.id,
+      })
+    } catch (err) {
+      e.app.logger().error("blog email: " + (err && err.message))
+    }
   }
 }
 

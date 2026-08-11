@@ -1,9 +1,9 @@
 /// <reference path="../pb_data/types.d.ts" />
 
 /// Marketing email infrastructure.
-/// - Public no-login unsubscribe endpoint.
+/// - Public unsubscribe + preference center endpoints (token or email, no login).
 /// - Subscriber record sync on user registration / sign-in.
-/// - Admin campaign send route.
+/// - Consent-gated admin campaign sends through the branded design system.
 
 // --- Public unsubscribe (no login required) ---
 routerAdd("GET", "/api/email/unsubscribe", (c) => {
@@ -14,17 +14,14 @@ routerAdd("GET", "/api/email/unsubscribe", (c) => {
   if (!token && !email) return c.json(400, { message: "An unsubscribe token or email is required." })
 
   try {
-    let subscriber = null
-    if (token) {
+    const marketing = require(__hooks + "/lib/email/marketing.js")
+    let subscriber = token ? (() => {
       const found = $app.findRecordsByFilter("subscribers", "unsubscribeToken = {:t}", "", 1, 0, { t: token })
-      if (found.length > 0) subscriber = found[0]
-    }
-    if (!subscriber && email) {
-      const found = $app.findRecordsByFilter("subscribers", "email = {:e}", "", 1, 0, { e: email })
-      if (found.length > 0) subscriber = found[0]
-    }
+      return found.length > 0 ? found[0] : null
+    })() : null
+    if (!subscriber && email) subscriber = marketing.subscriberOf($app, email)
+
     if (!subscriber) {
-      // Create an unsubscribed record to remember the preference.
       const col = $app.findCollectionByNameOrId("subscribers")
       subscriber = new Record(col)
       subscriber.set("email", email || "unknown")
@@ -36,9 +33,161 @@ routerAdd("GET", "/api/email/unsubscribe", (c) => {
       subscriber.set("marketingConsent", false)
       $app.save(subscriber)
     }
-    return c.json(200, { ok: true, message: "You have been unsubscribed from Nairobi Powerbikes marketing emails." })
+
+    // Also flip the per-category preferences off.
+    try {
+      const prefs = marketing.preferencesOf($app, subscriber)
+      if (!prefs) {
+        const col = $app.findCollectionByNameOrId("email_preferences")
+        const p = new Record(col)
+        const uid = subscriber.getString("customer")
+        if (uid) p.set("user", uid)
+        p.set("email", subscriber.getString("email"))
+        p.set("marketing", false)
+        p.set("promotions", false)
+        p.set("newMotorcycles", false)
+        p.set("blog", false)
+        p.set("offers", false)
+        p.set("wishlistAlerts", false)
+        p.set("restockAlerts", false)
+        $app.save(p)
+      }
+    } catch (e) {}
+
+    return c.json(200, {
+      ok: true,
+      email: subscriber.getString("email"),
+      message: "You have been unsubscribed from Nairobi Powerbikes marketing emails.",
+    })
   } catch (err) {
     return c.json(500, { message: (err && err.message) || "Unsubscribe failed." })
+  }
+})
+
+// --- Resubscribe (clear the unsubscribe state) ---
+routerAdd("POST", "/api/email/preferences/resubscribe", (c) => {
+  const info = c.requestInfo()
+  const body = info.body || {}
+  const token = String(body.token || "").trim()
+  const email = String(body.email || "").trim().toLowerCase()
+  if (!token && !email) return c.json(400, { message: "A token or email is required." })
+  const marketing = require(__hooks + "/lib/email/marketing.js")
+  let subscriber = null
+  if (token) {
+    try {
+      const found = $app.findRecordsByFilter("subscribers", "unsubscribeToken = {:t}", "", 1, 0, { t: token })
+      if (found.length > 0) subscriber = found[0]
+    } catch (e) {}
+  }
+  if (!subscriber && email) subscriber = marketing.subscriberOf($app, email)
+  if (!subscriber) return c.json(404, { message: "Subscriber not found." })
+  try {
+    subscriber.set("status", "subscribed")
+    subscriber.set("marketingConsent", true)
+    subscriber.set("consentDate", new Date().toISOString())
+    $app.save(subscriber)
+    return c.json(200, { ok: true, message: "You are subscribed to Nairobi Powerbikes updates again." })
+  } catch (err) {
+    return c.json(500, { message: (err && err.message) || "Resubscribe failed." })
+  }
+})
+
+// --- Get email preferences (public, token/email based; falls back to auth) ---
+routerAdd("GET", "/api/email/preferences", (c) => {
+  const info = c.requestInfo()
+  const query = info.query || {}
+  const marketing = require(__hooks + "/lib/email/marketing.js")
+
+  let sub = null
+  const token = String(query.token || "").trim()
+  if (token) {
+    try {
+      const found = $app.findRecordsByFilter("subscribers", "unsubscribeToken = {:t}", "", 1, 0, { t: token })
+      if (found.length > 0) sub = found[0]
+    } catch (e) {}
+  }
+  const auth = info.auth
+  if (!sub && auth && auth.getString("email")) sub = marketing.subscriberOf($app, auth.getString("email"))
+  if (!sub) {
+    const email = String(query.email || "").trim().toLowerCase()
+    if (email) sub = marketing.subscriberOf($app, email)
+  }
+  if (!sub) return c.json(404, { message: "No subscription found for that link." })
+
+  const prefs = marketing.preferencesOf($app, sub)
+  return c.json(200, {
+    ok: true,
+    email: sub.getString("email"),
+    name: sub.getString("name") || sub.getString("firstName") || "",
+    status: sub.getString("status"),
+    marketingConsent: sub.getBool("marketingConsent"),
+    prefs: prefs || {
+      marketing: sub.getBool("marketingConsent"),
+      promotions: true,
+      newMotorcycles: true,
+      blog: true,
+      offers: true,
+      wishlistAlerts: true,
+      restockAlerts: true,
+    },
+  })
+})
+
+// --- Save email preferences (public) ---
+routerAdd("POST", "/api/email/preferences", (c) => {
+  const info = c.requestInfo()
+  const body = info.body || {}
+  const marketing = require(__hooks + "/lib/email/marketing.js")
+
+  let sub = null
+  const token = String(body.token || "").trim()
+  if (token) {
+    try {
+      const found = $app.findRecordsByFilter("subscribers", "unsubscribeToken = {:t}", "", 1, 0, { t: token })
+      if (found.length > 0) sub = found[0]
+    } catch (e) {}
+  }
+  const auth = info.auth
+  if (!sub && auth && auth.getString("email")) sub = marketing.subscriberOf($app, auth.getString("email"))
+  if (!sub) {
+    const email = String(body.email || "").trim().toLowerCase()
+    if (email) sub = marketing.subscriberOf($app, email)
+  }
+  if (!sub) return c.json(404, { message: "No subscription found for that link." })
+
+  try {
+    let prefsRec = null
+    const uid = sub.getString("customer")
+    let found = []
+    if (uid) found = $app.findRecordsByFilter("email_preferences", "user = {:u}", "", 1, 0, { u: uid })
+    if (found.length === 0) found = $app.findRecordsByFilter("email_preferences", "email = {:e}", "", 1, 0, { e: sub.getString("email") })
+    if (found.length > 0) {
+      prefsRec = found[0]
+    } else {
+      const col = $app.findCollectionByNameOrId("email_preferences")
+      prefsRec = new Record(col)
+      if (uid) prefsRec.set("user", uid)
+      prefsRec.set("email", sub.getString("email"))
+    }
+    const p = body.prefs || {}
+    const bool = (v, dflt) => (v === undefined ? dflt : !!v)
+    prefsRec.set("marketing", bool(p.marketing, true))
+    prefsRec.set("promotions", bool(p.promotions, true))
+    prefsRec.set("newMotorcycles", bool(p.newMotorcycles, true))
+    prefsRec.set("blog", bool(p.blog, true))
+    prefsRec.set("offers", bool(p.offers, true))
+    prefsRec.set("wishlistAlerts", bool(p.wishlistAlerts, true))
+    prefsRec.set("restockAlerts", bool(p.restockAlerts, true))
+    $app.save(prefsRec)
+
+    // Keep the subscriber consent in sync.
+    sub.set("marketingConsent", !!(p.marketing === undefined ? true : p.marketing))
+    if (sub.getBool("marketingConsent")) sub.set("status", "subscribed")
+    $app.save(sub)
+
+    return c.json(200, { ok: true, message: "Preferences saved." })
+  } catch (err) {
+    return c.json(500, { message: (err && err.message) || "Saving preferences failed." })
   }
 })
 
@@ -76,7 +225,7 @@ routerAdd("POST", "/api/email/sync-subscriber", (c) => {
   }
 })
 
-// --- Admin campaign send route ---
+// --- Admin campaign send route (consent-gated, branded) ---
 routerAdd("POST", "/api/email/campaign/send", (c) => {
   const info = c.requestInfo()
   const auth = info.auth
@@ -87,45 +236,33 @@ routerAdd("POST", "/api/email/campaign/send", (c) => {
   if (!campaignId) return c.json(400, { message: "Campaign id is required." })
 
   try {
+    const marketing = require(__hooks + "/lib/email/marketing.js")
     const campaign = $app.findRecordById("email_campaigns", campaignId)
     const subject = campaign.getString("subject")
     const html = campaign.getString("html")
     const audience = campaign.getString("audience") || "all_subscribers"
-    if (!subject || !html) return c.json(400, { message: "Campaign needs a subject and body." })
+    const cc = campaign.getString("category") || "promotions"
+    if (!subject) return c.json(400, { message: "Campaign needs a subject." })
 
-    // Resolve recipients by audience
-    let recipients = []
-    if (audience === "all_subscribers") {
-      recipients = $app.findRecordsByFilter("subscribers", "status = {:s} && marketingConsent = true", "", 2000, 0, { s: "subscribed" })
-    } else if (audience === "customers") {
-      recipients = $app.findRecordsByFilter("users", "role = {:r} && status != {:s}", "", 2000, 0, { r: "customer", s: "inactive" })
-    } else {
-      // Fallback: all subscribers
-      recipients = $app.findRecordsByFilter("subscribers", "status = {:s} && marketingConsent = true", "", 2000, 0, { s: "subscribed" })
-    }
-
-    const queue = require(__hooks + "/lib/email/queue.js")
+    const recipients = marketing.audienceFor($app, audience, cc)
     const tpl = require(__hooks + "/lib/email/templates.js")
     let enqueued = 0
     for (const r of recipients) {
-      const email = r.getString("email")
-      if (!email || email.indexOf("@") < 0) continue
-      const name = r.getString("name") || r.getString("firstName") || ""
-      const vars = tpl.deepMergeVars(tpl.DEFAULT_VARS($app), {
-        customerName: name || email,
-        firstName: (name || "").split(" ")[0] || "",
-        email,
-        unsubLink: ($app.settings().meta.appURL || "") + "/api/email/unsubscribe?token=" + (r.getString("unsubscribeToken") || ""),
+      const vars = tpl.deepMergeVars({}, {
+        bodyHtml: html || "",
+        campaignHeadline: campaign.getString("previewText") || campaign.getString("name"),
+        campaignSubject: subject,
+        campaignMessage: (html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240),
       })
-      const bodyWithUnsub = html + tpl.buttonBlock("Unsubscribe", vars.unsubLink)
-      const res = queue.enqueueEmail($app, {
-        recipient: email,
-        recipientName: name,
-        template: "campaign_" + campaignId,
-        category: "marketing",
-        priority: "low",
-        payload: { subject, body: bodyWithUnsub, vars },
-        idempotencyKey: "campaign:" + campaignId + ":" + (r.id || email),
+      const res = marketing.enqueueMarketing($app, {
+        recipient: r.email,
+        recipientName: r.name,
+        template: "campaign",
+        category: cc,
+        campaignCategory: cc,
+        subject,
+        vars,
+        idempotencyKey: "campaign:" + campaignId + ":" + r.email,
         relatedType: "email_campaign",
         relatedId: campaignId,
       })
@@ -160,6 +297,7 @@ routerAdd("POST", "/api/email/campaign/create", (c) => {
     camp.set("subject", String(body.subject))
     camp.set("previewText", String(body.previewText || ""))
     camp.set("audience", String(body.audience || "all_subscribers"))
+    camp.set("category", String(body.category || "promotions"))
     camp.set("template", String(body.template || ""))
     camp.set("html", String(body.html || ""))
     camp.set("status", "draft")

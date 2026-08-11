@@ -1,12 +1,15 @@
-/// Payment + booking reminder automation logic (used by cron and manual trigger).
+/// Payment + booking reminder automations (cron + manual trigger).
+/// Vars mirror the branded design-system templates in templates_ops.js.
 
 const tplMod = () => require(__hooks + "/lib/email/templates.js")
 const queueMod = () => require(__hooks + "/lib/email/queue.js")
+const txMod = () => require(__hooks + "/lib/email/transactional.js")
 
 /** Run payment reminders for active financing plans. */
 function runPaymentReminders(app) {
   const q = queueMod()
   const t = tplMod()
+  const tx = txMod()
   const financing = app.findRecordsByFilter("financing", "status = {:s}", "", 500, 0, { s: "active" })
   let enqueued = 0
   for (const f of financing) {
@@ -45,38 +48,31 @@ function runPaymentReminders(app) {
     if (!email) continue
 
     const name = customer.getString("name") || email
-    const vars = t.deepMergeVars(t.DEFAULT_VARS(app), {
+    const product = tx.resolveMotorcycle(app, sale.getString("motorcycle"))
+    const vars = t.deepMergeVars(t.DEFAULT_VARS(app), Object.assign({}, product, {
       customerName: name,
       firstName: name.split(" ")[0],
       installmentAmount: t.money(f.get("installment_amount")),
       totalPayable: t.money(f.get("total_payable")),
       outstandingBalance: t.money(sale.get("outstanding")),
       dueDate: new Date(dueMs).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
-    })
-    let template = "payment_reminder"
-    let subject = "Your Nairobi PowerBikes payment is coming up"
-    if (overdue) {
-      template = "payment_overdue"
-      subject = "Your Nairobi PowerBikes payment is overdue"
-    }
-    const body =
-      "<h2 style='color:#fff;margin:0 0 12px;'>" + (overdue ? "Payment overdue" : "Payment reminder") + "</h2>" +
-      "<p>Hi " + vars.firstName + ",</p>" +
-      "<p>" + (overdue ? "Your installment is now due." : "Your next installment is due soon.") + "</p>" +
-      "<table role='presentation' width='100%' cellpadding='6' cellspacing='0' style='background:#1a1a1f;border:1px solid #26262b;border-radius:12px;margin:12px 0;font-size:13px;color:#c9c9d1;'>" +
-      "<tr><td style='color:#8b8b94;'>Installment</td><td style='color:#ef2a2a;'>" + vars.installmentAmount + "</td></tr>" +
-      "<tr><td style='color:#8b8b94;'>Due date</td><td>" + vars.dueDate + "</td></tr>" +
-      "<tr><td style='color:#8b8b94;'>Outstanding</td><td>" + vars.outstandingBalance + "</td></tr>" +
-      "</table>" +
-      "<p>You can view your financing plan from your dashboard.</p>"
+      saleReference: "PB-SALE-" + String(sale.id || "").slice(-6).toUpperCase(),
+      frequency: frequency,
+      installments: String(installments),
+      financeUrl: (app.settings().meta.appURL || "") + "/dashboard",
+    }))
+    const template = overdue ? "payment_overdue" : "payment_due"
+    const subject = overdue
+      ? "Your installment is overdue — " + vars.installmentAmount
+      : "Your next installment is due soon — " + vars.installmentAmount
 
     const res = q.enqueueEmail(app, {
       recipient: email,
       recipientName: name,
       template,
-      category: "payments",
+      category: "finance",
       priority: "high",
-      payload: { subject, body, vars },
+      payload: { subject, body: "", vars },
       idempotencyKey: (overdue ? "payment-overdue:" : "payment-reminder:") + f.id + ":" + currentInstallment,
       relatedType: "financing",
       relatedId: f.id,
@@ -98,6 +94,7 @@ function runAll(app) {
   try {
     const q = queueMod()
     const t = tplMod()
+    const tx = txMod()
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const bookings = app.findRecordsByFilter(
@@ -109,41 +106,17 @@ function runAll(app) {
       { s: "confirmed", d: today.toISOString().slice(0, 10) },
     )
     for (const b of bookings) {
-      const email = b.getString("email")
-      const uid = b.getString("user")
-      let recipient = email
-      if (!recipient && uid) {
-        try { recipient = app.findRecordById("users", uid).getString("email") } catch (e) {}
-      }
+      const product = tx.resolveMotorcycle(app, b.getString("motorcycle"))
+      const vars = t.deepMergeVars(t.DEFAULT_VARS(app), tx.bookingPayload(app, b, product))
+      const recipient = tx.bookingRecipient(b)
       if (!recipient) continue
-      const name = b.getString("name") || ""
-      const vars = t.deepMergeVars(t.DEFAULT_VARS(app), {
-        customerName: name,
-        firstName: name.split(" ")[0],
-        motorcycleName: b.getString("motorcycle") || "your motorcycle",
-        bookingDate: b.getString("preferred_date"),
-        bookingTime: b.getString("preferred_time") || "Flexible",
-        branchName: b.getString("branch") || "Main Branch",
-        bookingReference: b.id,
-      })
-      const body =
-        "<h2 style='color:#fff;margin:0 0 12px;'>Your booking is today</h2>" +
-        "<p>Hi " + vars.firstName + ",</p>" +
-        "<p>A quick reminder that your booking is scheduled for today:</p>" +
-        "<table role='presentation' width='100%' cellpadding='6' cellspacing='0' style='background:#1a1a1f;border:1px solid #26262b;border-radius:12px;margin:12px 0;font-size:13px;color:#c9c9d1;'>" +
-        "<tr><td style='color:#8b8b94;'>Motorcycle</td><td>" + vars.motorcycleName + "</td></tr>" +
-        "<tr><td style='color:#8b8b94;'>Time</td><td>" + vars.bookingTime + "</td></tr>" +
-        "<tr><td style='color:#8b8b94;'>Branch</td><td>" + vars.branchName + "</td></tr>" +
-        "<tr><td style='color:#8b8b94;'>Reference</td><td>" + vars.bookingReference + "</td></tr>" +
-        "</table>" +
-        "<p>We look forward to seeing you!</p>"
       q.enqueueEmail(app, {
         recipient,
-        recipientName: name,
+        recipientName: b.getString("name") || "",
         template: "booking_reminder",
         category: "bookings",
         priority: "high",
-        payload: { subject: "Reminder: your booking is today", body, vars },
+        payload: { subject: "Reminder: your booking is today — " + vars.motorcycleName, body: "", vars },
         idempotencyKey: "booking-reminder:" + b.id + ":" + today.toISOString().slice(0, 10),
         relatedType: "service_booking",
         relatedId: b.id,

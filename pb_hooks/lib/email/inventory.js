@@ -1,78 +1,99 @@
-/// Inventory email builders (restock notifications, wishlist).
-/// Required inside PB JSVM hook callbacks.
+/// Inventory email builders (restock waiting-list + wishlist restock).
+/// Required inside PB JSVM hook callbacks. Consent gating lives in marketing.js;
+/// rendering comes from the branded design system.
 
 const tplMod = () => require(__hooks + "/lib/email/templates.js")
-const queueMod = () => require(__hooks + "/lib/email/queue.js")
+const marketingMod = () => require(__hooks + "/lib/email/marketing.js")
+const txMod = () => require(__hooks + "/lib/email/transactional.js")
+
+function emailForReminder(app, r) {
+  let email = r.getString("email")
+  const uid = r.getString("user")
+  if (uid) {
+    try {
+      const u = app.findRecordById("users", uid)
+      const ue = u.getString("email")
+      if (ue) email = ue
+    } catch (e) {}
+  }
+  return email || ""
+}
 
 /**
  * Detect a restock transition (old <= 0 -> new > 0) via the store cache and
- * email everyone on the waiting list for that motorcycle.
+ * email:
+ *  - everyone on the waiting list for that motorcycle (action-based, high prio)
+ *  - everyone with the motorcycle in their favourites (consent-gated wishlist)
  */
 function handleRestockEmails(app, e, prevQty, newQty) {
   if (prevQty > 0 || newQty <= 0) return { ok: true, sent: 0 }
+  const mkt = marketingMod()
+  const tx = txMod()
   const t = tplMod()
-  const q = queueMod()
   const bike = e.record
-  const name = bike.getString("name") || "Motorcycle"
-  const slug = bike.getString("slug") || bike.id
-  const price = bike.get("sale_price") || bike.get("price") || 0
-  const link = (app.settings().meta.appURL || "") + "/motorcycles/" + slug
-  const imageUrl = (() => {
-    try {
-      const imgs = bike.get("images")
-      if (Array.isArray(imgs) && imgs.length > 0) return app.files().getURL(bike, imgs[0])
-      return ""
-    } catch (err) { return "" }
-  })()
-
-  const vars = t.deepMergeVars(t.DEFAULT_VARS(app), {
-    motorcycleName: name,
-    motorcyclePrice: t.money(price),
-    stockCount: String(newQty),
-    motorcycleLink: link,
-  })
-
-  const body =
-    "<h2 style='color:#fff;margin:0 0 12px;'>Good news — " + name + " is back in stock!</h2>" +
-    (imageUrl ? "<img src='" + imageUrl + "' alt='" + name + "' style='width:100%;max-width:480px;border-radius:12px;margin:8px 0 16px;' />" : "") +
-    "<p>Hi {{firstName}},</p>" +
-    "<p>The motorcycle you were waiting for is available again.</p>" +
-    "<table role='presentation' width='100%' cellpadding='6' cellspacing='0' style='background:#1a1a1f;border:1px solid #26262b;border-radius:12px;margin:12px 0;font-size:13px;color:#c9c9d1;'>" +
-    "<tr><td style='color:#8b8b94;'>Motorcycle</td><td>" + name + "</td></tr>" +
-    "<tr><td style='color:#8b8b94;'>Price</td><td style='color:#ef2a2a;'>" + t.money(price) + "</td></tr>" +
-    "<tr><td style='color:#8b8b94;'>In stock</td><td style='color:#10b981;'>" + newQty + "</td></tr>" +
-    "</table>" +
-    t.buttonBlock("View motorcycle", link)
-
-  const reminders = app.findRecordsByFilter("stock_reminders", "motorcycle = {:m} && status = {:s}", "", 500, 0, { m: bike.id, s: "active" })
+  const product = tx.resolveMotorcycle(app, bike.id)
+  const name = product.motorcycleName || "your motorcycle"
   let sent = 0
+
+  // 1) Waiting-list reminders (they explicitly asked to be told).
+  const reminders = app.findRecordsByFilter("stock_reminders", "motorcycle = {:m} && status = {:s}", "", 500, 0, { m: bike.id, s: "active" })
+  const emailed = {}
   for (const r of reminders) {
-    // Resolve the email: prefer the account's email, else the guest email.
-    let email = r.getString("email")
+    const email = emailForReminder(app, r)
+    if (!email || emailed[email]) continue
+    emailed[email] = 1
     const uid = r.getString("user")
-    if (uid) {
-      try {
-        const u = app.findRecordById("users", uid)
-        const ue = u.getString("email")
-        if (ue) email = ue
-      } catch (err) {}
-    }
-    if (!email || email.indexOf("@") < 0) continue
-    const fname = (r.getString("name") || "").split(" ")[0] || ""
-    const varsFor = t.deepMergeVars(vars, { customerName: r.getString("name") || email, firstName: fname, email })
-    const res = q.enqueueEmail(app, {
+    const recipientName = r.getString("name") || ""
+    const vars = Object.assign({}, product, {
+      customerName: recipientName || email,
+      firstName: (recipientName || email).split(" ")[0],
+      stockCount: String(newQty),
+    })
+    const res = mkt.enqueueMarketing(app, {
       recipient: email,
-      recipientName: r.getString("name"),
-      template: "restock_notification",
+      recipientName,
+      template: "restock",
+      campaignCategory: "restock",
       category: "inventory",
       priority: "high",
-      payload: { subject: "Good news — " + name + " is back in stock", body: t.substitute(body, varsFor), vars: varsFor },
+      subject: "Good news — " + name + " is back in stock",
+      vars,
       idempotencyKey: "restock:" + bike.id + ":" + (uid || email),
       relatedType: "motorcycle",
       relatedId: bike.id,
     })
     if (res.ok && res.enqueued) sent++
   }
+
+  // 2) Favourites (wishlist restock) — consent-gated via wishlistAlerts pref.
+  const favs = app.findRecordsByFilter("favorites", "motorcycle = {:m}", "", 2000, 0, { m: bike.id })
+  const favSeen = {}
+  for (const f of favs) {
+    const uid = f.getString("user")
+    if (!uid || favSeen[uid]) continue
+    favSeen[uid] = 1
+    let email = ""
+    try { email = app.findRecordById("users", uid).getString("email") } catch (err) {}
+    if (!email) continue
+    const res = mkt.enqueueMarketing(app, {
+      recipient: email,
+      template: "wishlist_restock",
+      campaignCategory: "wishlist",
+      category: "inventory",
+      priority: "low",
+      subject: "Your wishlist bike is back in stock — " + name,
+      vars: Object.assign({}, product, {
+        customerName: email,
+        firstName: "",
+        stockCount: String(newQty),
+      }),
+      idempotencyKey: "wishlist-restock:" + bike.id + ":" + uid,
+      relatedType: "motorcycle",
+      relatedId: bike.id,
+    })
+    if (res.ok && res.enqueued) sent++
+  }
+
   return { ok: true, sent }
 }
 

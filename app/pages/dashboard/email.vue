@@ -227,6 +227,60 @@
       </div>
     </div>
 
+    <!-- ============ STUDIO ============ -->
+    <div v-if="activeTab === 'studio'">
+      <div class="grid gap-6 lg:grid-cols-[320px_1fr]">
+        <div class="space-y-4">
+          <div>
+            <label class="mb-1.5 block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Design system template</label>
+            <AdminSelect v-model="studioKey">
+              <optgroup v-for="group in studioGroups" :key="group.name" :label="group.name">
+                <option v-for="t in group.items" :key="t.key" :value="t.key" class="bg-brand-black">{{ t.name }}</option>
+              </optgroup>
+            </AdminSelect>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              class="flex h-10 items-center justify-center gap-2 rounded-xl border text-xs font-semibold transition-colors"
+              :class="studioMode === 'light' ? 'border-brand-red bg-brand-red/10 text-brand-red' : 'border-brand-grey/15 text-brand-grey hover:text-white'"
+              @click="studioMode = 'light'; loadPreview()"
+            ><Sun class="h-4 w-4" />Light</button>
+            <button
+              class="flex h-10 items-center justify-center gap-2 rounded-xl border text-xs font-semibold transition-colors"
+              :class="studioMode === 'dark' ? 'border-brand-red bg-brand-red/10 text-brand-red' : 'border-brand-grey/15 text-brand-grey hover:text-white'"
+              @click="studioMode = 'dark'; loadPreview()"
+            ><Moon class="h-4 w-4" />Dark</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              class="flex h-10 items-center justify-center gap-2 rounded-xl border text-xs font-semibold transition-colors"
+              :class="!studioMobile ? 'border-brand-red bg-brand-red/10 text-brand-red' : 'border-brand-grey/15 text-brand-grey hover:text-white'"
+              @click="studioMobile = false; loadPreview()"
+            ><Monitor class="h-4 w-4" />Desktop</button>
+            <button
+              class="flex h-10 items-center justify-center gap-2 rounded-xl border text-xs font-semibold transition-colors"
+              :class="studioMobile ? 'border-brand-red bg-brand-red/10 text-brand-red' : 'border-brand-grey/15 text-brand-grey hover:text-white'"
+              @click="studioMobile = true; loadPreview()"
+            ><Smartphone class="h-4 w-4" />Mobile</button>
+          </div>
+          <div v-if="studioMeta" class="space-y-2 rounded-xl border border-brand-grey/15 bg-brand-black/60 p-4">
+            <p class="text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Subject</p>
+            <p class="text-sm text-white">{{ studioMeta.subject }}</p>
+            <p v-if="studioMeta.previewText" class="text-xs text-brand-grey">{{ studioMeta.previewText }}</p>
+            <p v-if="studioMeta.marketing" class="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400"><Tag class="h-3 w-3" />Marketing footer + unsubscribe</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button size="sm" variant="ghost" :disabled="!studioMeta" @click="sendStudioTest">Send test</Button>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-brand-grey/15 bg-brand-black/80 p-2">
+          <div class="mx-auto overflow-hidden rounded-xl border border-brand-grey/15 bg-white transition-all" :class="studioMobile ? 'max-w-[420px]' : 'max-w-[680px]'">
+            <iframe :srcdoc="studioHtml" class="h-[640px] w-full bg-white" sandbox="allow-same-origin" />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Test email drawer -->
     <AdminDrawer :open="testOpen" title="Send Test Email" subtitle="Preview a template or send raw content to any address" @close="testOpen = false">
       <div class="space-y-4">
@@ -285,7 +339,7 @@
 <script setup lang="ts">
 import {
   Send, CheckCircle2, XCircle, Clock3, CalendarClock, Users, FileText, Inbox,
-  RefreshCw, X, Plus, Check,
+  RefreshCw, X, Plus, Check, Sun, Moon, Monitor, Smartphone, Tag,
 } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
@@ -301,13 +355,14 @@ const confirmDlg = useConfirm()
 const store = useEmailStore()
 
 const activeTab = ref('overview')
-const tabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'queue', label: 'Queue' },
-  { key: 'logs', label: 'Logs' },
-  { key: 'templates', label: 'Templates' },
-  { key: 'subscribers', label: 'Subscribers' },
-]
+  const tabs = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'queue', label: 'Queue' },
+    { key: 'logs', label: 'Logs' },
+    { key: 'templates', label: 'Templates' },
+    { key: 'studio', label: 'Studio' },
+    { key: 'subscribers', label: 'Subscribers' },
+  ]
 
 const queueSearch = ref('')
 const queueStatusFilter = ref('')
@@ -488,6 +543,54 @@ async function deleteTemplate(t: EmailTemplateItem) {
   }
 }
 
-onMounted(() => { store.ensureActive() })
+// ---- Studio (design-system template preview) ----
+const studioKey = ref('welcome')
+const studioMode = ref<'light' | 'dark'>('light')
+const studioMobile = ref(false)
+const studioHtml = ref('')
+const studioMeta = ref<{ key: string; subject: string; previewText: string; marketing: boolean } | null>(null)
+
+const studioGroups = computed(() => {
+  const names: Record<string, string> = {
+    authentication: 'Authentication & Security',
+    bookings: 'Service & Bookings',
+    sales: 'Sales & Payments',
+    finance: 'Financing',
+    inventory: 'Inventory & Restock',
+    wishlist: 'Wishlist',
+    chat: 'Support & Chat',
+    blog: 'Blog & Content',
+    marketing: 'Campaigns & Announcements',
+    system: 'System & Account',
+  }
+  const groups = new Map<string, any[]>()
+  for (const t of store.registry) {
+    const name = names[t.category] || t.category || 'General'
+    if (!groups.has(name)) groups.set(name, [])
+    groups.get(name)!.push(t)
+  }
+  return Array.from(groups.entries()).map(([name, items]) => ({ name, items }))
+})
+
+async function loadPreview() {
+  if (!store.registry.some(t => t.key === studioKey.value)) return
+  try {
+    const res: any = await pb.send(`/api/email/preview?key=${encodeURIComponent(studioKey.value)}&mode=${studioMode.value}`, { method: 'GET' })
+    studioHtml.value = res?.html || ''
+    studioMeta.value = res ? { key: res.key, subject: res.subject, previewText: res.previewText, marketing: !!res.marketing } : null
+  } catch (e: any) {
+    toast.add({ type: 'error', title: 'Preview failed', message: e?.message })
+  }
+}
+
+function sendStudioTest() {
+  if (!studioMeta.value) return
+  testForm.value = { to: '', template: studioMeta.value.key, subject: '', body: '' }
+  testOpen.value = true
+}
+
+watch([studioKey, studioMode], () => loadPreview())
+
+onMounted(() => { store.ensureActive().then(() => store.fetchRegistry().then(loadPreview)) })
 onUnmounted(() => { store.release() })
 </script>

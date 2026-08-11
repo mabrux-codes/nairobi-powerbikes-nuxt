@@ -51,6 +51,14 @@ export interface EmailTemplateItem {
   active: boolean
 }
 
+export interface EmailRegistryItem {
+  key: string
+  name: string
+  category: string
+  marketing: boolean
+  subject: string
+}
+
 export const useEmailStore = defineStore('email', () => {
   const pb = usePB()
 
@@ -64,6 +72,7 @@ export const useEmailStore = defineStore('email', () => {
   const subscribers = ref<any[]>([])
   const automations = ref<any[]>([])
   const campaigns = ref<any[]>([])
+  const registry = ref<EmailRegistryItem[]>([])
 
   let refCount = 0
   let initPromise: Promise<void> | null = null
@@ -162,9 +171,16 @@ export const useEmailStore = defineStore('email', () => {
     } catch { /* keep existing data */ }
   }
 
+  async function fetchRegistry() {
+    try {
+      const res: any = await pb.send('/api/email/templates', { method: 'GET' })
+      registry.value = res?.items || []
+    } catch { /* preview endpoints unavailable */ }
+  }
+
   return {
     ready, status, lastUpdated,
-    queue, logs, templates, subscribers, automations, campaigns,
-    ensureActive, release, refresh,
+    queue, logs, templates, subscribers, automations, campaigns, registry,
+    ensureActive, release, refresh, fetchRegistry,
   }
 })

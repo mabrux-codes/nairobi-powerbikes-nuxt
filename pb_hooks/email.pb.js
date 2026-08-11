@@ -63,3 +63,63 @@ routerAdd("POST", "/api/email/test", (c) => {
   const sent = sender.sendQueued($app, queuedRec)
   return c.json(200, { ok: true, result: sent.status, queueId: res.id })
 })
+
+// --- admin: list all available templates ---
+routerAdd("GET", "/api/email/templates", (c) => {
+  const info = c.requestInfo()
+  const auth = info.auth
+  const isAdmin = !!auth && (auth.getString("role") === "admin" || auth.collection().name === "_superusers")
+  if (!isAdmin) return c.json(401, { message: "Not authorized." })
+  try {
+    const t = require(__hooks + "/lib/email/templates.js")
+    return c.json(200, { items: t.listTemplates() })
+  } catch (e) {
+    return c.json(500, { message: (e && e.message) || "Template list failed." })
+  }
+})
+
+// --- admin: render a template preview (light or dark, sample or custom vars) ---
+routerAdd("GET", "/api/email/preview", (c) => {
+  const info = c.requestInfo()
+  const auth = info.auth
+  const isAdmin = !!auth && (auth.getString("role") === "admin" || auth.collection().name === "_superusers")
+  if (!isAdmin) return c.json(401, { message: "Not authorized." })
+  const query = info.query || {}
+  const key = String(query.key || "").trim()
+  const mode = String(query.mode || "light") === "dark" ? "dark" : "light"
+  if (!key) return c.json(400, { message: "Template key is required." })
+  try {
+    const t = require(__hooks + "/lib/email/templates.js")
+    const resolvedKey = t.resolveKey(key)
+    if (!t.hasTemplate(resolvedKey)) return c.json(404, { message: "Template not found: " + key })
+    const site = $app.settings().meta.appURL || "https://www.nairobi-powerbikes.co.ke"
+    const vars = t.deepMergeVars(t.sampleVars($app, resolvedKey), { siteUrl: site })
+    // Mirror enqueue-time marketing vars so previews show the real footer
+    // with working unsubscribe / preferences links.
+    const defn = (() => {
+      try { return t.listTemplates().find((i) => i.key === resolvedKey) } catch (e) { return null }
+    })()
+    if (defn && defn.marketing) {
+      if (!vars.unsubscribeUrl) vars.unsubscribeUrl = site + "/unsubscribe?token=preview"
+      if (!vars.preferencesUrl) vars.preferencesUrl = site + "/email-preferences?token=preview"
+      vars.unsubLink = vars.unsubscribeUrl
+      vars.prefsLink = vars.preferencesUrl
+    }
+    if (resolvedKey === "campaign" && !vars.campaignHeadline) {
+      vars.campaignHeadline = "A special offer from Nairobi Powerbikes"
+    }
+    // Natural mode when not explicitly requested (security family = dark).
+    const useMode = query.mode ? (query.mode === "dark" ? "dark" : "light") : (defn && defn.mode) || "light"
+    const out = t.renderTemplate($app, resolvedKey, vars, { mode: useMode })
+    return c.json(200, {
+      key: resolvedKey,
+      subject: out.subject,
+      previewText: out.previewText,
+      marketing: !!out.marketing,
+      mode: out.mode,
+      html: out.html,
+    })
+  } catch (e) {
+    return c.json(500, { message: (e && e.message) || "Preview failed." })
+  }
+})

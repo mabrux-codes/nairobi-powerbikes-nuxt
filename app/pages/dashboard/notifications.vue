@@ -106,11 +106,12 @@
 </template>
 
 <script setup lang="ts">
-import { Bell, Send, Megaphone, Users, MailOpen, Info, Trash2, Check, MessageSquare, Wrench, CalendarCheck2, Sparkles } from 'lucide-vue-next'
+import { Bell, Send, Megaphone, Users, MailOpen, Info, Trash2, Check } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import { useConfirm } from '~/composables/useConfirm'
 import { useNotificationStore, type NotificationItem } from '~/stores/notifications'
+import { notifMeta } from '~/utils/notificationMeta'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Notifications - Nairobi Powerbikes' })
@@ -129,7 +130,7 @@ const users = ref<any[]>([])
 const audience = ref('user')
 const notifForm = ref({ title: '', type: 'system', user: '', message: '', link: '' })
 
-const typeOptions = ['system', 'booking', 'service', 'offer', 'message', 'test_ride', 'ecommerce']
+const typeOptions = ['system', 'booking', 'service', 'offer', 'message', 'test_ride', 'ecommerce', 'motorcycle', 'stock', 'sale', 'payment', 'finance', 'blog']
 const roleOptions = ['admin', 'customer', 'staff']
 
 const broadcastCount = computed(() => store.notifications.filter(n => n.broadcast).length)
@@ -151,13 +152,9 @@ const targetValid = computed(() => {
   return !!notifForm.value.title.trim()
 })
 
-const ICONS: Record<string, any> = { system: Bell, booking: CalendarCheck2, service: Wrench, offer: Sparkles, message: MessageSquare, test_ride: CalendarCheck2, ecommerce: Sparkles }
-const BG: Record<string, string> = { system: 'bg-brand-grey/15', booking: 'bg-sky-500/15', service: 'bg-emerald-500/15', offer: 'bg-amber-500/15', message: 'bg-violet-500/15', test_ride: 'bg-amber-500/15', ecommerce: 'bg-emerald-500/15' }
-const COLOR: Record<string, string> = { system: 'text-brand-grey', booking: 'text-sky-400', service: 'text-emerald-400', offer: 'text-amber-400', message: 'text-violet-400', test_ride: 'text-amber-400', ecommerce: 'text-emerald-400' }
-
-function typeIcon(t: string) { return ICONS[t] || Bell }
-function typeBg(t: string) { return BG[t] || 'bg-brand-grey/15' }
-function typeColor(t: string) { return COLOR[t] || 'text-brand-grey' }
+function typeIcon(t: string) { return notifMeta(t).icon }
+function typeBg(t: string) { return notifMeta(t).bg }
+function typeColor(t: string) { return notifMeta(t).color }
 
 function cap(s: string) { return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }
 

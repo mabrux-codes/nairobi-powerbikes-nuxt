@@ -170,6 +170,7 @@ const navItems: Array<MegaItem | PlainItem> = [
   { label: 'Apparel', slug: 'apparel', to: '/apparel', mega: 'apparel' },
   { label: 'Book a Service', to: '/service/booking', hideLg: true },
   { label: 'Book a Test Ride', to: '/service/test-ride', hideLg: true },
+  { label: 'Blog', to: '/blog', hideLg: true },
   { label: 'About Us', to: '/about', hideLg: true },
   { label: 'Contact', to: '/contact', hideLg: true },
 ]

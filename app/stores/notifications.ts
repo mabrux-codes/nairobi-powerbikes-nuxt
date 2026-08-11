@@ -7,6 +7,7 @@ export type NotificationType =
   | 'booking' | 'service' | 'test_ride' | 'testimonial' | 'contact'
   | 'offer' | 'system' | 'message' | 'general' | 'media' | 'user' | 'staff'
   | 'auth' | 'motorcycle' | 'ecommerce'
+  | 'stock' | 'sale' | 'payment' | 'finance' | 'blog'
 
 export interface NotificationItem {
   id: string

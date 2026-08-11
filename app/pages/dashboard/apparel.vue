@@ -106,7 +106,7 @@
         </button>
 
         <div class="relative mb-3 flex aspect-square items-center justify-center overflow-hidden bg-brand-grey/10">
-          <img v-if="a.image" :src="filesUrl(a, a.image)" :alt="a.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <img v-if="firstFile(a, 'image')" :src="filesUrl(a, firstFile(a, 'image'))" :alt="a.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
           <span v-else class="font-display text-5xl tracking-display text-brand-grey/20">{{ a.name?.slice(0, 1) }}</span>
         </div>
 
@@ -155,7 +155,7 @@
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3 min-w-0">
                   <div class="h-10 w-10 rounded-lg overflow-hidden bg-brand-grey/10 shrink-0 flex items-center justify-center">
-                    <img v-if="a.image" :src="filesUrl(a, a.image)" :alt="a.name" class="h-full w-full object-cover" />
+                    <img v-if="firstFile(a, 'image')" :src="filesUrl(a, firstFile(a, 'image'))" :alt="a.name" class="h-full w-full object-cover" />
                     <span v-else class="text-xs text-brand-grey/40 font-bold">{{ a.name?.slice(0, 1) }}</span>
                   </div>
                   <p class="text-sm font-medium text-white truncate">{{ a.name }}</p>
@@ -229,12 +229,13 @@
                 In Stock
               </label>
               <div>
-                <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Image</label>
-                <input type="file" accept="image/*" @change="onImageChange" class="input-field w-full text-sm file:mr-3 file:border-0 file:bg-brand-red file:px-3 file:py-1 file:text-xs file:text-white file:rounded-lg" />
-                <div v-if="imagePreview" class="mt-2 relative inline-block">
-                  <img :src="imagePreview" class="h-20 w-20 rounded-lg object-cover border border-brand-grey/20" />
-                  <button class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-brand-red text-white flex items-center justify-center" @click="clearImage"><X class="h-3 w-3" /></button>
-                </div>
+                <ImagePicker
+                  v-model:items="imageItems"
+                  v-model:main="mainImage"
+                  label="Images"
+                  :categories="APPAREL_IMAGE_CATEGORIES"
+                  :max="15"
+                />
               </div>
             </div>
             <div class="flex justify-end gap-3 border-t border-brand-grey/15 px-6 py-4 shrink-0">
@@ -257,6 +258,9 @@ import { useAdminDataStore } from '~/stores/adminData'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import { useConfirm } from '~/composables/useConfirm'
+import ImagePicker from '~/components/dashboard/media/ImagePicker.vue'
+import { buildImageItems, appendImagePayload, firstFile, APPAREL_IMAGE_CATEGORIES } from '~/utils/imageTypes'
+import type { ImageItem } from '~/utils/imageTypes'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Apparel - Nairobi Powerbikes' })
@@ -282,8 +286,8 @@ const saving = ref(false)
 const deleting = ref(false)
 const showModal = ref(false)
 const editingId = ref<string | null>(null)
-const imageFile = ref<File | null>(null)
-const imagePreview = ref('')
+const imageItems = ref<ImageItem[]>([])
+const mainImage = ref(0)
 const selectedIds = ref<Set<string>>(new Set())
 
 const sortKey = ref('name')
@@ -364,33 +368,21 @@ function filesUrl(rec: any, file: string) { return pb.files.getURL(rec, file) }
 function openCreateModal() {
   editingId.value = null
   form.value = { name: '', type: '', size: '', price: '', color: '', description: '', in_stock: true }
-  imageFile.value = null
-  imagePreview.value = ''
+  imageItems.value = []
+  mainImage.value = 0
   showModal.value = true
 }
 
 function openEditModal(a: any) {
   editingId.value = a.id
   form.value = { name: a.name, type: a.type || '', size: a.size || '', price: a.price?.toString() || '', color: a.color || '', description: a.description || '', in_stock: a.in_stock ?? true }
-  imageFile.value = null
-  imagePreview.value = a.image ? pb.files.getURL(a, a.image) : ''
+  const built = buildImageItems(a, 'image', (rec, file) => pb.files.getURL(rec, file))
+  imageItems.value = built.items
+  mainImage.value = built.main
   showModal.value = true
 }
 
 function closeModal() { showModal.value = false }
-
-function onImageChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files?.length) {
-    imageFile.value = target.files[0]
-    imagePreview.value = URL.createObjectURL(imageFile.value)
-  }
-}
-
-function clearImage() {
-  imageFile.value = null
-  imagePreview.value = ''
-}
 
 async function saveItem() {
   saving.value = true
@@ -403,8 +395,8 @@ async function saveItem() {
     data.append('color', form.value.color || '')
     data.append('description', form.value.description || '')
     data.append('in_stock', form.value.in_stock ? 'true' : 'false')
-    if (imageFile.value) data.append('image', imageFile.value)
-    if (!imageFile.value && imagePreview.value === '' && editingId.value) data.append('image', '')
+    appendImagePayload(data, imageItems.value, 'image')
+    data.append('main_image', String(mainImage.value))
 
     if (editingId.value) {
       await pb.collection('apparel').update(editingId.value, data)

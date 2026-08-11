@@ -193,3 +193,18 @@ onRecordCreateRequest((e) => {
 
   e.next()
 }, "stock_reminders")
+// --- notify admins about new arrival reminder requests ---
+onRecordAfterCreateSuccess((e) => {
+  try {
+    const notif = require(__hooks + "/lib/notif_utils.js")
+    const bike = e.app.findRecordById("motorcycles", e.record.getString("motorcycle"))
+    const who = e.record.getString("email") || "A customer"
+    notif.broadcastToRole(e.app, "admin", {
+      type: "stock",
+      title: "New Arrival Reminder Request",
+      message: `${who} wants to know when the ${bike.getString("name") || "motorcycle"} is back in stock.`,
+      link: "/dashboard/motorcycles",
+    })
+  } catch (_) {}
+  e.next()
+}, "stock_reminders")

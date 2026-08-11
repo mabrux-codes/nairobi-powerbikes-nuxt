@@ -28,17 +28,12 @@
         <div class="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
           <!-- Gallery -->
           <motion.div :initial="{ opacity: 0, x: -30 }" :animate="{ opacity: 1, x: 0 }" :transition="{ duration: 0.6 }">
-            <div class="group relative overflow-hidden rounded-3xl border border-white/[0.06] bg-black">
-              <button class="relative block aspect-square w-full cursor-zoom-in overflow-hidden focus-visible:outline-none" :aria-label="'View larger image of ' + item.name" @click="lightboxOpen = true">
-                <img v-if="imageUrl" :src="imageUrl" :alt="item.name" class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
-                <div v-else class="flex h-full w-full items-center justify-center bg-gradient-to-br from-white/[0.05] to-transparent">
-                  <Package class="h-20 w-20 text-brand-grey/40" :stroke-width="1" />
-                </div>
-              </button>
-              <span class="absolute left-4 top-4 rounded-full border border-white/15 bg-black/60 px-3 py-1.5 text-[11px] font-bold tracking-wider uppercase backdrop-blur-md" :class="inStock ? 'text-emerald-400' : 'text-brand-grey'">
+            <div class="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-black">
+              <ImageGallery :images="galleryImages" :alt="item.name" show-main-badge />
+              <span class="absolute left-4 top-4 z-10 rounded-full border border-white/15 bg-black/60 px-3 py-1.5 text-[11px] font-bold tracking-wider uppercase backdrop-blur-md" :class="inStock ? 'text-emerald-400' : 'text-brand-grey'">
                 {{ inStock ? 'In Stock' : 'Out of Stock' }}
               </span>
-              <span v-if="item.sale_price" class="absolute right-4 top-4 rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-bold tracking-wider text-black uppercase">Sale</span>
+              <span v-if="item.sale_price" class="absolute right-4 top-4 z-10 rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-bold tracking-wider text-black uppercase">Sale</span>
             </div>
           </motion.div>
 
@@ -128,18 +123,6 @@
         </motion.section>
       </div>
 
-      <!-- Lightbox -->
-      <Teleport to="body">
-        <Transition name="quickview">
-          <div v-if="lightboxOpen" class="fixed inset-0 z-[95] flex items-center justify-center bg-black/95 p-4" role="dialog" aria-modal="true" aria-label="Image viewer" @click.self="lightboxOpen = false">
-            <button class="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition-colors hover:border-brand-red hover:text-brand-red" aria-label="Close image viewer" @click="lightboxOpen = false">
-              <X class="h-5 w-5" />
-            </button>
-            <img v-if="imageUrl" :src="imageUrl" :alt="item.name" class="max-h-[85vh] max-w-full rounded-2xl object-contain" />
-          </div>
-        </Transition>
-      </Teleport>
-
       <ShopQuickViewModal
         :open="quickViewOpen"
         :item="quickViewItem"
@@ -165,12 +148,13 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { ChevronRight, Heart, MessageSquare, Share2, ShieldCheck, Truck, Package, X } from 'lucide-vue-next'
+import { ChevronRight, Heart, MessageSquare, Share2, ShieldCheck, Truck } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog'
 import { useWishlist } from '~/composables/useWishlist'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import type { CatalogKind } from '~/composables/useCatalogFilters'
+import ImageGallery from '~/components/motorcycles/ImageGallery.vue'
 
 useHead({ title: 'Accessory Details - Nairobi Powerbikes' })
 
@@ -181,7 +165,6 @@ const toast = useToast()
 const wishlist = useWishlist()
 
 const loading = ref(true)
-const lightboxOpen = ref(false)
 const quickViewOpen = ref(false)
 const quickViewItem = ref<any>(null)
 const enquiryOpen = ref(false)
@@ -193,7 +176,13 @@ watch(item, (a) => {
   if (a) useHead({ title: `${a.name} - Nairobi Powerbikes` })
 })
 
-const imageUrl = computed(() => (item.value?.image ? pb.files.getURL(item.value, item.value.image, { thumb: '1200x0' }) : ''))
+const galleryImages = computed(() => {
+  const it = item.value
+  if (!it) return []
+  const files: string[] = Array.isArray(it.image) ? it.image : (it.image ? [it.image] : [])
+  const cats: string[] = Array.isArray(it.image_categories) ? it.image_categories : []
+  return files.map((f, i) => ({ url: pb.files.getURL(it, f, { thumb: '1200x0' }), category: cats[i] || '' }))
+})
 
 const inStock = computed(() => !!item.value?.in_stock)
 const currentPrice = computed(() => (item.value?.sale_price || item.value?.price) ?? 0)

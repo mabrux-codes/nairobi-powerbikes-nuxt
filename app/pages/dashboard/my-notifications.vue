@@ -81,8 +81,9 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { Bell, Check, CheckCheck, Wrench, Bike, Star, Send, ClipboardCheck, Shield, Megaphone, Newspaper, User, Info, Package } from 'lucide-vue-next'
+import { Bell, Check, CheckCheck } from 'lucide-vue-next'
 import { useNotificationStore, type NotificationItem } from '~/stores/notifications'
+import { notifMeta } from '~/utils/notificationMeta'
 import { useToast } from '~/composables/useToast'
 import { formatDateTime } from '~/composables/useFormat'
 
@@ -93,25 +94,11 @@ const store = useNotificationStore()
 const toast = useToast()
 
 function notifIcon(type: string) {
-  const map: Record<string, any> = {
-    booking: ClipboardCheck, service: Wrench, test_ride: Bike, ecommerce: Package,
-    offer: Star, testimonial: Star, message: Send, contact: Send,
-    media: Newspaper, system: Info, user: User, staff: User, auth: Shield,
-    motorcycle: Bike, general: Info,
-  }
-  return map[type] || Bell
+  return notifMeta(type).icon
 }
 
 function notifBadgeClass(type: string) {
-  const map: Record<string, string> = {
-    booking: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
-    service: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
-    test_ride: 'border-sky-500/40 bg-sky-500/10 text-sky-400',
-    offer: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
-    ecommerce: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
-    message: 'border-violet-500/40 bg-violet-500/10 text-violet-400',
-  }
-  return map[type] || 'border-brand-red/40 bg-brand-red/10 text-brand-red'
+  return notifMeta(type).bg
 }
 
 function audienceLabel(n: NotificationItem) {
@@ -121,12 +108,7 @@ function audienceLabel(n: NotificationItem) {
 }
 
 function entityLabel(n: NotificationItem) {
-  const map: Record<string, string> = {
-    booking: 'Booking', service: 'Service', test_ride: 'Test Ride',
-    ecommerce: 'Order', message: 'Chat', contact: 'Message',
-    motorcycle: 'Motorcycle', offer: 'Offer', system: 'System', general: 'Update',
-  }
-  return map[n.type] || ''
+  return notifMeta(n.type).label
 }
 
 const groups = computed(() => {

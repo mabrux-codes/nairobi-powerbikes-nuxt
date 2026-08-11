@@ -52,6 +52,13 @@ onRecordAfterUpdateSuccess((e) => {
     const name = e.record.getString("name") || "Motorcycle"
     const slug = e.record.getString("slug") || e.record.id
     const reminders = e.app.findRecordsByFilter("stock_reminders", 'motorcycle = {:m} && status = "active"', "", 500, 0, { m: e.record.id })
+    // Email every waiting subscriber through the centralized queue engine.
+    try {
+      const inv = require(__hooks + "/lib/email/inventory.js")
+      inv.handleRestockEmails(e.app, e, prev.old, newQty)
+    } catch (err) {
+      e.app.logger().error("restock email: " + (err && err.message))
+    }
     for (const r of reminders) {
       const uid = r.getString("user")
       if (uid) {

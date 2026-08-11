@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-brand-black text-white flex">
+  <div class="min-h-screen bg-brand-black text-white flex overflow-x-clip">
     <DashboardSidebar
       :isOpen="sidebarOpen"
       :collapsed="sidebarCollapsed"
@@ -9,7 +9,7 @@
     />
     <div class="flex-1 flex flex-col min-h-screen transition-all duration-300" :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
       <DashboardHeader @toggle-sidebar="sidebarOpen = !sidebarOpen" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" />
-      <main class="flex-1 p-4 sm:p-6">
+      <main class="flex-1 p-4 sm:p-6 min-w-0">
         <slot />
       </main>
     </div>

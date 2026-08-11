@@ -13,6 +13,10 @@ export function useAuth() {
     setRememberMeta(!!remember)
     const result = await pb.collection('users').authWithPassword(email, password)
     auth.setUser(result.record as any)
+    // Keep marketing subscriber records in sync for the account.
+    try {
+      await pb.send('/api/email/sync-subscriber', { body: {} })
+    } catch { /* non-fatal */ }
     return result
   }
 

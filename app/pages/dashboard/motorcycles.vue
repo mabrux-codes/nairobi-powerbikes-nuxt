@@ -35,7 +35,7 @@
     </div>
 
     <!-- Stats -->
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+    <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
       <div v-for="card in stats" :key="card.label" class="group relative overflow-hidden rounded-xl border border-brand-grey/15 bg-brand-black/80 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-red/40">
         <span v-if="card.dot" class="absolute top-0 left-0 h-0.5 w-0 bg-brand-red transition-all duration-300 group-hover:w-full" />
         <div class="flex items-center justify-between">
@@ -173,9 +173,8 @@
             <button class="mt-2 inline-flex items-center gap-1 text-[11px] text-brand-grey hover:text-brand-red transition-colors" :aria-label="`View customers waiting for ${m.name}`" @click="openReminders(m)">
               <BellRing class="h-3.5 w-3.5" />Waiting: {{ waitingCount(m.id) }}
             </button>
-            <div class="mt-4 grid grid-cols-3 gap-2">
+            <div class="mt-4 grid grid-cols-2 gap-2">
               <Button variant="ghost" size="sm" @click="openEditModal(m)">Edit</Button>
-              <Button variant="ghost" size="sm" @click="duplicate(m)">Copy</Button>
               <Button variant="danger" size="sm" :disabled="deleting" @click="confirmDelete(m)">Delete</Button>
             </div>
           </div>
@@ -236,7 +235,6 @@
               </td>
               <td class="px-4 py-3 text-right whitespace-nowrap">
                 <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Edit" @click="openEditModal(m)"><Pencil class="h-4 w-4" /></button>
-                <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Duplicate" @click="duplicate(m)"><Copy class="h-4 w-4" /></button>
                 <button class="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500/15 rounded-md transition-colors" title="Delete" @click="confirmDelete(m)"><Trash2 class="h-4 w-4" /></button>
               </td>
             </tr>
@@ -369,15 +367,14 @@
                     <p v-else class="text-xs text-brand-grey/70">Availability is derived from stock — 0 means Out of Stock. Whole numbers only.</p>
                   </div>
                 </div>
-                <div class="sm:col-span-2">
-                  <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Images</label>
-                  <input type="file" accept="image/*" multiple @change="onImagesChange" class="input-field w-full text-sm file:mr-3 file:border-0 file:bg-brand-red file:px-3 file:py-1 file:text-xs file:text-white file:rounded-lg" />
-                  <div v-if="imagePreviews.length" class="mt-2 flex flex-wrap gap-2">
-                    <div v-for="(img, i) in imagePreviews" :key="i" class="relative">
-                      <img :src="img" class="h-16 w-16 rounded-lg object-cover border border-brand-grey/20" />
-                      <button class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-brand-red text-white flex items-center justify-center" @click="removeImage(i)"><X class="h-3 w-3" /></button>
-                    </div>
-                  </div>
+                <div class="sm:col-span-2 rounded-xl border border-brand-grey/15 bg-white/[0.02] p-3">
+                  <ImagePicker
+                    v-model:items="imageItems"
+                    v-model:main="mainImage"
+                    label="Images"
+                    :categories="MC_IMAGE_CATEGORIES"
+                    :max="15"
+                  />
                 </div>
               </div>
             </div>
@@ -398,8 +395,8 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
 import {
-  Bike, Plus, Search, X, Star, LayoutGrid, List, Check, ExternalLink, Pencil, Copy,
-  Trash2, PackageCheck, Clock3, Wallet, Tag, Sparkles, Minus, BellRing, Boxes, AlertTriangle,
+  Bike, Plus, Search, X, Star, LayoutGrid, List, Check, ExternalLink, Pencil,
+  Trash2, PackageCheck, Clock3, Wallet, Tag, Sparkles, Minus, BellRing, Boxes, AlertTriangle, PackageX, TrendingUp,
 } from 'lucide-vue-next'
 import StatusChip from '~/components/dashboard/StatusChip.vue'
 import RealtimeStatus from '~/components/dashboard/RealtimeStatus.vue'
@@ -410,6 +407,9 @@ import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import { useConfirm } from '~/composables/useConfirm'
 import { getStockStatus, stockOf } from '~/utils/stockStatus'
+import ImagePicker from '~/components/dashboard/media/ImagePicker.vue'
+import { buildImageItems, appendImagePayload, MC_IMAGE_CATEGORIES } from '~/utils/imageTypes'
+import type { ImageItem } from '~/utils/imageTypes'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Motorcycles - Nairobi Powerbikes' })
@@ -434,8 +434,8 @@ const saving = ref(false)
 const deleting = ref(false)
 const showModal = ref(false)
 const editingId = ref<string | null>(null)
-const imageFiles = ref<File[]>([])
-const imagePreviews = ref<string[]>([])
+const imageItems = ref<ImageItem[]>([])
+const mainImage = ref(0)
 const selectedIds = ref<Set<string>>(new Set())
 const stockEditorOpen = ref(false)
 const stockEditorItem = ref<any>(null)
@@ -489,15 +489,29 @@ const inventoryStats = computed(() => {
 const stats = computed(() => {
   const all = store.motorcycles
   const count = (p: (m: any) => boolean) => all.filter(p).length
+  const unitsInStock = all.reduce((sum, m) => sum + stockOf(m), 0)
+  const unitsSold = all.reduce((sum, m) => sum + Number(m.units_sold || 0), 0)
+  const salesValue = store.sales
+    .filter(s => s.status !== 'cancelled' && s.status !== 'draft')
+    .reduce((sum, s) => sum + Number(s.total_payable || 0), 0)
+  const waiting = store.reminders.filter(r => r.status === 'active').length
   return [
-    { label: 'Total Fleet', value: all.length, icon: Bike, iconBg: 'bg-brand-red/15', iconColor: 'text-brand-red', dot: true },
-    { label: 'Available', value: count(m => m.status === 'available'), icon: PackageCheck, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400' },
-    { label: 'Sold', value: count(m => m.status === 'sold'), icon: Wallet, iconBg: 'bg-rose-500/15', iconColor: 'text-rose-400' },
-    { label: 'Coming Soon', value: count(m => m.status === 'coming_soon'), icon: Clock3, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
+    { label: 'Total Models', value: all.length, icon: Bike, iconBg: 'bg-brand-red/15', iconColor: 'text-brand-red', dot: true },
+    { label: 'Units In Stock', value: unitsInStock.toLocaleString(), icon: Boxes, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400' },
+    { label: 'Units Sold', value: unitsSold.toLocaleString(), icon: Wallet, iconBg: 'bg-sky-500/15', iconColor: 'text-sky-400' },
+    { label: 'Sales Value (KSh)', value: fmtCompact(salesValue), icon: TrendingUp, iconBg: 'bg-violet-500/15', iconColor: 'text-violet-400' },
+    { label: 'Waiting List', value: waiting, icon: BellRing, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
     { label: 'Featured', value: count(m => m.featured), icon: Star, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
-    { label: 'On Sale', value: count(m => m.sale_price), icon: Tag, iconBg: 'bg-violet-500/15', iconColor: 'text-violet-400' },
+    { label: 'Low Stock', value: count(m => ['low', 'few'].includes(getStockStatus(stockOf(m)).level)), icon: AlertTriangle, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
+    { label: 'Out of Stock', value: count(m => getStockStatus(stockOf(m)).level === 'out'), icon: PackageX, iconBg: 'bg-rose-500/15', iconColor: 'text-rose-400' },
   ]
 })
+
+function fmtCompact(v: number) {
+  if (v >= 1_000_000) return (v / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M'
+  if (v >= 1_000) return (v / 1_000).toLocaleString(undefined, { maximumFractionDigits: 0 }) + 'K'
+  return v.toLocaleString()
+}
 
 function brandName(id: string) {
   return store.brands.find(b => b.id === id)?.name || 'Unknown'
@@ -618,8 +632,8 @@ function openCreateModal() {
   editingId.value = null
   resetForm()
   stockInputError.value = ''
-  imageFiles.value = []
-  imagePreviews.value = []
+  imageItems.value = []
+  mainImage.value = 0
   showModal.value = true
 }
 
@@ -643,25 +657,13 @@ function openEditModal(m: any) {
     stock_quantity: m.stock_quantity !== undefined && m.stock_quantity !== null ? String(m.stock_quantity) : (m.in_stock ? '10' : '0'),
   }
   stockInputError.value = ''
-  imageFiles.value = []
-  imagePreviews.value = (m.images || []).map((img: string) => pb.files.getURL(m, img))
+  const built = buildImageItems(m, 'images', (rec, file) => pb.files.getURL(rec, file))
+  imageItems.value = built.items
+  mainImage.value = built.main
   showModal.value = true
 }
 
 function closeModal() { showModal.value = false }
-
-function onImagesChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files?.length) {
-    imageFiles.value = Array.from(target.files)
-    imagePreviews.value = imageFiles.value.map(f => URL.createObjectURL(f))
-  }
-}
-
-function removeImage(i: number) {
-  imagePreviews.value.splice(i, 1)
-  imageFiles.value.splice(i, 1)
-}
 
 async function saveMotorcycle() {
   const stockQ = validateStockInput()
@@ -687,7 +689,8 @@ async function saveMotorcycle() {
     data.append('stock_quantity', String(stockQ))
     data.append('in_stock', (stockQ > 0 && form.value.status === 'available') ? 'true' : 'false')
 
-    for (const file of imageFiles.value) data.append('images', file)
+    appendImagePayload(data, imageItems.value, 'images')
+    data.append('main_image', String(mainImage.value))
 
     if (editingId.value) {
       await pb.collection('motorcycles').update(editingId.value, data)
@@ -701,23 +704,6 @@ async function saveMotorcycle() {
     toast.add({ type: 'error', title: 'Failed to save', message: e?.message || 'Something went wrong' })
   } finally {
     saving.value = false
-  }
-}
-
-async function duplicate(m: any) {
-  try {
-    const copy: any = { ...m }
-    delete copy.id
-    delete copy.created
-    delete copy.updated
-    delete copy.images
-    copy.slug = (m.slug || m.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')) + '-copy'
-    copy.name = m.name + ' (Copy)'
-    copy.featured = false
-    await pb.collection('motorcycles').create(copy)
-    toast.add({ type: 'success', title: 'Duplicate created' })
-  } catch (e: any) {
-    toast.add({ type: 'error', title: 'Duplicate failed', message: e?.message || 'Something went wrong' })
   }
 }
 

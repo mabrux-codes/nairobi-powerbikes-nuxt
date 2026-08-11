@@ -127,6 +127,7 @@ const quickLinks = [
   { label: 'Apparel', to: '/apparel' },
   { label: 'Service', to: '/service/booking' },
   { label: 'Finance', to: '/finance' },
+  { label: 'Blog', to: '/blog' },
   { label: 'About', to: '/about' },
   { label: 'Contact Us', to: '/contact' },
   { label: 'Privacy Policy', to: '/privacy' },

@@ -74,9 +74,10 @@
 </template>
 
 <script setup lang="ts">
-import { Bell, BellOff, ChevronRight, CalendarCheck, Bike, MessageSquare, Users, Shield, Settings, Image, LogIn, Newspaper } from 'lucide-vue-next'
+import { Bell, BellOff, ChevronRight } from 'lucide-vue-next'
 import { useNotificationStore, type NotificationItem } from '~/stores/notifications'
 import { useAuthStore } from '~/stores/auth'
+import { notifMeta } from '~/utils/notificationMeta'
 
 const store = useNotificationStore()
 const auth = useAuthStore()
@@ -116,32 +117,15 @@ function openNotification(n: NotificationItem) {
 }
 
 function typeIcon(type: string) {
-  const icons: Record<string, object> = {
-    booking: CalendarCheck, service: CalendarCheck, test_ride: Bike, testimonial: MessageSquare,
-    motorcycle: Bike, user: Users, staff: Shield, system: Settings,
-    media: Image, auth: LogIn, general: Bell, contact: MessageSquare, offer: Bell, message: MessageSquare,
-  }
-  return icons[type] || Bell
+  return notifMeta(type).icon
 }
 
 function typeBg(type: string) {
-  const map: Record<string, string> = {
-    booking: 'bg-blue-500/15', service: 'bg-blue-500/15', test_ride: 'bg-blue-500/15', testimonial: 'bg-green-500/15',
-    motorcycle: 'bg-amber-500/15', user: 'bg-purple-500/15', staff: 'bg-purple-500/15',
-    system: 'bg-white/[0.06]', media: 'bg-pink-500/15', auth: 'bg-white/[0.06]', general: 'bg-white/[0.06]',
-    contact: 'bg-green-500/15', offer: 'bg-amber-500/15', message: 'bg-white/[0.06]',
-  }
-  return map[type] || 'bg-white/[0.06]'
+  return notifMeta(type).bg
 }
 
 function typeColor(type: string) {
-  const map: Record<string, string> = {
-    booking: 'text-blue-400', service: 'text-blue-400', test_ride: 'text-blue-400', testimonial: 'text-green-400',
-    motorcycle: 'text-amber-400', user: 'text-purple-400', staff: 'text-purple-400',
-    system: 'text-brand-grey', media: 'text-pink-400', auth: 'text-brand-grey', general: 'text-brand-grey',
-    contact: 'text-green-400', offer: 'text-amber-400', message: 'text-brand-grey',
-  }
-  return map[type] || 'text-brand-grey'
+  return notifMeta(type).color
 }
 
 function timeAgo(iso: string): string {

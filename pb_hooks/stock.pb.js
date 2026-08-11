@@ -52,6 +52,13 @@ onRecordAfterUpdateSuccess((e) => {
     const name = e.record.getString("name") || "Motorcycle"
     const slug = e.record.getString("slug") || e.record.id
     const reminders = e.app.findRecordsByFilter("stock_reminders", 'motorcycle = {:m} && status = "active"', "", 500, 0, { m: e.record.id })
+    // Email every waiting subscriber through the centralized queue engine.
+    try {
+      const inv = require(__hooks + "/lib/email/inventory.js")
+      inv.handleRestockEmails(e.app, e, prev.old, newQty)
+    } catch (err) {
+      e.app.logger().error("restock email: " + (err && err.message))
+    }
     for (const r of reminders) {
       const uid = r.getString("user")
       if (uid) {
@@ -191,5 +198,20 @@ onRecordCreateRequest((e) => {
     if (existing.length > 0) throw new BadRequestError("You already have an arrival reminder for this motorcycle.")
   }
 
+  e.next()
+}, "stock_reminders")
+// --- notify admins about new arrival reminder requests ---
+onRecordAfterCreateSuccess((e) => {
+  try {
+    const notif = require(__hooks + "/lib/notif_utils.js")
+    const bike = e.app.findRecordById("motorcycles", e.record.getString("motorcycle"))
+    const who = e.record.getString("email") || "A customer"
+    notif.broadcastToRole(e.app, "admin", {
+      type: "stock",
+      title: "New Arrival Reminder Request",
+      message: `${who} wants to know when the ${bike.getString("name") || "motorcycle"} is back in stock.`,
+      link: "/dashboard/motorcycles",
+    })
+  } catch (_) {}
   e.next()
 }, "stock_reminders")

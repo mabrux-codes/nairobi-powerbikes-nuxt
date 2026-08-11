@@ -118,6 +118,73 @@
       </div>
     </div>
 
+    <!-- ======================= INVENTORY TAB ======================= -->
+    <div v-if="activeTab === 'inventory'">
+      <div class="rounded-xl border border-brand-grey/15 bg-brand-black/80 p-4 flex flex-wrap items-center gap-3">
+        <div class="relative flex-1 min-w-[200px]">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-grey/50" />
+          <input v-model="invSearch" type="text" placeholder="Search motorcycle, status, category…" class="w-full h-9 pl-9 pr-3 text-sm text-white bg-white/[0.04] border border-brand-grey/15 rounded-lg placeholder:text-brand-grey/50 focus:outline-none focus:border-brand-red/60 focus:ring-2 focus:ring-brand-red/20 transition-all" />
+        </div>
+        <select v-model="invStatusFilter" class="h-9 text-sm bg-brand-black/60 border border-brand-grey/15 rounded-lg text-white px-3 focus:outline-none focus:border-brand-red/60">
+          <option value="">All Statuses</option>
+          <option v-for="st in invStatuses" :key="st" :value="st">{{ humanize(st) }}</option>
+        </select>
+        <button v-if="invSearch || invStatusFilter" class="h-9 px-3 text-xs font-semibold text-brand-grey hover:text-white hover:bg-white/5 rounded-lg transition-colors" @click="invSearch = ''; invStatusFilter = ''">
+          Clear <X class="h-3.5 w-3.5 inline -ml-0.5" />
+        </button>
+      </div>
+
+      <div v-if="!store.ready" class="space-y-2 mt-4">
+        <div v-for="i in 5" :key="i" class="h-16 animate-pulse rounded-xl border border-brand-grey/15 bg-brand-black/60" />
+      </div>
+      <div v-else-if="inventoryRows.length === 0" class="mt-4 rounded-2xl border border-dashed border-brand-grey/20 bg-brand-black/40 p-14 text-center">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-red/10">
+          <Bike class="h-8 w-8 text-brand-red/60" />
+        </div>
+        <p class="font-display text-xl tracking-display text-brand-grey">No motorcycles in inventory</p>
+        <p class="mt-2 text-sm text-brand-grey/60">Add motorcycles to see their stock, sales and revenue here.</p>
+      </div>
+      <div v-else class="mt-4 overflow-x-auto rounded-xl border border-brand-grey/15 bg-brand-black/80">
+        <table class="w-full min-w-[1000px] text-left text-sm">
+          <thead>
+            <tr class="border-b border-brand-grey/15 text-[11px] font-display tracking-wider text-brand-grey uppercase">
+              <th class="px-4 py-3">Motorcycle</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3 text-right">Stock Qty</th>
+              <th class="px-4 py-3 text-right">Units Sold</th>
+              <th class="px-4 py-3 text-right">Price</th>
+              <th class="px-4 py-3 text-right">Revenue</th>
+              <th class="px-4 py-3 text-right">Sales</th>
+              <th class="px-4 py-3">Waiting List</th>
+              <th class="px-4 py-3 text-right">Last Sale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in inventoryRows" :key="row.m.id" class="border-b border-brand-grey/10 transition-colors hover:bg-white/[0.03]">
+              <td class="px-4 py-3">
+                <p class="font-semibold text-white max-w-[220px] truncate">{{ row.m.name }}</p>
+                <p class="text-xs text-brand-grey/60">{{ row.m.category || 'General' }}<template v-if="row.m.year"> · {{ row.m.year }}</template></p>
+              </td>
+              <td class="px-4 py-3"><StatusChip :status="row.m.status" size="sm" /></td>
+              <td class="px-4 py-3 text-right text-white">{{ row.stockQty }}</td>
+              <td class="px-4 py-3 text-right text-white">{{ row.unitsSold }}</td>
+              <td class="px-4 py-3 text-right text-brand-grey">{{ money(row.m.sale_price || row.m.price) }}</td>
+              <td class="px-4 py-3 text-right font-semibold text-emerald-400">{{ money(row.revenue) }}</td>
+              <td class="px-4 py-3 text-right">
+                <button v-if="row.salesCount > 0" class="text-brand-red hover:text-white font-semibold transition-colors" @click="showInventorySales(row.m)">{{ row.salesCount }}</button>
+                <span v-else class="text-brand-grey/50">0</span>
+              </td>
+              <td class="px-4 py-3">
+                <span v-if="row.waiting > 0" class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400"><BellRing class="h-3 w-3" />{{ row.waiting }}</span>
+                <span v-else class="text-brand-grey/50 text-xs">—</span>
+              </td>
+              <td class="px-4 py-3 text-xs text-brand-grey">{{ row.lastSaleDate || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ======================= PAYMENTS TAB ======================= -->
     <div v-if="activeTab === 'payments'">
       <div class="rounded-xl border border-brand-grey/15 bg-brand-black/80 p-4 flex flex-wrap items-center justify-between gap-3">
@@ -254,7 +321,7 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { Plus, Search, X, Eye, Check, Banknote, Wallet, TrendingUp, Truck, ChartNoAxesCombined } from 'lucide-vue-next'
+import { Plus, Search, X, Eye, Check, Banknote, Wallet, TrendingUp, Truck, ChartNoAxesCombined, Bike, BellRing } from 'lucide-vue-next'
 import { useAdminDataStore } from '~/stores/adminData'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
@@ -285,6 +352,7 @@ const cancelTarget = ref<any>(null)
 
 const tabs = [
   { key: 'sales', label: 'Sales' },
+  { key: 'inventory', label: 'Inventory' },
   { key: 'payments', label: 'Payments' },
   { key: 'financing', label: 'Financing' },
   { key: 'audit', label: 'Audit Log' },
@@ -319,6 +387,38 @@ const filteredSales = computed(() => {
     return hay.includes(q)
   })
 })
+
+const invSearch = ref('')
+const invStatusFilter = ref('')
+const invStatuses = ['available', 'coming_soon', 'sold', 'reserved', 'low_stock', 'out_of_stock', 'archived']
+
+const inventoryRows = computed(() => {
+  const q = invSearch.value.trim().toLowerCase()
+  return store.motorcycles
+    .map((m) => {
+      const sales = store.sales.filter(s => s.motorcycle === m.id && s.status !== 'cancelled')
+      const unitsSold = sales.reduce((sum, s) => sum + Number(s.quantity || 0), 0)
+      const revenue = sales.reduce((sum, s) => sum + Number(s.total_payable || 0), 0)
+      const lastSale = sales.slice().sort((a, b) => new Date(b.sale_date || b.created).getTime() - new Date(a.sale_date || a.created).getTime())[0]
+      const waiting = store.reminders.filter(r => r.motorcycle === m.id && r.status === 'active').length
+      const stockQty = m.stock_quantity !== undefined && m.stock_quantity !== null ? Number(m.stock_quantity) : (m.in_stock ? 1 : 0)
+      return { m, salesCount: sales.length, unitsSold, revenue, lastSaleDate: lastSale ? shortDate(lastSale.sale_date || lastSale.created) : '', waiting, stockQty }
+    })
+    .filter(r => {
+      if (invStatusFilter.value && r.m.status !== invStatusFilter.value) return false
+      if (!q) return true
+      const hay = [r.m.name, r.m.category, r.m.status, String(r.m.year || '')].join(' ').toLowerCase()
+      return hay.includes(q)
+    })
+    .sort((a, b) => b.revenue - a.revenue)
+})
+
+function showInventorySales(m: any) {
+  searchQuery.value = m.name
+  statusFilter.value = ''
+  payTypeFilter.value = ''
+  activeTab.value = 'sales'
+}
 
 function saleName(sale: any) {
   return sale?.expand?.motorcycle?.name || (typeof sale?.motorcycle === 'object' && sale?.motorcycle?.name) || 'Motorcycle'

@@ -282,7 +282,8 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { CalendarClock, Wrench, Bike, Heart, Bell, MapPin, ChevronRight, Sparkles, Activity, CheckCircle2, ClipboardCheck, Send, Star } from 'lucide-vue-next'
+import { CalendarClock, Wrench, Bike, Heart, Bell, MapPin, ChevronRight, Sparkles, Activity, CheckCircle2 } from 'lucide-vue-next'
+import { notifMeta } from '~/utils/notificationMeta'
 import { usePB } from '~/composables/usePocketBase'
 import { useAuthStore } from '~/stores/auth'
 import { useNotificationStore } from '~/stores/notifications'
@@ -384,11 +385,7 @@ const activity = computed(() => {
 })
 
 function notifIcon(type: string) {
-  const map: Record<string, any> = {
-    booking: ClipboardCheck, test_ride: Bike, service: Wrench, message: Send,
-    offer: Star, testimonial: Star, contact: Send,
-  }
-  return map[type] || Bell
+  return notifMeta(type).icon
 }
 
 function daysUntil(dateStr: string) {

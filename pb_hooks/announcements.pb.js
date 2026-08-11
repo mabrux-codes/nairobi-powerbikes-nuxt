@@ -32,6 +32,14 @@ onRecordUpdateRequest((e) => {
     r.set("updatedBy", auth.id)
   }
 
+  try {
+    const old = e.app.findRecordById("announcements", r.id)
+    e.app.store().set("npb_ann_prev_" + r.id, {
+      status: old.getString("status"),
+      enabled: old.getBool("enabled"),
+    })
+  } catch (err) { /* record missing */ }
+
   const now = new Date().toISOString()
   if (r.getBool("publishImmediately")) {
     r.set("status", "published")

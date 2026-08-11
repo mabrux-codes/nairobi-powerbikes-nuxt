@@ -123,6 +123,7 @@
             <ul class="space-y-0.5">
               <li><NuxtLink to="/service/booking" class="mobile-link" @click="close"><Wrench class="h-4 w-4 shrink-0 text-brand-grey" />Book a Service</NuxtLink></li>
               <li><NuxtLink to="/service/test-ride" class="mobile-link" @click="close"><CalendarClock class="h-4 w-4 shrink-0 text-brand-grey" />Book a Test Ride</NuxtLink></li>
+              <li><NuxtLink to="/blog" class="mobile-link" @click="close"><Newspaper class="h-4 w-4 shrink-0 text-brand-grey" />Blog</NuxtLink></li>
             </ul>
 
             <p class="mt-6 mb-2 px-1 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">Dealership</p>
@@ -171,7 +172,7 @@
 import { motion, AnimatePresence } from 'motion-v'
 import {
   X, Search, Heart, Home, Bike, Package, Shirt, ChevronDown, Wallet, Wrench, CalendarClock,
-  Info, Phone, Building2, LayoutDashboard, Bell, MessageSquare, User, Settings, LogOut,
+  Info, Phone, Building2, LayoutDashboard, Bell, MessageSquare, User, Settings, LogOut, Newspaper,
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useWishlist } from '~/composables/useWishlist'

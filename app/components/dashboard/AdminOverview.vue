@@ -46,10 +46,22 @@
           </div>
         </div>
 
-        <div class="hidden lg:flex flex-col gap-2 shrink-0 rounded-2xl border border-brand-grey/15 bg-white/[0.03] backdrop-blur p-5 min-w-[240px]">
-          <p class="text-[10px] font-display tracking-[0.25em] text-brand-grey/70 uppercase">This month</p>
-          <p class="font-display text-3xl tracking-display text-white">{{ fmtK(monthly.revenue) }}</p>
-          <p class="text-xs text-brand-grey">Revenue from completed work & sales</p>
+        <div class="hidden lg:flex flex-col gap-2 shrink-0 rounded-2xl border border-brand-grey/15 bg-white/[0.03] backdrop-blur p-5 min-w-[280px]">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] font-display tracking-[0.25em] text-brand-grey/70 uppercase">{{ rangeLabel }}</p>
+            <span class="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">{{ rangePayments }} payments</span>
+          </div>
+          <p class="font-display text-3xl tracking-display text-white">{{ fmtK(rangeRevenue) }}</p>
+          <p class="text-xs text-brand-grey">Revenue from payments received</p>
+          <div class="mt-1 flex flex-wrap gap-1.5">
+            <button
+              v-for="r in ranges"
+              :key="r.key"
+              class="rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors"
+              :class="range === r.key ? 'border-brand-red bg-brand-red/15 text-brand-red' : 'border-brand-grey/20 text-brand-grey hover:border-brand-red/40 hover:text-white'"
+              @click="range = r.key"
+            >{{ r.label }}</button>
+          </div>
           <div class="mt-3 h-px bg-brand-grey/15" />
           <div class="flex items-center justify-between pt-2 text-xs">
             <span class="text-brand-grey">New bookings</span>
@@ -164,7 +176,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h2 class="font-display text-lg tracking-display text-white">Revenue</h2>
-            <p class="mt-0.5 text-xs text-brand-grey">Completed services + bike sales per month</p>
+            <p class="mt-0.5 text-xs text-brand-grey">Payments received per month</p>
           </div>
           <span class="flex h-9 items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 text-xs font-semibold text-emerald-400">
             {{ fmtK(totalRevenue) }} total
@@ -409,7 +421,7 @@ import { motion } from 'motion-v'
 import {
   Bike, Wrench, Users, Mail, Package, Shirt, Gauge, MessageSquare, Plus, RefreshCw,
   CalendarCheck2, ChevronRight, TrendingUp, TrendingDown, Trophy, Activity, CalendarDays,
-  LayoutGrid, Star, Megaphone, Settings, ClipboardList,
+  LayoutGrid, Star, Megaphone, Settings, ClipboardList, Wallet,
 } from 'lucide-vue-next'
 import StatusChip from '~/components/dashboard/StatusChip.vue'
 import { useAdminDataStore } from '~/stores/adminData'
@@ -452,6 +464,48 @@ function monthIndex(dateStr: string) {
   return 5 - diff
 }
 
+const range = ref<'today' | 'week' | 'month' | 'year' | 'all'>('month')
+const ranges = [
+  { key: 'today', label: 'Today' },
+  { key: 'week', label: 'Week' },
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
+  { key: 'all', label: 'All' },
+] as const
+const rangeLabel = computed(() => `Revenue · ${ranges.find(r => r.key === range.value)?.label || 'Month'}`)
+
+function paymentDate(p: any) {
+  return p.payment_date || p.created
+}
+
+const rangePayments = computed(() => {
+  const now = new Date()
+  const startOf = { today: new Date(now.getFullYear(), now.getMonth(), now.getDate()), week: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()), month: new Date(now.getFullYear(), now.getMonth(), 1), year: new Date(now.getFullYear(), 0, 1) } as Record<string, Date>
+  const min = range.value === 'all' ? null : startOf[range.value].getTime()
+  return store.payments.filter(p => {
+    if (min === null) return true
+    const t = new Date(paymentDate(p)).getTime()
+    return !isNaN(t) && t >= min
+  }).length
+})
+
+const rangeRevenue = computed(() => {
+  const now = new Date()
+  const startOf = { today: new Date(now.getFullYear(), now.getMonth(), now.getDate()), week: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()), month: new Date(now.getFullYear(), now.getMonth(), 1), year: new Date(now.getFullYear(), 0, 1) } as Record<string, Date>
+  const min = range.value === 'all' ? null : startOf[range.value].getTime()
+  return store.payments.reduce((sum, p) => {
+    if (min !== null) {
+      const t = new Date(paymentDate(p)).getTime()
+      if (isNaN(t) || t < min) return sum
+    }
+    return sum + (Number(p.amount) || 0)
+  }, 0)
+})
+
+const outstandingFinancing = computed(() => {
+  return store.sales.reduce((sum, s) => sum + (Number(s.outstanding) || 0), 0)
+})
+
 function bucketSeries(list: any[], key: string, predicate?: (it: any) => boolean) {
   const arr = new Array(6).fill(0)
   for (const it of list) {
@@ -466,21 +520,15 @@ const monthlySeries = computed(() => ({
   testRide: bucketSeries(store.testRides, 'created'),
   revenue: (() => {
     const arr = new Array(6).fill(0)
-    for (const b of store.serviceBookings) {
-      if (b.status !== 'completed' || !b.cost) continue
-      const idx = monthIndex(b.updated || b.created)
-      if (idx >= 0 && idx < 6) arr[idx] += Number(b.cost) || 0
-    }
-    for (const m of store.motorcycles) {
-      if (m.status !== 'sold' || !(m.sale_price || m.price)) continue
-      const idx = monthIndex(m.updated || m.created)
-      if (idx >= 0 && idx < 6) arr[idx] += Number(m.sale_price || m.price) || 0
+    for (const p of store.payments) {
+      const idx = monthIndex(paymentDate(p))
+      if (idx >= 0 && idx < 6) arr[idx] += Number(p.amount) || 0
     }
     return arr
   })(),
 }))
 
-const totalRevenue = computed(() => monthlySeries.value.revenue.reduce((a, b) => a + b, 0))
+const totalRevenue = computed(() => store.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0))
 
 const monthly = computed(() => ({
   revenue: monthlySeries.value.revenue[5],
@@ -500,7 +548,8 @@ const kpis = computed(() => {
   const rev = monthlySeries.value.revenue
   const cus = bucketSeries(store.users, 'created', u => u.role === 'customer')
   return [
-    { label: 'Revenue', display: fmtK(rev[5]), icon: Gauge, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', trend: trend(rev[5], rev[4]), spark: rev, to: '/dashboard/service-bookings' },
+    { label: 'Revenue', display: fmtK(rangeRevenue.value), icon: Gauge, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', trend: trend(rev[5], rev[4]), spark: rev, to: '/dashboard/sales-inventory' },
+    { label: 'Financing Outstanding', display: fmtK(outstandingFinancing.value), icon: Wallet, iconBg: 'bg-violet-500/15', iconColor: 'text-violet-400', trend: 0, spark: [], to: '/dashboard/sales-inventory' },
     { label: 'Service Bookings', display: String(svc[5]), icon: Wrench, iconBg: 'bg-brand-red/15', iconColor: 'text-brand-red', trend: trend(svc[5], svc[4]), spark: svc, to: '/dashboard/service-bookings' },
     { label: 'Test Rides', display: String(tr[5]), icon: CalendarCheck2, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400', trend: trend(tr[5], tr[4]), spark: tr, to: '/dashboard/test-rides' },
     { label: 'Customers', display: String(customerCount.value), icon: Users, iconBg: 'bg-sky-500/15', iconColor: 'text-sky-400', trend: trend(cus[5], cus[4]), spark: cus, to: '/dashboard/staff' },

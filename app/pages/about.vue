@@ -9,6 +9,7 @@
       <template #actions>
         <Button to="/motorcycles" variant="primary" size="lg" trailing-arrow>Explore Bikes</Button>
         <Button to="/contact" variant="secondary" size="lg"><Phone class="h-5 w-5" />Talk to Us</Button>
+        <ShareButton variant="ghost" size="lg" />
       </template>
     </PageHeader>
 

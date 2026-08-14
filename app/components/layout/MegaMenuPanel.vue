@@ -117,7 +117,7 @@
             <p class="mb-4 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">Featured Accessory</p>
             <NuxtLink
               v-if="featuredAccessory"
-              :to="`/accessories/${featuredAccessory.id}`"
+              :to="accessoryPath(featuredAccessory)"
               class="group block overflow-hidden rounded-xl border border-white/[0.07] bg-gradient-to-b from-white/[0.05] to-transparent transition-colors hover:border-brand-red/40"
               @click="notifyNavigate"
             >
@@ -166,7 +166,7 @@
             <p class="mb-4 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">Featured Apparel</p>
             <NuxtLink
               v-if="featuredApparel"
-              :to="`/apparel/${featuredApparel.id}`"
+              :to="apparelPath(featuredApparel)"
               class="group block overflow-hidden rounded-xl border border-white/[0.07] bg-gradient-to-b from-white/[0.05] to-transparent transition-colors hover:border-brand-red/40"
               @click="notifyNavigate"
             >
@@ -198,6 +198,7 @@ import {
   HardHat, ShoppingBag, Shirt, Lock, Wrench, Lightbulb, Layers, Wind, Umbrella, Footprints,
 } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog'
+import { accessoryPath, apparelPath } from '~/utils/paths'
 import { usePB } from '~/composables/usePocketBase'
 
 const props = defineProps<{ kind: 'motorcycles' | 'accessories' | 'apparel'; open: boolean }>()

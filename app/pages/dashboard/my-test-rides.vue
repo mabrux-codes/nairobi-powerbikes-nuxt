@@ -721,7 +721,7 @@ function reschedule(b: Ride) {
 async function cancelRide(b: Ride) {
   cancelling.value[b.id] = true
   try {
-    await pb.collection('service_bookings').update(b.id, { status: 'cancelled' })
+    await pb.collection('test_rides').update(b.id, { status: 'cancelled' })
     toast.add({ type: 'success', title: 'Test ride cancelled', message: `${rideRef(b)} has been cancelled.` })
   } catch (err: any) {
     toast.add({ type: 'error', title: 'Failed to cancel', message: err?.message || 'Something went wrong' })
@@ -831,7 +831,7 @@ const filtered = computed(() => {
 function handleRealtime(e: any) {
   const record = e.record as Ride
   const userId = auth.user?.id
-  if (record.user !== userId || record.type !== 'test_ride') return
+  if (record.user !== userId) return
   if (e.action === 'delete') {
     allTestRides.value = allTestRides.value.filter(b => b.id !== record.id)
   } else {
@@ -860,19 +860,19 @@ onMounted(async () => {
   loadBikes()
   try {
     const uid = auth.user?.id
-    const res = await pb.collection('service_bookings').getList(1, 100, {
-      filter: `type="test_ride" && user = "${uid}"`,
+    const res = await pb.collection('test_rides').getList(1, 100, {
+      filter: `user = "${uid}"`,
       sort: '-created',
     }).catch(() => ({ items: [] }))
     allTestRides.value = res.items as Ride[]
     if (uid) {
-      pb.collection('service_bookings').subscribe('*', handleRealtime, { filter: `user = "${uid}"` })
+      pb.collection('test_rides').subscribe('*', handleRealtime, { filter: `user = "${uid}"` })
     }
   } catch (e) { console.error(e) }
   finally { loading.value = false }
 })
 
 onUnmounted(() => {
-  pb.collection('service_bookings').unsubscribe('*')
+  pb.collection('test_rides').unsubscribe('*')
 })
 </script>

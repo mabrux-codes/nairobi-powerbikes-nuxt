@@ -2,7 +2,10 @@
 // Allows inline formatting (bold/italic/underline), line breaks and links only.
 // Strips scripts, styles, event handlers and any unsafe URL schemes.
 
-const ALLOWED_TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'BR', 'A', 'SPAN', 'P', 'DIV', 'UL', 'OL', 'LI'])
+const ALLOWED_TAGS = new Set([
+  'B', 'STRONG', 'I', 'EM', 'U', 'BR', 'A', 'SPAN', 'P', 'DIV', 'UL', 'OL', 'LI',
+  'H2', 'H3', 'H4', 'H5', 'BLOCKQUOTE', 'TABLE', 'TR', 'TD', 'TH', 'PRE', 'CODE', 'HR', 'IMG',
+])
 const ALLOWED_ATTRS: Record<string, string[]> = { A: ['href', 'title', 'target', 'rel'] }
 
 function safeUrl(raw: string): string {
@@ -39,6 +42,12 @@ export function sanitizeHtml(input: string): string {
       }
       const title = el.getAttribute('title')
       if (title) clone.setAttribute('title', title)
+    }
+    if (tag === 'IMG') {
+      const src = safeUrl(el.getAttribute('src') || '')
+      if (src) clone.setAttribute('src', src)
+      const alt = el.getAttribute('alt')
+      if (alt) clone.setAttribute('alt', alt)
     }
     Array.from(el.childNodes).forEach((c) => {
       const kept = walk(c)

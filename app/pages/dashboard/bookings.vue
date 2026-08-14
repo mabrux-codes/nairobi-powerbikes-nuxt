@@ -26,7 +26,7 @@
         </thead>
         <tbody class="divide-y divide-brand-grey/10">
           <tr v-for="b in items" :key="b.id" class="transition-colors hover:bg-white/5">
-            <td class="px-4 py-3"><Badge :variant="b.type === 'test_ride' ? 'secondary' : 'default'">{{ b.type === 'test_ride' ? 'Test Ride' : 'Service' }}</Badge></td>
+            <td class="px-4 py-3"><Badge :variant="b._btype === 'test_ride' ? 'secondary' : 'default'">{{ b._btype === 'test_ride' ? 'Test Ride' : 'Service' }}</Badge></td>
             <td class="px-4 py-3 text-white">{{ b.expand?.user?.name || b.expand?.user?.email || 'N/A' }}</td>
             <td class="px-4 py-3 text-brand-grey">{{ b.motorcycle || 'N/A' }}</td>
             <td class="px-4 py-3 text-brand-grey">{{ formatDate(b.preferred_date) }}</td>
@@ -46,7 +46,7 @@
           <div class="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 pt-4 md:px-6 md:pb-6">
             <div class="space-y-4">
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Type</label><p class="mt-0.5"><Badge :variant="detailItem?.type === 'test_ride' ? 'secondary' : 'default'">{{ detailItem?.type === 'test_ride' ? 'Test Ride' : 'Service' }}</Badge></p></div>
+                <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Type</label><p class="mt-0.5"><Badge :variant="detailItem?._btype === 'test_ride' ? 'secondary' : 'default'">{{ detailItem?._btype === 'test_ride' ? 'Test Ride' : 'Service' }}</Badge></p></div>
                 <div><label class="text-xs font-display tracking-display text-brand-grey uppercase">Status</label><p class="mt-0.5"><Badge :variant="statusVariant(detailItem?.status)">{{ detailItem?.status }}</Badge></p></div>
               </div>
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -131,9 +131,9 @@ const updateDetailForm = ref({ status: 'pending', notes: '' })
 function statusVariant(s: string) { const m: Record<string, string> = { pending: 'warning', confirmed: 'secondary', in_progress: 'default', completed: 'success', cancelled: 'danger' }; return m[s] || 'outline' }
 function isImage(filename: string) { return /\.(jpe?g|png)$/i.test(filename) }
 function openDetail(b: any) { detailItem.value = b; updateDetailForm.value = { status: b.status || 'pending', notes: b.notes || '' }; showDetail.value = true }
-async function saveDetailUpdate() { savingDetail.value = true; try { await pb.collection('service_bookings').update(detailItem.value.id, updateDetailForm.value); toast.add({ type: 'success', title: 'Booking updated successfully' }); showDetail.value = false; await loadData() } catch (e: any) { toast.add({ type: 'error', title: 'Failed to update booking', message: e?.message || 'Something went wrong' }) } finally { savingDetail.value = false } }
-async function loadData() { try { const res = await pb.collection('service_bookings').getList(1, 100, { sort: '-created', expand: 'user' }); items.value = res.items as any[] } catch (e) { console.error(e) } finally { loading.value = false } }
+async function saveDetailUpdate() { savingDetail.value = true; try { const coll = detailItem.value?._btype === 'test_ride' ? 'test_rides' : 'service_bookings'; await pb.collection(coll).update(detailItem.value.id, updateDetailForm.value); toast.add({ type: 'success', title: 'Booking updated successfully' }); showDetail.value = false; await loadData() } catch (e: any) { toast.add({ type: 'error', title: 'Failed to update booking', message: e?.message || 'Something went wrong' }) } finally { savingDetail.value = false } }
+async function loadData() { try { const [svc, tr] = await Promise.all([pb.collection('service_bookings').getList(1, 100, { sort: '-created', expand: 'user' }), pb.collection('test_rides').getList(1, 100, { sort: '-created', expand: 'user' })]); items.value = [...(svc.items as any[]).map(r => ({ ...r, _btype: 'service' })), ...(tr.items as any[]).map(r => ({ ...r, _btype: 'test_ride' }))] } catch (e) { console.error(e) } finally { loading.value = false } }
 watch([showDetail, previewImg], ([sd, pi]) => { document.body.style.overflow = sd || pi ? 'hidden' : '' })
-onMounted(() => { loadData(); pb.collection('service_bookings').subscribe('*', () => loadData()) })
-onUnmounted(() => { pb.collection('service_bookings').unsubscribe('*'); document.body.style.overflow = '' })
+onMounted(() => { loadData(); pb.collection('service_bookings').subscribe('*', () => loadData()); pb.collection('test_rides').subscribe('*', () => loadData()) })
+onUnmounted(() => { pb.collection('service_bookings').unsubscribe('*'); pb.collection('test_rides').unsubscribe('*'); document.body.style.overflow = '' })
 </script>

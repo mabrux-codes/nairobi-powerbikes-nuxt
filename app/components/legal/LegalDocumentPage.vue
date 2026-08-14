@@ -136,6 +136,8 @@ import { motion } from 'motion-v'
 import { useScroll as useScrollY } from '@vueuse/core'
 import { CalendarClock, ChevronDown, FileText, Home, ListTree } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
+import { sanitizeHtml } from '~/composables/useSanitize'
+import { isValidRichDoc, richDocToHTML } from '~/utils/richText'
 
 const props = withDefaults(defineProps<{
   slug: string
@@ -158,7 +160,14 @@ const docHeight = ref(1)
 const title = computed(() => record.value?.title || props.fallbackTitle)
 const description = computed(() => record.value?.description || props.fallbackDescription)
 const publishedAt = computed<string | null>(() => record.value?.published_at || null)
-const bodyHtml = computed(() => record.value?.body || '')
+
+/* Structured editor content wins; legacy raw HTML is sanitized before rendering. */
+const bodyHtml = computed(() => {
+  if (record.value && isValidRichDoc(record.value.content_json)) {
+    return richDocToHTML(record.value.content_json)
+  }
+  return sanitizeHtml(record.value?.body || '')
+})
 
 const siteUrl = (config.public.siteUrl as string) || 'https://www.nairobi-powerbikes.co.ke'
 const canonical = computed(() => `${siteUrl.replace(/\/$/, '')}${route.path}`)

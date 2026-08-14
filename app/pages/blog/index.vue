@@ -19,7 +19,7 @@
             <option value="">All Categories</option>
             <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
           </select>
-          <p class="ml-auto text-sm text-brand-grey">{{ visible.length }} article{{ visible.length === 1 ? '' : 's' }}</p>
+          <p class="ml-auto text-sm text-brand-grey">{{ visiblePosts.length }} article{{ visiblePosts.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
 
@@ -36,57 +36,80 @@
         </div>
       </template>
 
-      <template v-else-if="featured">
-        <motion.div
-          :initial="{ opacity: 0, y: 24 }"
-          :animate="{ opacity: 1, y: 0 }"
-          :transition="{ duration: 0.5, ease: 'easeOut' }"
-          class="mt-10 overflow-hidden rounded-2xl border border-brand-red/20 bg-gradient-to-br from-brand-red/10 via-white/[0.02] to-transparent"
-        >
-          <NuxtLink :to="`/blog/${featured.slug}`" class="group grid grid-cols-1 lg:grid-cols-2">
-            <div class="relative aspect-[16/9] overflow-hidden lg:aspect-auto lg:min-h-[320px]">
-              <img v-if="cover(featured)" :src="cover(featured)" :alt="featured.title" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <span v-else class="flex h-full items-center justify-center font-display text-6xl text-brand-red/20">{{ featured.title?.slice(0, 1) }}</span>
-              <span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-brand-red px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white"><Star class="h-3 w-3" />Featured</span>
-            </div>
-            <div class="flex flex-col justify-center gap-3 p-6 lg:p-10">
-              <p class="text-xs font-semibold uppercase tracking-widest text-brand-red">{{ featured.category || 'Featured' }}</p>
-              <h2 class="font-display text-2xl tracking-display text-white sm:text-3xl">{{ featured.title }}</h2>
-              <p class="text-sm leading-relaxed text-brand-grey">{{ excerpt(featured.excerpt || featured.content) }}</p>
-              <p class="mt-1 text-xs text-brand-grey/70">{{ featured.author || 'Staff' }} · {{ dateLabel(featured.published_at || featured.created) }} · {{ featured.reading_time }} min read</p>
-              <span class="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-red transition-transform duration-300 group-hover:translate-x-1">Read article <ChevronRight class="h-4 w-4" /></span>
-            </div>
-          </NuxtLink>
-        </motion.div>
-      </template>
-
-      <template v-else-if="visible.length">
-        <div class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <template v-else>
+        <section v-if="hero" class="mt-10" aria-label="Featured articles">
           <motion.div
-            v-for="(p, i) in visible"
+            :initial="{ opacity: 0, y: 24 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.5, ease: 'easeOut' }"
+            class="overflow-hidden rounded-2xl border border-brand-red/20 bg-gradient-to-br from-brand-red/10 via-white/[0.02] to-transparent"
+          >
+            <NuxtLink :to="`/blog/${hero.slug}`" class="group grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red/40">
+              <div class="relative h-[280px] overflow-hidden bg-black sm:h-[360px] md:h-[400px] lg:h-[440px] xl:h-[500px]">
+                <img v-if="cover(hero)" :src="cover(hero)" :alt="hero.title" class="h-full w-full transition-transform duration-700 group-hover:scale-[1.03]" :class="fitClass(hero.id)" @load="trackRatio(hero.id, $event)" loading="eager" />
+                <span v-else class="flex h-full items-center justify-center font-display text-6xl text-brand-red/20">{{ hero.title?.slice(0, 1) }}</span>
+                <span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-brand-red px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white"><Star class="h-3 w-3" />Featured</span>
+              </div>
+              <div class="flex min-w-0 flex-col justify-center gap-3 p-6 lg:p-10">
+                <p class="text-xs font-semibold uppercase tracking-widest text-brand-red">{{ hero.category || 'Featured' }}</p>
+                <h2 class="line-clamp-3 font-display text-2xl tracking-display text-white sm:text-3xl">{{ hero.title }}</h2>
+                <p class="line-clamp-3 text-sm leading-relaxed text-brand-grey">{{ excerpt(hero.excerpt || hero.content) }}</p>
+                <p class="mt-1 text-xs text-brand-grey/70">{{ hero.author || 'Staff' }} · {{ dateLabel(hero.published_at || hero.created) }} · {{ hero.reading_time }} min read</p>
+                <span class="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-red transition-transform duration-300 group-hover:translate-x-1">Read article <ChevronRight class="h-4 w-4" /></span>
+              </div>
+            </NuxtLink>
+          </motion.div>
+
+          <div v-if="moreFeatured.length" class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <motion.div
+              v-for="(p, i) in moreFeatured"
+              :key="p.id"
+              :initial="{ opacity: 0, y: 24 }"
+              :animate="{ opacity: 1, y: 0 }"
+              :transition="{ delay: 0.1 + i * 0.05, duration: 0.45, ease: 'easeOut' }"
+            >
+              <NuxtLink :to="`/blog/${p.slug}`" class="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-red/20 bg-white/[0.02] transition-colors duration-300 hover:border-brand-red/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red/40">
+                <div class="relative aspect-[16/9] overflow-hidden bg-black">
+                  <img v-if="cover(p)" :src="cover(p)" :alt="p.title" class="h-full w-full transition-transform duration-700 group-hover:scale-105" :class="fitClass(p.id)" @load="trackRatio(p.id, $event)" loading="lazy" />
+                  <span v-else class="flex h-full items-center justify-center font-display text-5xl text-brand-red/15">{{ p.title?.slice(0, 1) }}</span>
+                  <span class="absolute left-3 top-3 rounded-full bg-brand-red px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white">Featured</span>
+                </div>
+                <div class="flex flex-1 flex-col gap-2 p-5">
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-red">{{ p.category || 'News' }}</p>
+                  <h3 class="line-clamp-2 font-display text-lg leading-snug tracking-display text-white">{{ p.title }}</h3>
+                  <p class="line-clamp-2 text-sm leading-relaxed text-brand-grey">{{ excerpt(p.excerpt || p.content) }}</p>
+                  <p class="mt-auto pt-2 text-xs text-brand-grey/70">{{ p.author || 'Staff' }} · {{ dateLabel(p.published_at || p.created) }} · {{ p.reading_time }} min read</p>
+                </div>
+              </NuxtLink>
+            </motion.div>
+          </div>
+        </section>
+
+        <div v-if="regularPosts.length" class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div
+            v-for="(p, i) in regularPosts"
             :key="p.id"
             :initial="{ opacity: 0, y: 24 }"
             :animate="{ opacity: 1, y: 0 }"
             :transition="{ delay: (i % 6) * 0.05, duration: 0.45, ease: 'easeOut' }"
           >
-            <NuxtLink :to="`/blog/${p.slug}`" class="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] transition-colors duration-300 hover:border-brand-red/40">
-              <div class="relative aspect-[16/9] overflow-hidden">
-                <img v-if="cover(p)" :src="cover(p)" :alt="p.title" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <NuxtLink :to="`/blog/${p.slug}`" class="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] transition-colors duration-300 hover:border-brand-red/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red/40">
+              <div class="relative aspect-[16/9] overflow-hidden bg-black">
+                <img v-if="cover(p)" :src="cover(p)" :alt="p.title" class="h-full w-full transition-transform duration-700 group-hover:scale-105" :class="fitClass(p.id)" @load="trackRatio(p.id, $event)" loading="lazy" />
                 <span v-else class="flex h-full items-center justify-center font-display text-5xl text-brand-red/15">{{ p.title?.slice(0, 1) }}</span>
-                <span v-if="p.featured" class="absolute left-3 top-3 rounded-full bg-brand-red px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white">Featured</span>
               </div>
               <div class="flex flex-1 flex-col gap-2 p-5">
                 <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-red">{{ p.category || 'News' }}</p>
-                <h3 class="font-display text-lg leading-snug tracking-display text-white">{{ p.title }}</h3>
+                <h3 class="line-clamp-2 font-display text-lg leading-snug tracking-display text-white">{{ p.title }}</h3>
                 <p class="line-clamp-2 text-sm leading-relaxed text-brand-grey">{{ excerpt(p.excerpt || p.content) }}</p>
                 <p class="mt-auto pt-2 text-xs text-brand-grey/70">{{ p.author || 'Staff' }} · {{ dateLabel(p.published_at || p.created) }} · {{ p.reading_time }} min read</p>
               </div>
             </NuxtLink>
           </motion.div>
         </div>
-      </template>
 
-      <ShopEmptyState v-else kind="gear" title="No articles found" description="Try clearing your search or filters, or check back soon for new posts." :on-clear="clearFilters" class="mt-10" />
+        <ShopEmptyState v-if="!visiblePosts.length" kind="blog" title="No articles found" description="Try clearing your search or filters, or check back soon for new posts." :on-clear="clearFilters" class="mt-10" />
+      </template>
     </div>
   </div>
 </template>
@@ -119,8 +142,25 @@ const visiblePosts = computed(() => {
   })
 })
 
-const featured = computed(() => visiblePosts.value.find(p => p.featured) || null)
-const visible = computed(() => visiblePosts.value.filter(p => !featured.value || p.id !== featured.value.id))
+const featuredPosts = computed(() => visiblePosts.value.filter(p => p.featured))
+const hero = computed(() => featuredPosts.value[0] || null)
+const moreFeatured = computed(() => featuredPosts.value.slice(1))
+const regularPosts = computed(() => visiblePosts.value.filter(p => !p.featured))
+
+const ratios = ref<Record<string, number>>({})
+
+function trackRatio(id: string, e: Event) {
+  const img = e.target as HTMLImageElement
+  if (img.naturalWidth && img.naturalHeight) {
+    ratios.value[id] = img.naturalWidth / img.naturalHeight
+  }
+}
+
+function fitClass(id: string) {
+  const r = ratios.value[id]
+  if (r && r < 1) return 'object-contain'
+  return 'object-cover'
+}
 
 function excerpt(s: string) {
   return String(s || '').replace(/[#*`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160)

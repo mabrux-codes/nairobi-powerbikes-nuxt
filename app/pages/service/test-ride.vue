@@ -6,7 +6,11 @@
       accent="Test Ride"
       description="Feel the machine before you commit. Pick a model, pick a slot — we'll have it warmed up and waiting."
       :crumbs="[{ label: 'Services', to: '/service/booking' }, { label: 'Book a Test Ride' }]"
-    />
+    >
+      <template #actions>
+        <ShareButton type="test-ride" label="Share" variant="ghost" />
+      </template>
+    </PageHeader>
 
     <div class="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8">
       <div class="mt-10 grid gap-8 lg:grid-cols-[280px_1fr_340px]">
@@ -594,8 +598,8 @@ async function loadBookedTimes() {
   form.time = ''
   if (!form.date) return
   try {
-    const res = await pb.collection('service_bookings').getList(1, 50, {
-      filter: `preferred_date = "${form.date}" && type = "test_ride"`,
+    const res = await pb.collection('test_rides').getList(1, 50, {
+      filter: `preferred_date = "${form.date}"`,
       fields: 'preferred_time',
     })
     bookedTimes.value = new Set(res.items.map((b: any) => b.preferred_time))
@@ -644,8 +648,8 @@ async function submitRide() {
   driversLicenseError.value = licenseErr
   if (idErr || licenseErr) { submitting.value = false; return }
   try {
-    const res = await pb.collection('service_bookings').getList(1, 1, {
-      filter: `preferred_date = "${form.date}" && preferred_time = "${form.time}" && type = "test_ride"`,
+    const res = await pb.collection('test_rides').getList(1, 1, {
+      filter: `preferred_date = "${form.date}" && preferred_time = "${form.time}"`,
     })
     if (res.totalItems > 0) {
       submitError.value = 'This time slot has just been taken. Please pick another.'
@@ -655,7 +659,6 @@ async function submitRide() {
     }
     const userId = pb.authStore.model?.id || null
     const fd = new FormData()
-    fd.append('type', 'test_ride')
     fd.append('name', form.name || (authUser.value?.name as string) || '')
     fd.append('phone', form.phone || (authUser.value?.phone as string) || '')
     fd.append('email', form.email || (authUser.value?.email as string) || '')
@@ -669,7 +672,7 @@ async function submitRide() {
     if (userId) fd.append('user', userId)
     fd.append('id_document', idDocument.value!)
     fd.append('drivers_license', driversLicense.value!)
-    const created = await pb.collection('service_bookings').create<Record<string, any>>(fd)
+    const created = await pb.collection('test_rides').create<Record<string, any>>(fd)
     createdBooking.value = created
     form.motorcycle = ''; form.name = ''; form.phone = ''; form.email = ''
     form.level = ''; form.notes = ''; form.date = ''; form.time = ''

@@ -159,12 +159,14 @@ const imagePreview = ref<string | null>(null)
 const branches = ref<any[]>([])
 const staff = ref<any[]>([])
 const bookings = ref<any[]>([])
+const testRides = ref<any[]>([])
 const form = ref({ name: '', slug: '', address: '', phone: '', email: '', hours: '', lat: '', lng: '', map_url: '', sort_order: '0' })
 
+const allBookings = computed(() => [...bookings.value, ...testRides.value])
 const staffCount = computed(() => staff.value.length)
 const bookingsToday = computed(() => {
   const today = new Date().toISOString().slice(0, 10)
-  return bookings.value.filter(b => (b.preferred_date || '').slice(0, 10) === today && b.status !== 'cancelled').length
+  return allBookings.value.filter(b => (b.preferred_date || '').slice(0, 10) === today && b.status !== 'cancelled').length
 })
 const cityCount = computed(() => new Set(branches.value.map(b => b.address?.split(',').pop()?.trim()).filter(Boolean)).size)
 
@@ -179,7 +181,7 @@ const branchStaff = computed(() => {
 
 const branchBookings = computed(() => {
   const map: Record<string, number> = {}
-  for (const b of bookings.value) {
+  for (const b of allBookings.value) {
     if (b.branch && b.status !== 'cancelled') map[b.branch] = (map[b.branch] || 0) + 1
   }
   return map
@@ -187,8 +189,8 @@ const branchBookings = computed(() => {
 
 const branchTests = computed(() => {
   const map: Record<string, number> = {}
-  for (const b of bookings.value) {
-    if (b.type === 'test_ride' && b.branch) map[b.branch] = (map[b.branch] || 0) + 1
+  for (const b of testRides.value) {
+    if (b.branch) map[b.branch] = (map[b.branch] || 0) + 1
   }
   return map
 })
@@ -270,19 +272,22 @@ async function confirmDelete(b: any) {
 }
 
 async function loadData() {
-  const [b, s, bk] = await Promise.all([
+  const [b, s, bk, tr] = await Promise.all([
     pb.collection('branches').getFullList({ sort: 'sort_order,name' }).catch(() => []),
     pb.collection('users').getFullList({ filter: 'role != "customer"' }).catch(() => []),
-    pb.collection('service_bookings').getFullList({ fields: 'branch,type,status,preferred_date' }).catch(() => []),
+    pb.collection('service_bookings').getFullList({ fields: 'branch,status,preferred_date' }).catch(() => []),
+    pb.collection('test_rides').getFullList({ fields: 'branch,status,preferred_date' }).catch(() => []),
   ])
   branches.value = b as any[]
   staff.value = s as any[]
   bookings.value = bk as any[]
+  testRides.value = tr as any[]
 }
 
 function subscribe() {
   pb.collection('branches').subscribe('*', () => loadData())
   pb.collection('service_bookings').subscribe('*', () => loadData())
+  pb.collection('test_rides').subscribe('*', () => loadData())
 }
 
 onMounted(async () => {
@@ -295,6 +300,7 @@ onUnmounted(() => {
   try {
     pb.collection('branches').unsubscribe('*')
     pb.collection('service_bookings').unsubscribe('*')
+    pb.collection('test_rides').unsubscribe('*')
   } catch { /* ignore */ }
 })
 

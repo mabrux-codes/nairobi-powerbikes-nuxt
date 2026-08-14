@@ -371,7 +371,7 @@ async function save() {
   try {
     const payload: any = { status: form.value.status, notes: form.value.notes }
     if (form.value.assigned_to) payload.assigned_to = form.value.assigned_to
-    await pb.collection('service_bookings').update(drawerItem.value.id, payload)
+    await pb.collection('test_rides').update(drawerItem.value.id, payload)
     toast.add({ type: 'success', title: 'Test ride updated' })
     drawerOpen.value = false
   } catch (e: any) {
@@ -426,7 +426,7 @@ onMounted(async () => {
   await store.ensureActive()
   const editId = route.query.edit as string
   if (editId) {
-    const found = store.bookings.find(b => b.id === editId)
+    const found = store.testRides.find(b => b.id === editId)
     if (found) openDrawer(found)
   }
 })

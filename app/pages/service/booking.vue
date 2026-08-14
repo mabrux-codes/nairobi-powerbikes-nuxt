@@ -6,7 +6,11 @@
       accent="Service"
       description="Schedule your next service appointment with our certified technicians in minutes — no phone calls, no queues."
       :crumbs="[{ label: 'Services', to: '/service/booking' }, { label: 'Book a Service' }]"
-    />
+    >
+      <template #actions>
+        <ShareButton type="service" label="Share" variant="ghost" />
+      </template>
+    </PageHeader>
 
     <div class="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8">
       <div class="mt-10 grid gap-8 lg:grid-cols-[280px_1fr_340px]">

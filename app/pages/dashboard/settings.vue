@@ -210,7 +210,7 @@
             <p class="mt-0.5 text-xs text-brand-grey">Backend endpoints and integration status</p>
             <div class="mt-4 space-y-2.5 text-sm">
               <div class="rounded-xl border border-brand-grey/15 bg-white/[0.02] px-4 py-3"><p class="text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">PocketBase URL</p><p class="mt-1 font-mono text-xs text-white break-all">{{ pbUrl }}</p></div>
-              <div class="rounded-xl border border-brand-grey/15 bg-white/[0.02] px-4 py-3"><p class="text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Realtime Channel</p><p class="mt-1 font-mono text-xs text-emerald-400">service_bookings, contacts, subscribers, users, notifications…</p></div>
+              <div class="rounded-xl border border-brand-grey/15 bg-white/[0.02] px-4 py-3"><p class="text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Realtime Channel</p><p class="mt-1 font-mono text-xs text-emerald-400">service_bookings, test_rides, contacts, subscribers, users, notifications…</p></div>
               <div class="rounded-xl border border-brand-grey/15 bg-white/[0.02] px-4 py-3"><p class="text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Widget</p><p class="mt-1 text-xs text-brand-grey">OpenWidget chat integrated on public pages</p></div>
             </div>
           </AdminCard>

@@ -358,7 +358,7 @@ const nextRide = computed(() => {
 const activity = computed(() => {
   const events: { icon: any; color: string; title: string; sub: string; time: string }[] = []
 
-  for (const b of [...serviceBookings.value, ...testRides.value].sort((a, b) => new Date(b.updated || b.created).getTime() - new Date(a.updated || a.created).getTime()).slice(0, 3)) {
+  for (const b of [...serviceBookings.value.map((x: any) => ({ ...x, type: 'service' })), ...testRides.value.map((x: any) => ({ ...x, type: 'test_ride' }))].sort((a, b) => new Date(b.updated || b.created).getTime() - new Date(a.updated || a.created).getTime()).slice(0, 3)) {
     const isRide = b.type === 'test_ride'
     const changed = b.updated && b.created && new Date(b.updated).getTime() - new Date(b.created).getTime() > 1000
     const label = isRide ? `Test ride ${b.motorcycle || ''}` : `Service ${b.service_type || ''}`
@@ -467,8 +467,8 @@ async function loadData() {
   if (!userId) return
 
   const [testRidesRes, serviceRes] = await Promise.all([
-    pb.collection('service_bookings').getList(1, 100, { filter: `type="test_ride" && user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
-    pb.collection('service_bookings').getList(1, 100, { filter: `type="service" && user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
+    pb.collection('test_rides').getList(1, 100, { filter: `user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
+    pb.collection('service_bookings').getList(1, 100, { filter: `user = "${userId}"`, sort: '-created' }).catch(() => ({ items: [], totalItems: 0 })),
   ])
 
   stats.value = {
@@ -502,7 +502,7 @@ function handleRealtime(e: any) {
   const userId = auth.user?.id
   if (record.user !== userId) return
 
-  if (record.type === 'test_ride') {
+  if (record.collectionName === 'test_rides') {
     if (e.action === 'delete') {
       testRides.value = testRides.value.filter(b => b.id !== record.id)
     } else {
@@ -515,7 +515,7 @@ function handleRealtime(e: any) {
       }
     }
     stats.value.testRides = testRides.value.length
-  } else if (record.type === 'service') {
+  } else {
     if (e.action === 'delete') {
       serviceBookings.value = serviceBookings.value.filter(b => b.id !== record.id)
     } else {
@@ -541,9 +541,11 @@ onMounted(async () => {
   if (!userId) return
 
   pb.collection('service_bookings').subscribe('*', handleRealtime, { filter: `user = "${userId}"` })
+  pb.collection('test_rides').subscribe('*', handleRealtime, { filter: `user = "${userId}"` })
 })
 
 onUnmounted(() => {
   pb.collection('service_bookings').unsubscribe('*')
+  pb.collection('test_rides').unsubscribe('*')
 })
 </script>

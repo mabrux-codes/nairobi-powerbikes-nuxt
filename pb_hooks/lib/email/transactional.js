@@ -62,14 +62,22 @@ function enqueueAdminRole(app, role, opts) {
   return { ok: true, enqueued: count }
 }
 
+/// Records may come from either the `service_bookings` or the `test_rides`
+/// collection (test rides were split into their own collection).
+function isTestRideOf(b) {
+  try { return b.collection().name === "test_rides" } catch (e) { return b.getString("type") === "test_ride" }
+}
+
 function bookingPayload(app, b, product) {
   const t = tplMod()
-  const isTestRide = b.getString("type") === "test_ride"
+  const isTestRide = isTestRideOf(b)
   return Object.assign({
     bookingType: isTestRide ? "test_ride" : "service",
     bookingReference: (isTestRide ? "PB-TR-" : "PB-SVC-") + String(b.id || "").slice(-6).toUpperCase(),
     customerName: b.getString("name") || "",
     firstName: (b.getString("name") || "").split(" ")[0],
+    email: b.getString("email") || "",
+    phone: b.getString("phone") || "",
     serviceType: b.getString("service_type") || "",
     bookingDate: b.getString("preferred_date") || "",
     bookingTime: b.getString("preferred_time") || "",
@@ -99,7 +107,7 @@ function bookingRecipient(b) {
 function enqueueBooking(app, b, template, category, subject, idemKey) {
   const q = queueMod()
   const t = tplMod()
-  const isTestRide = b.getString("type") === "test_ride"
+  const isTestRide = isTestRideOf(b)
   const product = resolveMotorcycle(app, b.getString("motorcycle"))
   const vars = baseVars(app, bookingPayload(app, b, product))
   const recipient = bookingRecipient(b)
@@ -112,7 +120,7 @@ function enqueueBooking(app, b, template, category, subject, idemKey) {
     priority: "high",
     payload: { subject, body: "", vars },
     idempotencyKey: idemKey,
-    relatedType: "service_booking",
+    relatedType: isTestRide ? "test_ride" : "service_booking",
     relatedId: b.id,
   })
 }
@@ -120,7 +128,7 @@ function enqueueBooking(app, b, template, category, subject, idemKey) {
 // --- Service booking / test ride received (customer) ---
 function bookingReceived(app, b) {
   const t = tplMod()
-  const isTestRide = b.getString("type") === "test_ride"
+  const isTestRide = isTestRideOf(b)
   const key = t.bookingTemplateKey("pending", isTestRide)
   return enqueueBooking(
     app, b, key, isTestRide ? "test_rides" : "bookings",
@@ -132,9 +140,10 @@ function bookingReceived(app, b) {
 // --- Admin notified of a new booking ---
 function bookingNewAdmin(app, b) {
   const t = tplMod()
-  const isTestRide = b.getString("type") === "test_ride"
+  const isTestRide = isTestRideOf(b)
   const product = resolveMotorcycle(app, b.getString("motorcycle"))
   const vars = baseVars(app, bookingPayload(app, b, product))
+  vars.bookingAdminUrl = (app.settings().meta.appURL || "") + (isTestRide ? "/dashboard/test-rides" : "/dashboard/service-bookings")
   const subject = "New " + (isTestRide ? "test ride" : "booking") + ": " + vars.customerName + " — " + vars.motorcycleName
   return enqueueAdminRole(app, "admin", {
     template: "booking_new_admin",
@@ -142,7 +151,7 @@ function bookingNewAdmin(app, b) {
     priority: "high",
     payload: { subject, body: "", vars },
     idempotencyKey: "booking-new-admin:" + b.id,
-    relatedType: "service_booking",
+    relatedType: isTestRide ? "test_ride" : "service_booking",
     relatedId: b.id,
   })
 }
@@ -151,7 +160,7 @@ function bookingNewAdmin(app, b) {
 function bookingStatusChanged(app, b, oldStatus) {
   const t = tplMod()
   const status = b.getString("status") || "pending"
-  const isTestRide = b.getString("type") === "test_ride"
+  const isTestRide = isTestRideOf(b)
   const key = t.bookingTemplateKey(status, isTestRide)
   const label = String(status).replace(/_/g, " ").toUpperCase()
   return enqueueBooking(
@@ -379,4 +388,5 @@ module.exports = {
   financingStatusChanged,
   enqueueAdminRole,
   resolveMotorcycle,
+  isTestRideOf,
 }

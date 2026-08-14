@@ -6,6 +6,7 @@ export interface BlogPost {
   title: string
   slug: string
   content: string
+  content_json?: unknown
   excerpt: string
   author: string
   image: string[]

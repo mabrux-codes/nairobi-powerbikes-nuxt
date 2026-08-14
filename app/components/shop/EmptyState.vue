@@ -29,28 +29,35 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { RotateCcw, SearchX, PackageX, Shirt } from 'lucide-vue-next'
+import { RotateCcw, SearchX, PackageX, Shirt, Newspaper } from 'lucide-vue-next'
 
 const props = withDefaults(defineProps<{
-  kind: 'bike' | 'accessory' | 'apparel'
+  kind: 'bike' | 'accessory' | 'apparel' | 'blog'
+  title?: string
+  description?: string
   onClear?: () => void
 }>(), {})
 
 const title = computed(() => {
+  if (props.title) return props.title
   if (props.kind === 'bike') return 'No Motorcycles Found'
   if (props.kind === 'accessory') return 'No Accessories Found'
+  if (props.kind === 'blog') return 'No Articles Found'
   return 'No Apparel Available'
 })
 
 const message = computed(() => {
+  if (props.description) return props.description
   if (props.kind === 'bike') return 'We couldn\'t find any motorcycles matching your criteria. Try adjusting your filters or explore our full collection.'
   if (props.kind === 'accessory') return 'No accessories match your current filters. Clear them to browse everything we have in stock.'
+  if (props.kind === 'blog') return 'No articles match your current filters. Clear them to browse all our posts.'
   return 'No apparel matches your current filters. Clear them to browse our full riding collection.'
 })
 
 const icon = computed(() => {
   if (props.kind === 'bike') return SearchX
   if (props.kind === 'accessory') return PackageX
+  if (props.kind === 'blog') return Newspaper
   return Shirt
 })
 </script>

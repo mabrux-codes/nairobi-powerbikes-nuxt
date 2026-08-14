@@ -96,7 +96,7 @@
                 <ShopProductCard
                   :item="a"
                   kind="apparel"
-                  :href="`/apparel/${a.id}`"
+                  :href="apparelPath(a)"
                   :saved="wishlist.isSaved('apparel', a.id)"
                   @toggle-wishlist="wishlist.toggle('apparel', a)"
                   @quick-view="openQuickView(a)"
@@ -138,6 +138,7 @@ import { motion } from 'motion-v'
 import { Search, SlidersHorizontal, RotateCcw, Bike, Package } from 'lucide-vue-next'
 import { useDebounceFn } from '@vueuse/core'
 import { useCatalogStore } from '~/stores/catalog'
+import { apparelPath } from '~/utils/paths'
 import { useWishlist } from '~/composables/useWishlist'
 import { useCatalogFilters, SORT_OPTIONS } from '~/composables/useCatalogFilters'
 

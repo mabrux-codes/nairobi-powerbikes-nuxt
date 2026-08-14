@@ -337,7 +337,7 @@ def("booking_new_admin", { category: "admin", name: "New Booking (Admin)", marke
       { label: "Branch", value: vars.branchName },
       { label: "Reference", value: vars.bookingReference, strong: true },
     ]) +
-    components.button(t, "Open Bookings", vars.siteUrl + "/dashboard/service-bookings", { mt: 28 }),
+    components.button(t, "Open Bookings", vars.bookingAdminUrl || vars.siteUrl + "/dashboard/service-bookings", { mt: 28 }),
 }))
 
 def("booking_reminder", { category: "bookings", name: "Booking Reminder (Same Day)", marketing: false, mode: "light" }, (t, vars) => ({

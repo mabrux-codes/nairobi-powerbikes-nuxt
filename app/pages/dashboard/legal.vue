@@ -61,15 +61,14 @@
         </div>
         <div>
           <div class="mb-1.5 flex items-center justify-between">
-            <label class="block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Content (HTML)</label>
-            <span class="text-[10px] text-brand-grey/50">h2 headings become the table of contents</span>
+            <label class="block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Content</label>
+            <span class="text-[10px] text-brand-grey/50">Headings become the table of contents</span>
           </div>
-          <textarea
-            v-model="form.body"
-            rows="18"
-            spellcheck="false"
-            class="w-full resize-y rounded-xl border border-brand-grey/25 bg-brand-black/70 p-3 font-mono text-xs leading-relaxed text-brand-light placeholder:text-brand-grey/40 focus:border-brand-red/60 focus:outline-none focus:ring-2 focus:ring-brand-red/20"
-            placeholder="<h2>1. Section title</h2>&#10;<p>Content…</p>"
+          <AdminRichTextEditor
+            v-model="form.content_json"
+            :legacy-content="legacyBody"
+            :legacy-format="'html'"
+            placeholder="Write the document content here…"
           />
         </div>
         <div v-if="editingVersionId" class="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-400">
@@ -124,7 +123,7 @@
     <!-- ============ Preview drawer ============ -->
     <AdminDrawer :open="!!previewRec" :title="previewTitle" subtitle="Rendered content preview" @close="previewRec = null">
       <div class="legal-prose max-h-[70dvh] overflow-y-auto rounded-xl border border-brand-grey/10 bg-white/[0.02] p-5">
-        <p v-html="previewRec?.body || '<p>Empty version.</p>'" />
+        <div v-html="previewHtml" />
       </div>
       <template #footer>
         <Button variant="ghost" @click="previewRec = null">Close</Button>
@@ -141,7 +140,7 @@
             <StatusChip :status="compareRec?.status || 'draft'" size="sm" />
           </p>
           <div class="legal-prose max-h-[62dvh] overflow-y-auto rounded-xl border border-brand-grey/10 bg-white/[0.02] p-4">
-            <p v-html="compareRec?.body || '<p>Empty.</p>'" />
+            <div v-html="compareHtml" />
           </div>
         </div>
         <div>
@@ -151,7 +150,7 @@
             <StatusChip status="published" size="sm" />
           </p>
           <div class="legal-prose max-h-[62dvh] overflow-y-auto rounded-xl border border-brand-grey/10 bg-white/[0.02] p-4">
-            <p v-html="compareCurrent?.body || '<p>Nothing published yet.</p>'" />
+            <div v-html="compareCurrentHtml" />
           </div>
         </div>
       </div>
@@ -165,6 +164,8 @@ import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import { useConfirm } from '~/composables/useConfirm'
 import { useAuthStore } from '~/stores/auth'
+import { isValidRichDoc, richDocToHTML } from '~/utils/richText'
+import { sanitizeHtml } from '~/composables/useSanitize'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Legal Pages - Nairobi Powerbikes' })
@@ -186,7 +187,8 @@ const saving = ref(false)
 const editorOpen = ref(false)
 const editSlug = ref('terms')
 const editingVersionId = ref<string | null>(null)
-const form = ref({ title: '', description: '', body: '' })
+const form = ref({ title: '', description: '', body: '', content_json: null as unknown })
+const legacyBody = ref('')
 
 const historyOpen = ref(false)
 const historySlug = ref('terms')
@@ -231,6 +233,15 @@ const historyTitle = computed(() => `${SLUGS.find(s => s.slug === historySlug.va
 const historyVersions = computed(() => versionsOf(historySlug.value))
 const previewTitle = computed(() => `v${previewRec.value?.version || '?'} — ${previewRec.value?.title || 'Preview'}`)
 const compareTitle = computed(() => `${SLUGS.find(s => s.slug === compareRec.value?.slug)?.label || 'Document'} — Compare`)
+const previewHtml = computed(() => richHtmlOf(previewRec.value) || '<p>Empty version.</p>')
+const compareHtml = computed(() => richHtmlOf(compareRec.value) || '<p>Empty.</p>')
+const compareCurrentHtml = computed(() => richHtmlOf(compareCurrent.value) || '<p>Nothing published yet.</p>')
+
+function richHtmlOf(rec: any) {
+  if (!rec) return ''
+  if (isValidRichDoc(rec.content_json)) return richDocToHTML(rec.content_json)
+  return sanitizeHtml(rec.body || '')
+}
 const compareCurrent = computed(() => (compareRec.value ? publishedOf(compareRec.value.slug) : null))
 
 function adminName() {
@@ -246,9 +257,18 @@ function openEditor(slug: string) {
     title: src?.title || SLUGS.find(s => s.slug === slug)?.label || '',
     description: src?.description || '',
     body: src?.body || '',
+    content_json: src?.content_json && isValidRichDoc(src.content_json) ? src.content_json : null,
   }
+  legacyBody.value = src?.body || ''
   editingVersionId.value = draft?.id || null
   editorOpen.value = true
+}
+
+function applyRichBody(target: any) {
+  if (isValidRichDoc(form.value.content_json)) {
+    target.content_json = form.value.content_json
+    target.body = richDocToHTML(form.value.content_json)
+  }
 }
 
 async function saveDraft() {
@@ -259,6 +279,7 @@ async function saveDraft() {
   saving.value = true
   try {
     const data: any = { title: form.value.title, description: form.value.description, body: form.value.body, status: 'draft', created_by: adminName() }
+    applyRichBody(data)
     if (editingVersionId.value) {
       await pb.collection('legal_pages').update(editingVersionId.value, data)
       toast.add({ type: 'success', title: 'Draft updated' })
@@ -297,9 +318,12 @@ async function publish() {
         version: maxVersion(editSlug.value) + 1,
         created_by: by,
       })
+      applyRichBody(rec)
       targetId = rec.id
     }
-    await pb.collection('legal_pages').update(targetId, { status: 'published', published_at: now, published_by: by })
+    const pubPayload: any = { status: 'published', published_at: now, published_by: by }
+    if (form.value.content_json) applyRichBody(pubPayload)
+    await pb.collection('legal_pages').update(targetId, pubPayload)
     const stale = versionsOf(editSlug.value).filter(v => v.status === 'published' && v.id !== targetId)
     for (const s of stale) {
       await pb.collection('legal_pages').update(s.id, { status: 'archived', archived_at: now })

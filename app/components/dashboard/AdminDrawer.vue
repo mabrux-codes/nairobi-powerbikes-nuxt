@@ -12,6 +12,7 @@
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="emit('close')" />
         <div
           class="absolute right-0 top-0 h-full w-full sm:max-w-lg flex flex-col border-l border-brand-grey/20 bg-[#111114] shadow-2xl shadow-black/60"
+          :class="props.wide ? 'sm:max-w-3xl lg:max-w-4xl' : ''"
         >
           <header class="flex items-center justify-between gap-4 px-5 sm:px-6 py-4 border-b border-brand-grey/15 bg-brand-black/60 shrink-0">
             <div class="min-w-0">
@@ -41,10 +42,11 @@
 </template>
 
 <script setup lang="ts">
-const props = withDefaults(defineProps<{ open: boolean; title?: string; subtitle?: string; hideOnEscape?: boolean }>(), {
+const props = withDefaults(defineProps<{ open: boolean; title?: string; subtitle?: string; hideOnEscape?: boolean; wide?: boolean }>(), {
   title: '',
   subtitle: '',
   hideOnEscape: true,
+  wide: false,
 })
 const emit = defineEmits<{ close: [] }>()
 

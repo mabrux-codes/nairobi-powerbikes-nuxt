@@ -619,7 +619,7 @@ const filtered = computed(() => {
 function handleRealtime(e: any) {
   const record = e.record as Booking
   const userId = auth.user?.id
-  if (record.user !== userId || record.type !== 'service') return
+  if (record.user !== userId) return
   if (e.action === 'delete') {
     allBookings.value = allBookings.value.filter(b => b.id !== record.id)
   } else {
@@ -637,7 +637,7 @@ onMounted(async () => {
   try {
     const uid = auth.user?.id
     const res = await pb.collection('service_bookings').getList(1, 100, {
-      filter: `type="service" && user = "${uid}"`,
+      filter: `user = "${uid}"`,
       sort: '-created',
     }).catch(() => ({ items: [] }))
     allBookings.value = res.items as Booking[]

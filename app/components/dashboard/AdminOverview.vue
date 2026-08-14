@@ -609,7 +609,7 @@ const fleetTotal = computed(() => store.motorcycles.length)
 const upcoming = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const flat = [...store.serviceBookings, ...store.testRides]
+  const flat = [...store.serviceBookings.map(b => ({ ...b, type: 'service' })), ...store.testRides.map(b => ({ ...b, type: 'test_ride' }))]
     .map(b => ({ ...b, _date: new Date(b.preferred_date).getTime() }))
     .filter(b => !isNaN(b._date) && b._date >= today.getTime() && b.status !== 'cancelled')
     .sort((a, b) => a._date - b._date)

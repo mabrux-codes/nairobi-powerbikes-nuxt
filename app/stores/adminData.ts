@@ -13,6 +13,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
   const lastUpdated = ref('')
 
   const bookings = ref<any[]>([])
+  const testRides = ref<any[]>([])
   const motorcycles = ref<any[]>([])
   const accessories = ref<any[]>([])
   const apparel = ref<any[]>([])
@@ -27,8 +28,9 @@ export const useAdminDataStore = defineStore('adminData', () => {
   const financing = ref<any[]>([])
   const inventoryTransactions = ref<any[]>([])
 
-  const serviceBookings = computed(() => bookings.value.filter(b => (b.type || 'service') === 'service'))
-  const testRides = computed(() => bookings.value.filter(b => b.type === 'test_ride'))
+  // Test rides were split into their own `test_rides` collection, so
+  // service_bookings only ever holds service bookings now.
+  const serviceBookings = computed(() => bookings.value)
   const subscriberCount = computed(() => subscribers.value.length)
   const unreadContacts = computed(() => contacts.value.filter(c => !c.read).length)
 
@@ -55,6 +57,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
 
   const COLLECTIONS = {
     service_bookings: bookings,
+    test_rides: testRides,
     motorcycles,
     accessories,
     apparel,
@@ -82,31 +85,34 @@ export const useAdminDataStore = defineStore('adminData', () => {
     })
   }
 
-  function toastForBooking(record: any) {
+  function toastForServiceBooking(record: any) {
     const name = record.expand?.user?.name || record.name || 'Guest'
-    if ((record.type || 'service') === 'test_ride') {
-      enqueueToast({
-        type: 'test_ride',
-        title: 'New Test Ride Request',
-        message: `${name} requested a test ride${record.motorcycle ? ` on ${record.motorcycle}` : ''}.`,
-        to: `/dashboard/test-rides?edit=${record.id}`,
-      }, `test_ride:${record.id}`)
-    } else {
-      enqueueToast({
-        type: 'booking',
-        title: 'New Service Booking',
-        message: `${name} booked a service${record.service_type ? ` (${record.service_type})` : ''}.`,
-        to: `/dashboard/service-bookings?edit=${record.id}`,
-      }, `booking:${record.id}`)
-    }
+    enqueueToast({
+      type: 'booking',
+      title: 'New Service Booking',
+      message: `${name} booked a service${record.service_type ? ` (${record.service_type})` : ''}.`,
+      to: `/dashboard/service-bookings?edit=${record.id}`,
+    }, `booking:${record.id}`)
+  }
+
+  function toastForTestRide(record: any) {
+    const name = record.expand?.user?.name || record.name || 'Guest'
+    enqueueToast({
+      type: 'test_ride',
+      title: 'New Test Ride Request',
+      message: `${name} requested a test ride${record.motorcycle ? ` on ${record.motorcycle}` : ''}.`,
+      to: `/dashboard/test-rides?edit=${record.id}`,
+    }, `test_ride:${record.id}`)
   }
 
   function handleEvent(coll: string, action: string, record: any) {
     applyDelta(coll as keyof typeof COLLECTIONS, action, record)
     if (!record) return
 
-    if (coll === 'service_bookings' && action === 'create') {
-      toastForBooking(record)
+    if (coll === 'test_rides' && action === 'create') {
+      toastForTestRide(record)
+    } else if (coll === 'service_bookings' && action === 'create') {
+      toastForServiceBooking(record)
     } else if (coll === 'contacts' && action === 'create') {
       enqueueToast({
         type: 'contact',
@@ -142,8 +148,9 @@ export const useAdminDataStore = defineStore('adminData', () => {
 
   async function fetchAll() {
     const opts: any = { sort: '-created' }
-    const [b, m, a, ap, u, c, s, br, ca, r, sl, pm, fi, tx] = await Promise.all([
+    const [b, tr, m, a, ap, u, c, s, br, ca, r, sl, pm, fi, tx] = await Promise.all([
       pb.collection('service_bookings').getFullList({ ...opts, expand: 'user' }).catch(() => []),
+      pb.collection('test_rides').getFullList({ ...opts, expand: 'user' }).catch(() => []),
       pb.collection('motorcycles').getFullList(opts).catch(() => []),
       pb.collection('accessories').getFullList(opts).catch(() => []),
       pb.collection('apparel').getFullList(opts).catch(() => []),
@@ -159,6 +166,7 @@ export const useAdminDataStore = defineStore('adminData', () => {
       pb.collection('inventory_transactions').getFullList({ ...opts, expand: 'motorcycle,related_sale' }).catch(() => []),
     ])
     bookings.value = sortCreated(b as any[])
+    testRides.value = sortCreated(tr as any[])
     motorcycles.value = sortCreated(m as any[])
     accessories.value = sortCreated(a as any[])
     apparel.value = sortCreated(ap as any[])
@@ -216,16 +224,27 @@ export const useAdminDataStore = defineStore('adminData', () => {
 
   async function release() {
     refCount = Math.max(0, refCount - 1)
-    if (refCount === 0 && subscribed) {
-      subscribed = false
-      try {
-        pb.collection('service_bookings').unsubscribe('*')
-      } catch { /* ignore */ }
-      try {
-        pb.realtime.onDisconnect = undefined
-      } catch { /* ignore */ }
-      ready.value = false
-      initPromise = null
+    if (refCount === 0) {
+      // Dashboard pages are wrapped in a page transition, so the outgoing
+      // page's onUnmounted (and thus release) fires AFTER the incoming page's
+      // ensureActive. Give the next page a moment to claim the store before
+      // tearing anything down — otherwise it is stuck on the loading skeleton.
+      setTimeout(() => {
+        if (refCount !== 0) return
+        if (subscribed) {
+          subscribed = false
+          for (const coll of Object.keys(COLLECTIONS)) {
+            try {
+              pb.collection(coll).unsubscribe('*')
+            } catch { /* ignore */ }
+          }
+          try {
+            pb.realtime.onDisconnect = undefined
+          } catch { /* ignore */ }
+        }
+        ready.value = false
+        initPromise = null
+      }, 600)
     }
   }
 

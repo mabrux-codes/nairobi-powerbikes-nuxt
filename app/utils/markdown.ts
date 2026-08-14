@@ -12,6 +12,7 @@ function inline(s: string): string {
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />')
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-brand-red underline underline-offset-4">$1</a>')
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" class="text-brand-red underline underline-offset-4">$1</a>')
 }
@@ -87,9 +88,9 @@ export function renderMarkdown(src: string): string {
       continue
     }
 
-    if (/^&gt;\s*/.test(line)) {
+    if (/^>\s*/.test(line)) {
       closeList(); closePara()
-      out.push(`<blockquote>${inline(line.replace(/^&gt;\s*/, ''))}</blockquote>`)
+      out.push(`<blockquote>${inline(line.replace(/^>\s*/, ''))}</blockquote>`)
       continue
     }
 

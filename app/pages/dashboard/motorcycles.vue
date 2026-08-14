@@ -234,6 +234,7 @@
                 <button class="mt-1.5 inline-flex items-center gap-1 text-[11px] text-brand-grey hover:text-brand-red transition-colors" @click="openReminders(m)"><BellRing class="h-3 w-3" />Waiting: {{ waitingCount(m.id) }}</button>
               </td>
               <td class="px-4 py-3 text-right whitespace-nowrap">
+                <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Copy link" @click="copyLink(m)"><LinkIcon class="h-4 w-4" /></button>
                 <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Edit" @click="openEditModal(m)"><Pencil class="h-4 w-4" /></button>
                 <button class="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500/15 rounded-md transition-colors" title="Delete" @click="confirmDelete(m)"><Trash2 class="h-4 w-4" /></button>
               </td>
@@ -278,7 +279,7 @@
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Name *</label>
                   <Input v-model="form.name" placeholder="e.g. Ninja ZX-6R" />
                 </div>
-                <Input v-model="form.slug" label="Slug" placeholder="ninja-zx-6r" />
+                <SlugField v-model="form.slug" :title="form.name" path="/motorcycles/" :was-published="!!editingId" label="URL Slug" />
                 <div>
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Brand</label>
                   <select v-model="form.brand" class="input-field w-full"><option value="">Select brand</option><option v-for="b in store.brands" :key="b.id" :value="b.id">{{ b.name }}</option></select>
@@ -395,7 +396,7 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
 import {
-  Bike, Plus, Search, X, Star, LayoutGrid, List, Check, ExternalLink, Pencil,
+  Bike, Plus, Search, X, Star, LayoutGrid, List, Check, ExternalLink, Pencil, Link as LinkIcon,
   Trash2, PackageCheck, Clock3, Wallet, Tag, Sparkles, Minus, BellRing, Boxes, AlertTriangle, PackageX, TrendingUp,
 } from 'lucide-vue-next'
 import StatusChip from '~/components/dashboard/StatusChip.vue'

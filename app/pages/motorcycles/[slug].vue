@@ -143,7 +143,13 @@
 
             <div class="mt-4 flex flex-wrap gap-3">
               <Button variant="secondary" @click="enquiryOpen = true"><MessageSquare class="h-4 w-4" />Make an Enquiry</Button>
-              <Button variant="ghost" @click="share"><Share2 class="h-4 w-4" />Share</Button>
+              <ShareButton
+                :title="item.name"
+                :description="item.description"
+                :image="mainImageUrl"
+                type="motorcycle"
+                variant="ghost"
+              />
             </div>
 
             <div class="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 text-xs text-brand-grey">
@@ -224,7 +230,7 @@
               :key="a.id"
               :item="a"
               kind="accessory"
-              :href="`/accessories/${a.id}`"
+              :href="accessoryPath(a)"
               :saved="wishlist.isSaved('accessory', a.id)"
               @toggle-wishlist="wishlist.toggle('accessory', a)"
               @quick-view="quickViewItem = a; quickViewOpen = true"
@@ -247,7 +253,7 @@
               :key="ap.id"
               :item="ap"
               kind="apparel"
-              :href="`/apparel/${ap.id}`"
+              :href="apparelPath(ap)"
               :saved="wishlist.isSaved('apparel', ap.id)"
               @toggle-wishlist="wishlist.toggle('apparel', ap)"
               @quick-view="quickViewItem = ap; quickViewOpen = true"
@@ -303,12 +309,12 @@
 import { motion } from 'motion-v'
 import {
   ChevronRight, Move3D, Heart, Scale, CalendarClock, BadgeDollarSign,
-  MessageSquare, Share2, ShieldCheck, PackageCheck, MapPin, X, BellRing,
+  MessageSquare, ShieldCheck, PackageCheck, MapPin, X, BellRing,
 } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog'
+import { accessoryPath, apparelPath } from '~/utils/paths'
 import { useWishlist } from '~/composables/useWishlist'
 import { usePB } from '~/composables/usePocketBase'
-import { useToast } from '~/composables/useToast'
 import { stockOf, getStockStatus, isOutOfStock as isStockOut } from '~/utils/stockStatus'
 import ArrivalReminder from '~/components/motorcycles/ArrivalReminder.vue'
 import type { CatalogKind } from '~/composables/useCatalogFilters'
@@ -318,7 +324,6 @@ useHead({ title: 'Motorcycle Details - Nairobi Powerbikes' })
 const route = useRoute()
 const store = useCatalogStore()
 const pb = usePB()
-const toast = useToast()
 const wishlist = useWishlist()
 
 const loading = ref(true)
@@ -344,7 +349,24 @@ const item = computed(() => {
 
 watch(item, (b) => {
   if (b) {
-    useHead({ title: `${b.name} - Nairobi Powerbikes` })
+    const desc = String(b.description || '').replace(/[#*`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160)
+    useHead({
+      title: `${b.name} - Nairobi Powerbikes`,
+      meta: [
+        { name: 'description', content: desc },
+        { name: 'robots', content: 'index, follow' },
+        { property: 'og:title', content: b.name },
+        { property: 'og:description', content: desc },
+        { property: 'og:type', content: 'product' },
+        { property: 'og:url', content: canonicalUrl(b.slug) },
+        { property: 'og:image', content: mainImageUrl.value },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: b.name },
+        { name: 'twitter:description', content: desc },
+        { name: 'twitter:image', content: mainImageUrl.value },
+      ],
+      link: [{ rel: 'canonical', href: canonicalUrl(b.slug) }],
+    })
     activeImage.value = 0
   }
 })
@@ -356,6 +378,12 @@ const mainImageUrl = computed(() => {
   if (!list.length) return ''
   return pb.files.getURL(item.value, list[Math.min(activeImage.value, list.length - 1)], { thumb: '1200x0' })
 })
+
+function canonicalUrl(slug: string) {
+  const config = useRuntimeConfig()
+  const site = String(config.public.siteUrl || '').replace(/\/$/, '')
+  return `${site}/motorcycles/${encodeURIComponent(slug)}`
+}
 
 const brandName = computed(() => item.value?.brand_name || item.value?.expand?.brand?.name || 'Nairobi Powerbikes')
 const metaLine = computed(() => {
@@ -477,8 +505,8 @@ const quickViewHref = computed(() => {
   if (!t) return '#'
   const k = quickViewKind.value
   if (k === 'bike') return bikePath(t)
-  if (k === 'accessory') return `/accessories/${t.id}`
-  return `/apparel/${t.id}`
+  if (k === 'accessory') return accessoryPath(t)
+  return apparelPath(t)
 })
 const quickViewSaved = computed(() => {
   const t = quickViewItem.value
@@ -501,23 +529,6 @@ function openReminder(b: any) {
 function formatPrice(v: number) { return `KSh ${Number(v).toLocaleString('en-KE')}` }
 
 function addToCompare() { navigateTo('/motorcycles/compare') }
-
-async function share() {
-  if (!item.value) return
-  const url = window.location.href
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: item.value.name, url })
-      return
-    }
-  } catch { /* user dismissed */ }
-  try {
-    await navigator.clipboard.writeText(url)
-    toast.add({ type: 'success', title: 'Link copied', message: 'Share link copied to clipboard.' })
-  } catch {
-    toast.add({ type: 'info', title: 'Share', message: url })
-  }
-}
 
 // drag-to-rotate between gallery images
 const dragState = { x: 0, dragging: false }
@@ -544,6 +555,15 @@ onMounted(async () => {
     wishlist.load(),
     pb.collection('branches').getFullList({ sort: 'sort_order' }).then(r => { branches.value = r }).catch(() => {}),
   ])
+  const b = item.value
+  if (!b) {
+    showError({ statusCode: 404, statusMessage: 'Motorcycle not found' })
+    return
+  }
+  const param = String(route.params.slug || '')
+  if (b.slug && b.slug !== param) {
+    await navigateTo(`/motorcycles/${b.slug}`, { replace: true })
+  }
 })
 
 onUnmounted(() => { store.release() })

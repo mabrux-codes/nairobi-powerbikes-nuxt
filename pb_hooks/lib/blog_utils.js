@@ -3,22 +3,13 @@
 /// NOTE: PB JSVM hook callbacks run in isolated contexts and cannot access
 /// module-level bindings, so callbacks must `require` this file explicitly.
 
-function slugify(text) {
-  return String(text || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-}
-
 function estimateReadingTime(content) {
   const words = String(content || "").split(/\s+/).filter(Boolean).length
   return Math.max(1, Math.round(words / 200))
 }
 
 function normalizePost(e) {
+  const { slugify, ensureUnique } = require(__hooks + "/lib/slug_utils.js")
   const r = e.record
   let status = r.getString("status") || (r.getBool("published") ? "published" : "draft")
   if (!["draft", "published", "scheduled", "archived"].includes(status)) status = "draft"
@@ -38,11 +29,9 @@ function normalizePost(e) {
   }
 
   if (!r.getString("slug")) {
-    let slug = slugify(r.getString("title"))
-    if (slug) {
-      const dup = e.app.findRecordsByFilter("blog_posts", "slug = {:s}", "", 1, 0, { s: slug })
-      if (dup.length > 0 && dup[0].id !== r.id) slug = slug + "-" + Math.random().toString(36).slice(2, 6)
-      r.set("slug", slug)
+    const base = slugify(r.getString("title"))
+    if (base) {
+      r.set("slug", ensureUnique(e.app, "blog_posts", base, r.id))
     }
   }
 
@@ -112,4 +101,4 @@ function notifyIfPublished(e) {
   }
 }
 
-module.exports = { slugify, estimateReadingTime, normalizePost, unfeatureOthers, notifyIfPublished }
+module.exports = { estimateReadingTime, normalizePost, unfeatureOthers, notifyIfPublished }

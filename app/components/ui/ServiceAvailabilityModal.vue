@@ -362,7 +362,7 @@ function selectDay(cell: DayCell) {
 async function loadBookings() {
   try {
     const res = await pb.collection('service_bookings').getFullList<Booking>({
-      filter: `type = "service" && preferred_date >= "${todayISO()}" && preferred_date <= "${rangeEnd.value}"`,
+      filter: `preferred_date >= "${todayISO()}" && preferred_date <= "${rangeEnd.value}"`,
       fields: 'id,preferred_date,preferred_time,branch',
       sort: 'preferred_date',
     })

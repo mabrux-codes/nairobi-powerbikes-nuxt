@@ -90,37 +90,42 @@ function runAll(app) {
     app.logger().error("automation payment-reminder: " + (err && err.message))
   }
 
-  // Booking reminders: confirmed bookings happening today.
+  // Booking reminders: confirmed bookings happening today (both service
+  // bookings and test rides — they live in separate collections).
   try {
     const q = queueMod()
     const t = tplMod()
     const tx = txMod()
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const bookings = app.findRecordsByFilter(
-      "service_bookings",
-      "status = {:s} && preferred_date = {:d}",
-      "",
-      200,
-      0,
-      { s: "confirmed", d: today.toISOString().slice(0, 10) },
-    )
-    for (const b of bookings) {
-      const product = tx.resolveMotorcycle(app, b.getString("motorcycle"))
-      const vars = t.deepMergeVars(t.DEFAULT_VARS(app), tx.bookingPayload(app, b, product))
-      const recipient = tx.bookingRecipient(b)
-      if (!recipient) continue
-      q.enqueueEmail(app, {
-        recipient,
-        recipientName: b.getString("name") || "",
-        template: "booking_reminder",
-        category: "bookings",
-        priority: "high",
-        payload: { subject: "Reminder: your booking is today — " + vars.motorcycleName, body: "", vars },
-        idempotencyKey: "booking-reminder:" + b.id + ":" + today.toISOString().slice(0, 10),
-        relatedType: "service_booking",
-        relatedId: b.id,
-      })
+    const colls = ["service_bookings", "test_rides"]
+    for (const coll of colls) {
+      const bookings = app.findRecordsByFilter(
+        coll,
+        "status = {:s} && preferred_date = {:d}",
+        "",
+        200,
+        0,
+        { s: "confirmed", d: today.toISOString().slice(0, 10) },
+      )
+      for (const b of bookings) {
+        const isTestRide = tx.isTestRideOf(b)
+        const product = tx.resolveMotorcycle(app, b.getString("motorcycle"))
+        const vars = t.deepMergeVars(t.DEFAULT_VARS(app), tx.bookingPayload(app, b, product))
+        const recipient = tx.bookingRecipient(b)
+        if (!recipient) continue
+        q.enqueueEmail(app, {
+          recipient,
+          recipientName: b.getString("name") || "",
+          template: isTestRide ? "test_ride_reminder" : "booking_reminder",
+          category: isTestRide ? "test_rides" : "bookings",
+          priority: "high",
+          payload: { subject: "Reminder: your " + (isTestRide ? "test ride" : "booking") + " is today — " + vars.motorcycleName, body: "", vars },
+          idempotencyKey: (isTestRide ? "test-ride-reminder:" : "booking-reminder:") + b.id + ":" + today.toISOString().slice(0, 10),
+          relatedType: isTestRide ? "test_ride" : "service_booking",
+          relatedId: b.id,
+        })
+      }
     }
   } catch (err) {
     app.logger().error("automation booking-reminder: " + (err && err.message))

@@ -166,6 +166,7 @@
               <td class="px-4 py-3 text-sm font-semibold text-brand-red">KSh {{ formatPrice(a.price) }}</td>
               <td class="px-4 py-3"><StatusChip :status="a.in_stock ? 'in_stock' : 'out_of_stock'" size="sm" /></td>
               <td class="px-4 py-3 text-right whitespace-nowrap">
+                <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Copy link" @click="copyLink(a)"><LinkIcon class="h-4 w-4" /></button>
                 <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Edit" @click="openEditModal(a)"><Pencil class="h-4 w-4" /></button>
                 <button class="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500/15 rounded-md transition-colors" title="Delete" @click="confirmDelete(a)"><Trash2 class="h-4 w-4" /></button>
               </td>
@@ -206,6 +207,7 @@
             </div>
             <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4 scrollbar-thin">
               <Input v-model="form.name" label="Name" placeholder="Apparel name" />
+              <SlugField v-model="form.slug" :title="form.name" path="/apparel/" :was-published="!!editingId" label="URL Slug" />
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label class="mb-1.5 block text-xs font-display tracking-display text-brand-grey uppercase">Type</label>
@@ -251,7 +253,7 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { Plus, Search, X, Shirt, LayoutGrid, List, Check, Pencil, Trash2, Layers, Boxes, Tags } from 'lucide-vue-next'
+import { Plus, Search, X, Shirt, LayoutGrid, List, Check, Pencil, Trash2, Layers, Boxes, Tags, Link as LinkIcon } from 'lucide-vue-next'
 import StatusChip from '~/components/dashboard/StatusChip.vue'
 import RealtimeStatus from '~/components/dashboard/RealtimeStatus.vue'
 import { useAdminDataStore } from '~/stores/adminData'
@@ -293,7 +295,7 @@ const selectedIds = ref<Set<string>>(new Set())
 const sortKey = ref('name')
 const sortDir = ref<'asc' | 'desc'>('asc')
 
-const form = ref({ name: '', type: '', size: '', price: '', color: '', description: '', in_stock: true })
+const form = ref({ name: '', type: '', size: '', price: '', color: '', description: '', in_stock: true, slug: '' })
 
 const stats = computed(() => {
   const all = store.apparel
@@ -367,7 +369,7 @@ function filesUrl(rec: any, file: string) { return pb.files.getURL(rec, file) }
 
 function openCreateModal() {
   editingId.value = null
-  form.value = { name: '', type: '', size: '', price: '', color: '', description: '', in_stock: true }
+  form.value = { name: '', type: '', size: '', price: '', color: '', description: '', in_stock: true, slug: '' }
   imageItems.value = []
   mainImage.value = 0
   showModal.value = true
@@ -375,7 +377,7 @@ function openCreateModal() {
 
 function openEditModal(a: any) {
   editingId.value = a.id
-  form.value = { name: a.name, type: a.type || '', size: a.size || '', price: a.price?.toString() || '', color: a.color || '', description: a.description || '', in_stock: a.in_stock ?? true }
+  form.value = { name: a.name, type: a.type || '', size: a.size || '', price: a.price?.toString() || '', color: a.color || '', description: a.description || '', in_stock: a.in_stock ?? true, slug: a.slug || '' }
   const built = buildImageItems(a, 'image', (rec, file) => pb.files.getURL(rec, file))
   imageItems.value = built.items
   mainImage.value = built.main
@@ -383,6 +385,15 @@ function openEditModal(a: any) {
 }
 
 function closeModal() { showModal.value = false }
+
+async function copyLink(a: any) {
+  try {
+    await navigator.clipboard.writeText(`${window.location.origin}/apparel/${a.slug || a.id}`)
+    toast.add({ type: 'success', title: 'Link copied' })
+  } catch {
+    toast.add({ type: 'error', title: 'Could not copy link' })
+  }
+}
 
 async function saveItem() {
   saving.value = true
@@ -395,6 +406,7 @@ async function saveItem() {
     data.append('color', form.value.color || '')
     data.append('description', form.value.description || '')
     data.append('in_stock', form.value.in_stock ? 'true' : 'false')
+    data.append('slug', form.value.slug || '')
     appendImagePayload(data, imageItems.value, 'image')
     data.append('main_image', String(mainImage.value))
 

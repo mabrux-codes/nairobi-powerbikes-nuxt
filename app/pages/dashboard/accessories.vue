@@ -157,6 +157,7 @@
               <td class="px-4 py-3 text-sm font-semibold text-brand-red">KSh {{ formatPrice(a.price) }}</td>
               <td class="px-4 py-3"><StatusChip :status="a.in_stock ? 'in_stock' : 'out_of_stock'" size="sm" /></td>
               <td class="px-4 py-3 text-right whitespace-nowrap">
+                <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Copy link" @click="copyLink(a)"><LinkIcon class="h-4 w-4" /></button>
                 <button class="p-1.5 text-brand-grey hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Edit" @click="openEditModal(a)"><Pencil class="h-4 w-4" /></button>
                 <button class="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500/15 rounded-md transition-colors" title="Delete" @click="confirmDelete(a)"><Trash2 class="h-4 w-4" /></button>
               </td>
@@ -212,7 +213,7 @@
                 <input v-model="form.in_stock" type="checkbox" class="h-4 w-4 accent-brand-red" />
                 In Stock
               </label>
-              <Input v-model="form.slug" label="Slug" placeholder="accessory-slug" />
+              <SlugField v-model="form.slug" :title="form.name" path="/accessories/" :was-published="!!editingId" label="URL Slug" />
               <div>
                 <ImagePicker
                   v-model:items="imageItems"
@@ -236,7 +237,7 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { Plus, Search, X, Package, LayoutGrid, List, Check, Pencil, Trash2, Layers, Boxes } from 'lucide-vue-next'
+import { Plus, Search, X, Package, LayoutGrid, List, Check, Pencil, Trash2, Layers, Boxes, Link as LinkIcon } from 'lucide-vue-next'
 import StatusChip from '~/components/dashboard/StatusChip.vue'
 import RealtimeStatus from '~/components/dashboard/RealtimeStatus.vue'
 import { useAdminDataStore } from '~/stores/adminData'
@@ -364,6 +365,15 @@ function openEditModal(a: any) {
 }
 
 function closeModal() { showModal.value = false }
+
+async function copyLink(a: any) {
+  try {
+    await navigator.clipboard.writeText(`${window.location.origin}/accessories/${a.slug || a.id}`)
+    toast.add({ type: 'success', title: 'Link copied' })
+  } catch {
+    toast.add({ type: 'error', title: 'Could not copy link' })
+  }
+}
 
 async function saveItem() {
   saving.value = true

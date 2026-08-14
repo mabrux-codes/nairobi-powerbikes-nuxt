@@ -4,4 +4,5 @@
     <ChatWidget />
   </NuxtLayout>
   <ToastContainer />
+  <ShareModal />
 </template>

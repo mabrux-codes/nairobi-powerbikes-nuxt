@@ -75,7 +75,7 @@
                 <Heart class="h-5 w-5" :class="{ 'fill-brand-red text-brand-red': isSaved }" />{{ isSaved ? 'Saved' : 'Save to Wishlist' }}
               </Button>
               <Button variant="secondary" @click="enquiryOpen = true"><MessageSquare class="h-5 w-5" />Enquire</Button>
-              <Button variant="ghost" @click="share"><Share2 class="h-5 w-5" />Share</Button>
+              <ShareButton :title="item.name" :description="item.description" :image="primaryImageUrl" type="apparel" variant="ghost" />
             </div>
 
             <div class="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 text-xs text-brand-grey">
@@ -100,7 +100,7 @@
               :key="a.id"
               :item="a"
               kind="apparel"
-              :href="`/apparel/${a.id}`"
+              :href="apparelPath(a)"
               :saved="wishlist.isSaved('apparel', a.id)"
               @toggle-wishlist="wishlist.toggle('apparel', a)"
               @quick-view="quickViewItem = a; quickViewOpen = true"
@@ -124,7 +124,7 @@
               :key="a.id"
               :item="a"
               kind="accessory"
-              :href="`/accessories/${a.id}`"
+              :href="accessoryPath(a)"
               :saved="wishlist.isSaved('accessory', a.id)"
               @toggle-wishlist="wishlist.toggle('accessory', a)"
               @quick-view="quickViewItem = a; quickViewOpen = true"
@@ -159,11 +159,11 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { ChevronRight, Heart, MessageSquare, Share2, ShieldCheck, Truck } from 'lucide-vue-next'
+import { ChevronRight, Heart, MessageSquare, ShieldCheck, Truck } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog'
+import { accessoryPath, apparelPath } from '~/utils/paths'
 import { useWishlist } from '~/composables/useWishlist'
 import { usePB } from '~/composables/usePocketBase'
-import { useToast } from '~/composables/useToast'
 import type { CatalogKind } from '~/composables/useCatalogFilters'
 import ImageGallery from '~/components/motorcycles/ImageGallery.vue'
 
@@ -172,7 +172,6 @@ useHead({ title: 'Apparel Details - Nairobi Powerbikes' })
 const route = useRoute()
 const store = useCatalogStore()
 const pb = usePB()
-const toast = useToast()
 const wishlist = useWishlist()
 
 const loading = ref(true)
@@ -181,11 +180,53 @@ const quickViewItem = ref<any>(null)
 const enquiryOpen = ref(false)
 const enquiryItem = ref<any>(null)
 
-const item = computed(() => store.apparel.find(a => a.id === route.params.id) || null)
+const item = computed(() => {
+  const param = String(route.params.id || '')
+  return (
+    store.apparel.find(a => a.slug === param)
+    || store.apparel.find(a => a.id === param)
+    || null
+  )
+})
+
+const primaryImageUrl = computed(() => {
+  const it = item.value
+  if (!it) return ''
+  const files: string[] = Array.isArray(it.image) ? it.image : (it.image ? [it.image] : [])
+  const main = Math.min(Math.max(Number(it.main_image) || 0, 0), Math.max(0, files.length - 1))
+  const f = files[main] || files[0]
+  return f ? pb.files.getURL(it, f, { thumb: '1200x0' }) : ''
+})
 
 watch(item, (a) => {
-  if (a) useHead({ title: `${a.name} - Nairobi Powerbikes` })
+  if (a) {
+    const desc = String(a.description || '').replace(/[#*`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160)
+    const canon = canonicalUrl(a)
+    useHead({
+      title: `${a.name} - Nairobi Powerbikes`,
+      meta: [
+        { name: 'description', content: desc },
+        { name: 'robots', content: 'index, follow' },
+        { property: 'og:title', content: a.name },
+        { property: 'og:description', content: desc },
+        { property: 'og:type', content: 'product' },
+        { property: 'og:url', content: canon },
+        { property: 'og:image', content: primaryImageUrl.value },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: a.name },
+        { name: 'twitter:description', content: desc },
+        { name: 'twitter:image', content: primaryImageUrl.value },
+      ],
+      link: [{ rel: 'canonical', href: canon }],
+    })
+  }
 })
+
+function canonicalUrl(a: any) {
+  const config = useRuntimeConfig()
+  const site = String(config.public.siteUrl || '').replace(/\/$/, '')
+  return `${site}/apparel/${a.slug || a.id}`
+}
 
 const galleryImages = computed(() => {
   const it = item.value
@@ -230,7 +271,7 @@ const quickViewKind = computed<CatalogKind>(() => {
 const quickViewHref = computed(() => {
   const t = quickViewItem.value
   if (!t) return '#'
-  return quickViewKind.value === 'accessory' ? `/accessories/${t.id}` : `/apparel/${t.id}`
+  return quickViewKind.value === 'accessory' ? accessoryPath(t) : apparelPath(t)
 })
 const quickViewSaved = computed(() => {
   const t = quickViewItem.value
@@ -242,27 +283,19 @@ const isSaved = computed(() => item.value ? wishlist.isSaved('apparel', item.val
 
 function formatPrice(v: number) { return `KSh ${Number(v).toLocaleString('en-KE')}` }
 
-async function share() {
-  if (!item.value) return
-  const url = window.location.href
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: item.value.name, url })
-      return
-    }
-  } catch { /* user dismissed */ }
-  try {
-    await navigator.clipboard.writeText(url)
-    toast.add({ type: 'success', title: 'Link copied', message: 'Share link copied to clipboard.' })
-  } catch {
-    toast.add({ type: 'info', title: 'Share', message: url })
-  }
-}
-
 onMounted(async () => {
   await store.ensureActive()
   loading.value = false
   await wishlist.load()
+  const a = item.value
+  if (!a) {
+    showError({ statusCode: 404, statusMessage: 'Item not found' })
+    return
+  }
+  const param = String(route.params.id || '')
+  if (a.slug && a.slug !== param) {
+    await navigateTo(`/apparel/${a.slug}`, { replace: true })
+  }
 })
 
 onUnmounted(() => { store.release() })

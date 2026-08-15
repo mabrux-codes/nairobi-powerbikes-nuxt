@@ -18,6 +18,14 @@ interface PBUser {
   soundEnabled?: boolean
   email_notifications?: boolean
   sms_notifications?: boolean
+  must_change_password?: boolean
+  activated_at?: string
+  password_changed_at?: string
+  suspended_at?: string
+  suspended_by?: string
+  last_login?: string
+  invited_at?: string
+  invited_by?: string
   collectionId?: string
   collectionName?: string
   expand?: Record<string, any>
@@ -29,6 +37,8 @@ export const useAuthStore = defineStore('auth', () => {
   const userRole = computed(() => user.value?.role || null)
   const isAdmin = computed(() => userRole.value === 'admin')
   const isCustomer = computed(() => userRole.value === 'customer')
+  /** Staff invited via the onboarding flow must set a password before use. */
+  const mustChangePassword = computed(() => !!user.value?.must_change_password && user.value?.role !== 'customer')
 
   function setUser(u: PBUser | null) {
     user.value = u
@@ -66,6 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     isAdmin,
     isCustomer,
+    mustChangePassword,
     setUser,
     loadFromStorage,
     clear,

@@ -3,7 +3,7 @@
     <AdminPageHeader
       title="Branches"
       eyebrow="Business"
-      description="Manage your dealership locations, staff coverage and operating hours."
+      description="Manage your dealership locations, images, staff coverage and operating hours."
       :actions="[{ label: 'Add Branch', icon: Plus, onClick: openCreate }]"
     />
 
@@ -16,12 +16,17 @@
     </div>
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <AdminStatCard label="Total Branches" :display="branches.length" :icon="Building2" icon-bg="bg-brand-red/15" icon-color="text-brand-red" />
+      <AdminStatCard label="Active" :display="activeCount" :icon="MapPin" icon-bg="bg-emerald-500/15" icon-color="text-emerald-400" />
       <AdminStatCard label="Staff Assigned" :display="staffCount" :icon="Users" icon-bg="bg-sky-500/15" icon-color="text-sky-400" />
       <AdminStatCard label="Bookings Today" :display="bookingsToday" :icon="CalendarCheck2" icon-bg="bg-amber-500/15" icon-color="text-amber-400" />
-      <AdminStatCard label="Covered Cities" :display="cityCount" :icon="MapPin" icon-bg="bg-emerald-500/15" icon-color="text-emerald-400" />
     </div>
 
-    <AdminToolbar v-model:search="search" search-placeholder="Search branches..." />
+    <AdminToolbar v-model:search="search" search-placeholder="Search branches...">
+      <AdminSelect v-model="statusFilter" placeholder="All Status">
+        <option value="active" class="bg-brand-black">Active</option>
+        <option value="inactive" class="bg-brand-black">Inactive</option>
+      </AdminSelect>
+    </AdminToolbar>
 
     <AdminSkeleton v-if="loading" :rows="3" variant="card" />
     <AdminEmptyState
@@ -36,7 +41,7 @@
     <div v-else class="grid gap-4 lg:grid-cols-3">
       <AdminCard v-for="b in filtered" :key="b.id" class="flex flex-col">
         <div class="relative h-36 overflow-hidden rounded-xl border border-brand-grey/15 bg-brand-black">
-          <img v-if="b.image" :src="pb.files.getURL(b, b.image)" :alt="b.name" class="h-full w-full object-cover" />
+          <img v-if="mainImageUrl(b)" :src="mainImageUrl(b)" :alt="b.name" class="h-full w-full object-cover" />
           <div v-else class="flex h-full w-full items-center justify-center asphalt-grid">
             <Building2 class="h-10 w-10 text-brand-grey/40" />
           </div>
@@ -99,14 +104,18 @@
 
     <AdminDrawer :open="drawerOpen" :title="editingId ? 'Edit Branch' : 'Add Branch'" :subtitle="editingId ? 'Update branch details' : 'Register a new dealership location'" @close="closeDrawer">
       <div class="space-y-4">
-        <div>
-          <label class="mb-1.5 block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Branch Image</label>
-          <input type="file" accept="image/*" class="block w-full text-xs text-brand-grey file:mr-3 file:rounded-lg file:border-0 file:bg-brand-red file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white" @change="onImageChange" />
-          <img v-if="imagePreview" :src="imagePreview" class="mt-2 h-28 w-full rounded-xl object-cover" />
+        <div class="rounded-xl border border-brand-grey/15 bg-white/[0.02] p-3">
+          <ImagePicker
+            v-model:items="imageItems"
+            v-model:main="mainImage"
+            label="Images"
+            :categories="BRANCH_IMAGE_CATEGORIES"
+            :max="15"
+          />
         </div>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input v-model="form.name" label="Branch Name" placeholder="e.g. Nairobi HQ" />
-          <Input v-model="form.slug" label="Slug" placeholder="nairobi-hq" />
+          <SlugField v-model="form.slug" :title="form.name" path="/contact/" :was-published="!!editingId" label="URL Slug" />
         </div>
         <Input v-model="form.address" label="Address" placeholder="Street, building" />
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -119,14 +128,16 @@
           <Input v-model="form.lng" label="Longitude" type="number" placeholder="36.845" />
         </div>
         <Input v-model="form.map_url" label="Google Maps URL" placeholder="https://maps.google.com/?q=..." />
-        <div>
-          <label class="mb-1.5 block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Status</label>
-          <AdminSelect v-model="form.status">
-            <option value="active" class="bg-brand-black">Active</option>
-            <option value="inactive" class="bg-brand-black">Inactive</option>
-          </AdminSelect>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="mb-1.5 block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Status</label>
+            <AdminSelect v-model="form.status">
+              <option value="active" class="bg-brand-black">Active</option>
+              <option value="inactive" class="bg-brand-black">Inactive</option>
+            </AdminSelect>
+          </div>
+          <Input v-model="form.sort_order" label="Sort Order" type="number" placeholder="0" />
         </div>
-        <Input v-model="form.sort_order" label="Sort Order" type="number" placeholder="0" />
       </div>
       <template #footer>
         <Button variant="ghost" @click="closeDrawer">Cancel</Button>
@@ -141,6 +152,8 @@ import { Building2, Users, CalendarCheck2, MapPin, Phone, Mail, Clock, Plus, Pen
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import { useConfirm } from '~/composables/useConfirm'
+import ImagePicker from '~/components/dashboard/media/ImagePicker.vue'
+import { buildImageItems, appendImagePayload, firstFile, BRANCH_IMAGE_CATEGORIES } from '~/utils/imageTypes'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth', roles: ['admin'] })
 useHead({ title: 'Branches - Nairobi Powerbikes' })
@@ -154,15 +167,17 @@ const saving = ref(false)
 const drawerOpen = ref(false)
 const editingId = ref<string | null>(null)
 const search = ref('')
-const imageFile = ref<File | null>(null)
-const imagePreview = ref<string | null>(null)
+const statusFilter = ref('')
+const imageItems = ref<{ key: string; url: string; file?: File; name?: string; category?: string }[]>([])
+const mainImage = ref(0)
 const branches = ref<any[]>([])
 const staff = ref<any[]>([])
 const bookings = ref<any[]>([])
 const testRides = ref<any[]>([])
-const form = ref({ name: '', slug: '', address: '', phone: '', email: '', hours: '', lat: '', lng: '', map_url: '', sort_order: '0' })
+const form = ref({ name: '', slug: '', address: '', phone: '', email: '', hours: '', lat: '', lng: '', map_url: '', status: 'active', sort_order: '0' })
 
 const allBookings = computed(() => [...bookings.value, ...testRides.value])
+const activeCount = computed(() => branches.value.filter(b => (b.status || 'active') !== 'inactive').length)
 const staffCount = computed(() => staff.value.length)
 const bookingsToday = computed(() => {
   const today = new Date().toISOString().slice(0, 10)
@@ -201,9 +216,16 @@ const filtered = computed(() => {
   const q = search.value.toLowerCase()
   return branches.value.filter(b => {
     if (q && !`${b.name} ${b.address} ${b.phone} ${b.email}`.toLowerCase().includes(q)) return false
+    if (statusFilter.value && (b.status || 'active') !== statusFilter.value) return false
     return true
   })
 })
+
+function mainImageUrl(b: any): string | null {
+  const main = firstFile(b, 'images')
+  if (!main) return null
+  return pb.files.getURL(b, main)
+}
 
 function actionsFor(b: any) {
   return [
@@ -215,50 +237,47 @@ function actionsFor(b: any) {
 
 function openCreate() {
   editingId.value = null
-  form.value = { name: '', slug: '', address: '', phone: '', email: '', hours: '', lat: '', lng: '', map_url: '', sort_order: '0' }
-  imageFile.value = null
-  imagePreview.value = null
+  form.value = { name: '', slug: '', address: '', phone: '', email: '', hours: '', lat: '', lng: '', map_url: '', status: 'active', sort_order: '0' }
+  imageItems.value = []
+  mainImage.value = 0
   drawerOpen.value = true
 }
 
 function openEdit(b: any) {
   editingId.value = b.id
-  form.value = { name: b.name, slug: b.slug || '', address: b.address || '', phone: b.phone || '', email: b.email || '', hours: b.hours || '', lat: b.lat?.toString() || '', lng: b.lng?.toString() || '', map_url: b.map_url || '', sort_order: b.sort_order?.toString() || '0' }
-  imageFile.value = null
-  imagePreview.value = b.image ? pb.files.getURL(b, b.image) : null
+  form.value = { name: b.name, slug: b.slug || '', address: b.address || '', phone: b.phone || '', email: b.email || '', hours: b.hours || '', lat: b.lat?.toString() || '', lng: b.lng?.toString() || '', map_url: b.map_url || '', status: b.status || 'active', sort_order: b.sort_order?.toString() || '0' }
+  const built = buildImageItems(b, 'images', (rec, file) => pb.files.getURL(rec, file))
+  imageItems.value = built.items
+  mainImage.value = built.main
   drawerOpen.value = true
 }
 
 function closeDrawer() { drawerOpen.value = false }
 
-function onImageChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files?.[0]) {
-    imageFile.value = target.files[0]
-    imagePreview.value = URL.createObjectURL(target.files[0])
-  }
-}
-
 async function save() {
-  if (!form.value.name.trim()) { toast.add({ type: 'error', title: 'Branch name is required' }); return }
+  if (!form.value.name.trim()) { toast.add({ type: 'error', title: 'Branch name is required' }); useAudio().playError(); return }
   saving.value = true
   try {
     const data = new FormData()
     const fields = ['name', 'slug', 'address', 'phone', 'email', 'hours', 'map_url', 'sort_order'] as const
     for (const f of fields) { if (form.value[f]) data.append(f, String(form.value[f])) }
+    data.append('status', form.value.status)
     if (form.value.lat) data.append('lat', form.value.lat)
     if (form.value.lng) data.append('lng', form.value.lng)
-    if (imageFile.value) data.append('image', imageFile.value)
+    appendImagePayload(data, imageItems.value, 'images')
+    data.append('main_image', String(mainImage.value))
     if (editingId.value) {
       await pb.collection('branches').update(editingId.value, data)
       toast.add({ type: 'success', title: 'Branch updated' })
+      useAudio().playSuccess()
     } else {
       await pb.collection('branches').create(data)
       toast.add({ type: 'success', title: 'Branch created' })
+      useAudio().playSuccess()
     }
     closeDrawer()
     await loadData()
-  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save', message: e?.message }) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save', message: e?.message }); useAudio().playError() }
   finally { saving.value = false }
 }
 
@@ -268,7 +287,8 @@ async function confirmDelete(b: any) {
   try {
     await pb.collection('branches').delete(b.id)
     toast.add({ type: 'success', title: 'Branch deleted' })
-  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message }) }
+    useAudio().playSuccess()
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message }); useAudio().playError() }
 }
 
 async function loadData() {

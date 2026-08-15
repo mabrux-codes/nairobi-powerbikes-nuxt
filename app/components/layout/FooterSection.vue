@@ -168,7 +168,7 @@ async function fetchBranches() {
   try {
     const records = await pb.collection('branches').getFullList<Branch>({
       sort: 'name',
-    })
+    }, { requestKey: 'footer_branches' })
     branches.value = records
   } catch {
     branches.value = []

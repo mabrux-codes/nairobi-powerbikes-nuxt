@@ -143,6 +143,11 @@ const handleLogin = handleSubmit(async (values) => {
   try {
     await login(values.email, values.password, rememberMe.value)
     useAudio().playLogin()
+    const auth = useAuthStore()
+    if (auth.mustChangePassword) {
+      await navigateTo('/dashboard/change-password')
+      return
+    }
     await navigateTo('/dashboard')
   } catch (err: any) {
     useAudio().playError()

@@ -162,26 +162,28 @@ const enquiryOpen = ref(false)
 const enquiryItem = ref<any>(null)
 
 const PAGE_SIZE = 8
-const KNOWN_CATEGORIES = ['Helmets', 'Gloves', 'Covers', 'Locks', 'Bags', 'Tools', 'Electronics', 'Lighting', 'Other']
+const FALLBACK_CATEGORIES = ['Helmets', 'Gloves', 'Covers', 'Locks', 'Bags', 'Tools', 'Electronics', 'Lighting', 'Other']
 
 const visible = computed(() => filterAndSort(store.accessories))
+
+const knownCategories = computed(() => {
+  const cats = store.accessoryCategories
+  return cats.length ? cats : FALLBACK_CATEGORIES
+})
 
 const categoryChips = computed(() => {
   const counts = new Map<string, number>()
   for (const a of store.accessories) {
     if (a.category) counts.set(a.category, (counts.get(a.category) || 0) + 1)
   }
-  if (!counts.size) return KNOWN_CATEGORIES.map(c => ({ label: c, count: 0 }))
-  return [...counts.entries()].map(([label, count]) => ({ label, count }))
+  return knownCategories.value.map(c => ({ label: c, count: counts.get(c) || 0 }))
 })
 
 const filterOptions = computed(() => {
-  const all = new Set<string>(KNOWN_CATEGORIES)
-  for (const a of store.accessories) if (a.category) all.add(a.category)
   return {
     brands: [] as any[],
     types: [] as string[],
-    categories: [...all],
+    categories: [...knownCategories.value],
     sizes: [] as string[],
     colors: [] as string[],
   }

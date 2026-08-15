@@ -299,6 +299,21 @@ def("new_login", { category: "authentication", name: "New Sign-In Detected", mar
     components.paragraph(t, "If this wasn't you, secure your account immediately.", { muted: true, mb: 0 }),
 }))
 
+def("staff_invitation", { category: "authentication", name: "Staff Invitation", marketing: false, mode: "dark" }, (t, vars) => ({
+  subject: "You've been invited to the Nairobi PowerBikes team",
+  previewText: "Set up your staff account and get started.",
+  html:
+    components.category(t, "Staff Onboarding") +
+    components.heading(t, "Welcome to the team, " + (vars.firstName || "there") + "!") +
+    components.paragraph(t, "An admin at Nairobi Powerbikes has invited you to join the dealership team. Use the temporary password below to sign in — you'll be asked to set your own password on first login.") +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0 22px;"><tr><td align="center"><div style="display:inline-block;border:1px solid ${t.border};background:${t.panel};border-radius:14px;padding:16px 22px;text-align:center;">` +
+    `<p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${t.muted};">Temporary Password</p>` +
+    `<p style="margin:0;font-family:'SF Mono',Consolas,Menlo,monospace;font-size:20px;font-weight:700;color:${t.ink};">${components.esc(vars.tempPassword || "——")}</p>` +
+    `</div></td></tr></table>` +
+    components.button(t, "Sign In", vars.actionUrl || vars.siteUrl + "/login", { mt: 6 }) +
+    components.paragraph(t, "This invitation is valid until " + (vars.expiresLabel || "7 days from now") + ". The password is temporary and will expire once you change it.", { muted: true, mb: 0 }),
+}))
+
 def("security_alert", { category: "system", name: "Security Alert", marketing: false, mode: "dark" }, (t, vars) => ({
   subject: "Security alert — Nairobi PowerBikes",
   previewText: "An important security notice for your account.",

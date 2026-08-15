@@ -212,9 +212,13 @@ const ACCESSORY_CATEGORIES = ['Helmets', 'Gloves', 'Covers', 'Locks', 'Bags', 'T
 const APPAREL_TYPES = ['T-Shirts', 'Jackets', 'Hoodies', 'Caps', 'Gloves', 'Pants', 'Vests', 'Other']
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']
 
-const bikeTypes = BIKE_TYPES
-const accessoryCategories = ACCESSORY_CATEGORIES
-const apparelTypes = APPAREL_TYPES
+const FALLBACK_BIKE_TYPES = BIKE_TYPES
+const FALLBACK_ACCESSORY = ACCESSORY_CATEGORIES
+const FALLBACK_APPAREL = APPAREL_TYPES
+
+const bikeTypes = computed(() => store.activeCategories.map(c => c.name).length ? store.activeCategories.map(c => c.name) : FALLBACK_BIKE_TYPES)
+const accessoryCategories = computed(() => store.accessoryCategories.length ? store.accessoryCategories : FALLBACK_ACCESSORY)
+const apparelTypes = computed(() => store.apparelTypes.length ? store.apparelTypes : FALLBACK_APPAREL)
 const sizes = SIZES
 
 const title = computed(() => ({ motorcycles: 'Motorcycles', accessories: 'Accessories', apparel: 'Apparel' })[props.kind])

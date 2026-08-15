@@ -33,7 +33,7 @@
 
       <div class="mt-16 grid gap-10 lg:grid-cols-5">
         <!-- Form -->
-        <motion.div class="lg:col-span-3" :initial="{ opacity: 0, x: -30 }" :while-in-view="{ opacity: 1, x: 0 }" :viewport="{ once: true, margin: '-40px' }" :transition="{ delay: 0.1, duration: 0.5 }">
+        <motion.div class="lg:col-span-3" :initial="{ opacity: 0, y: 30 }" :while-in-view="{ opacity: 1, y: 0 }" :viewport="{ once: true, margin: '-40px' }" :transition="{ delay: 0.1, duration: 0.5 }">
           <div class="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 sm:p-8">
             <h2 class="font-heading text-3xl text-white">Send Us a <span class="text-brand-red">Message</span></h2>
             <p class="mt-2 text-sm text-brand-grey">Fill in the form and our team will get back to you.</p>
@@ -79,18 +79,24 @@
         </motion.div>
 
         <!-- Branches + map -->
-        <motion.div class="lg:col-span-2 space-y-6" :initial="{ opacity: 0, x: 30 }" :while-in-view="{ opacity: 1, x: 0 }" :viewport="{ once: true, margin: '-40px' }" :transition="{ delay: 0.2, duration: 0.5 }">
+        <motion.div class="lg:col-span-2 space-y-6" :initial="{ opacity: 0, y: 30 }" :while-in-view="{ opacity: 1, y: 0 }" :viewport="{ once: true, margin: '-40px' }" :transition="{ delay: 0.2, duration: 0.5 }">
           <h2 class="font-heading text-3xl text-white">Visit Our <span class="text-brand-red">Branches</span></h2>
           <div v-if="branchesLoading" class="animate-pulse space-y-5">
             <div v-for="i in 3" :key="i" class="h-40 rounded-2xl bg-white/[0.04]" />
           </div>
           <template v-else>
-            <div v-for="branch in branches" :key="branch.id" class="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent p-5 transition-all duration-300 hover:border-brand-red/40">
-              <div class="mb-3 flex items-center gap-2"><MapPin class="h-4 w-4 shrink-0 text-brand-red" /><h3 class="font-display text-lg font-bold tracking-display text-white">{{ branch.name }}</h3></div>
-              <div class="space-y-2 text-sm text-brand-grey">
-                <p class="flex items-start gap-2"><MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-grey/50" />{{ branch.address }}</p>
-                <p v-if="branch.phone" class="flex items-center gap-2"><Phone class="h-3.5 w-3.5 shrink-0 text-brand-grey/50" /><a :href="`tel:${branch.phone}`" class="transition-colors hover:text-brand-red">{{ branch.phone }}</a></p>
-                <p v-if="branch.hours" class="flex items-start gap-2"><Clock class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-grey/50" /><span class="whitespace-pre-line">{{ branch.hours }}</span></p>
+            <div v-for="branch in branches" :key="branch.id" class="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent transition-all duration-300 hover:border-brand-red/40">
+              <div v-if="branchImage(branch)" class="relative aspect-[16/9] overflow-hidden">
+                <img :src="branchImage(branch)" :alt="branch.name" class="h-full w-full object-cover" loading="lazy" />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              </div>
+              <div class="p-5">
+                <div class="mb-3 flex items-center gap-2"><MapPin class="h-4 w-4 shrink-0 text-brand-red" /><h3 class="font-display text-lg font-bold tracking-display text-white">{{ branch.name }}</h3></div>
+                <div class="space-y-2 text-sm text-brand-grey">
+                  <p class="flex items-start gap-2"><MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-grey/50" />{{ branch.address }}</p>
+                  <p v-if="branch.phone" class="flex items-center gap-2"><Phone class="h-3.5 w-3.5 shrink-0 text-brand-grey/50" /><a :href="`tel:${branch.phone}`" class="transition-colors hover:text-brand-red">{{ branch.phone }}</a></p>
+                  <p v-if="branch.hours" class="flex items-start gap-2"><Clock class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-grey/50" /><span class="whitespace-pre-line">{{ branch.hours }}</span></p>
+                </div>
               </div>
             </div>
           </template>
@@ -164,6 +170,13 @@ const mapBranches = computed(() => {
   ]
 })
 
+function branchImage(b: any): string {
+  const files = Array.isArray(b.images) ? b.images : []
+  if (!files.length) return ''
+  const file = files[Number(b.main_image ?? 0) % files.length]
+  try { return pb.files.getURL(b, file) } catch { return '' }
+}
+
 const submit = handleSubmit(async (values) => {
   showSuccess.value = false; submitError.value = ''
   try {
@@ -173,8 +186,9 @@ const submit = handleSubmit(async (values) => {
 })
 
 onMounted(async () => {
-  try { branches.value = await pb.collection('branches').getFullList<Branch>({ sort: 'name' }) }
-  catch { branches.value = [] }
+  try {
+    branches.value = await pb.collection('branches').getFullList<Branch>({ sort: 'name' }, { requestKey: 'contact_branches' })
+  } catch { branches.value = [] }
   finally { branchesLoading.value = false }
 })
 </script>

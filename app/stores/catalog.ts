@@ -39,6 +39,24 @@ export const useCatalogStore = defineStore('catalog', () => {
     })
   }
 
+  const activeCategories = computed(() => {
+    const sorted = [...categories.value]
+      .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0) || String(a.name).localeCompare(String(b.name)))
+    return sorted.filter(c => (c.status || 'active') !== 'inactive')
+  })
+
+  const accessoryCategories = computed(() => {
+    const set = new Set<string>()
+    for (const a of accessories.value) if (a.category) set.add(a.category)
+    return [...set].sort((a, b) => a.localeCompare(b))
+  })
+
+  const apparelTypes = computed(() => {
+    const set = new Set<string>()
+    for (const a of apparel.value) if (a.type) set.add(a.type)
+    return [...set].sort((a, b) => a.localeCompare(b))
+  })
+
   function applyDelta(coll: keyof typeof COLLECTIONS, action: string, record: any) {
     if (!record) return
     const list = COLLECTIONS[coll]
@@ -139,6 +157,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   return {
     ready, status, lastUpdated,
     motorcycles, brands, categories, accessories, apparel,
+    activeCategories, accessoryCategories, apparelTypes,
     ensureActive, release, refresh,
   }
 })

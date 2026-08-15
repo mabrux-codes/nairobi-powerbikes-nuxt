@@ -71,15 +71,30 @@ onRecordRequestEmailChangeRequest((e) => {
 
 // --- New sign-in detected (valid password auth) ---
 onRecordAuthWithPasswordRequest((e) => {
+  // Suspended staff/customers are blocked at the backend, before any session
+  // is issued or email is sent. This must NOT be swallowed by the try below.
+  if (e.record && e.record.getString("status") === "inactive") {
+    throw new BadRequestError("Your account has been suspended. Please contact an administrator.")
+  }
   try {
     const auth = require(__hooks + "/lib/email/auth.js")
     if (!e.record) { e.next(); return } // failed auth -> no user matched
+    // Staff invitations require a password change before the account is used.
+    if (e.record.getBool("must_change_password") && e.record.getString("role") !== "customer") {
+      e.app.store().set("npb_just_invited_" + e.record.id, true)
+    }
     let ua = ""
     try {
       const header = e.httpContext.request().Header
       if (header && header.Get) ua = header.Get("User-Agent") || ""
     } catch (err) { /* UA is best-effort */ }
     auth.buildNewLogin(e, ua)
+    // Track last login for staff/reporting (best-effort; record may be saved
+    // again right after by the auth request anyway).
+    try {
+      e.record.set("last_login", new Date().toISOString())
+      e.app.save(e.record)
+    } catch (err) { /* non-fatal */ }
   } catch (err) {
     e.app.logger().error("auth_newlogin: " + (err && err.message))
   }

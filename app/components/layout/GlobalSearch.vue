@@ -50,7 +50,7 @@
             <p class="mb-2 text-[11px] font-bold tracking-[0.18em] text-brand-grey uppercase">Popular searches</p>
             <div class="flex flex-wrap gap-2">
               <button
-                v-for="p in POPULAR"
+                v-for="p in popular"
                 :key="p"
                 class="rounded-full border border-brand-red/25 bg-brand-red/[0.06] px-3 py-1.5 text-xs font-medium text-brand-red transition-colors hover:bg-brand-red hover:text-white"
                 @click="runSearch(p)"
@@ -126,7 +126,16 @@ const selected = ref(0)
 const inputRef = ref<HTMLInputElement | null>(null)
 
 const RECENT_KEY = 'npb_recent_searches'
-const POPULAR = ['Sport', 'Helmets', 'Gloves', 'Adventure', 'Jackets', 'Pants', 'Touring']
+
+const popular = computed(() => {
+  const items = [
+    ...store.activeCategories.map(c => c.name),
+    ...store.accessoryCategories,
+    ...store.apparelTypes,
+  ]
+  const uniq = [...new Set(items)]
+  return uniq.length ? uniq.slice(0, 7) : ['Sport', 'Helmets', 'Gloves', 'Adventure', 'Jackets', 'Pants', 'Touring']
+})
 
 const recent = ref<string[]>(loadRecent())
 

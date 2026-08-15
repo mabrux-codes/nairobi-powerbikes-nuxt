@@ -174,7 +174,7 @@ const remindItem = ref<any>(null)
 
 const PAGE_SIZE = 8
 
-const BIKE_TYPES = ['Sport', 'Cruiser', 'Touring', 'Adventure', 'Naked', 'Dirt', 'Scooter', 'Electric']
+const bikeTypeOptions = computed(() => store.activeCategories.map(c => c.name))
 
 const visible = computed(() => filterAndSort(store.motorcycles))
 
@@ -183,15 +183,13 @@ const categoryChips = computed(() => {
   for (const b of store.motorcycles) {
     if (b.type) counts.set(b.type, (counts.get(b.type) || 0) + 1)
   }
-  if (!counts.size) {
-    return BIKE_TYPES.map(t => ({ label: t, count: 0 }))
-  }
-  return [...counts.entries()].map(([label, count]) => ({ label, count }))
+  const options = [...new Set([...bikeTypeOptions.value, ...counts.keys()])]
+  return options.map(label => ({ label, count: counts.get(label) || 0 }))
 })
 
 const filterOptions = computed(() => ({
   brands: store.brands,
-  types: BIKE_TYPES,
+  types: bikeTypeOptions.value,
   categories: [] as string[],
   sizes: [] as string[],
   colors: [] as string[],

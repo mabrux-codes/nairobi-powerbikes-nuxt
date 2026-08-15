@@ -16,8 +16,8 @@
     </div>
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <AdminStatCard label="Total Categories" :display="categories.length" :icon="Tags" icon-bg="bg-brand-red/15" icon-color="text-brand-red" />
-      <AdminStatCard label="Product Categories" :display="productCats" :icon="Package" icon-bg="bg-sky-500/15" icon-color="text-sky-400" />
-      <AdminStatCard label="Motorcycle Mappings" :display="mappedCats" :icon="Bike" icon-bg="bg-emerald-500/15" icon-color="text-emerald-400" />
+      <AdminStatCard label="Active" :display="activeCount" :icon="CheckCircle2" icon-bg="bg-emerald-500/15" icon-color="text-emerald-400" />
+      <AdminStatCard label="Motorcycle Mappings" :display="mappedCats" :icon="Bike" icon-bg="bg-sky-500/15" icon-color="text-sky-400" />
       <AdminStatCard label="Total Products" :display="totalProducts" :icon="Boxes" icon-bg="bg-violet-500/15" icon-color="text-violet-400" />
     </div>
 
@@ -29,8 +29,8 @@
           <option value="gear" class="bg-brand-black">Gear / Apparel</option>
         </AdminSelect>
         <AdminSelect v-model="statusFilter" placeholder="All Status">
-          <option value="active" class="bg-brand-black">In Use</option>
-          <option value="dormant" class="bg-brand-black">Unused</option>
+          <option value="active" class="bg-brand-black">Active</option>
+          <option value="inactive" class="bg-brand-black">Inactive</option>
         </AdminSelect>
         <div class="flex items-center gap-1 rounded-xl border border-brand-grey/20 p-1">
           <button
@@ -78,7 +78,7 @@
           <span class="flex items-center gap-1.5 text-xs font-semibold text-white">
             <component :is="countIcon" class="h-4 w-4 text-brand-red" />{{ countFor(c) }} product{{ countFor(c) === 1 ? '' : 's' }}
           </span>
-          <StatusChip :status="countFor(c) > 0 ? 'active' : 'dormant'" size="sm" />
+          <StatusChip :status="(c.status || 'active') === 'active' ? 'active' : 'inactive'" size="sm" />
         </div>
       </AdminCard>
     </div>
@@ -91,7 +91,7 @@
             <th class="px-4 py-3 font-display text-[10px] tracking-display text-brand-grey uppercase">Type</th>
             <th class="px-4 py-3 font-display text-[10px] tracking-display text-brand-grey uppercase">Products</th>
             <th class="px-4 py-3 font-display text-[10px] tracking-display text-brand-grey uppercase">Status</th>
-            <th class="px-4 py-3 font-display text-[10px] tracking-display text-brand-grey uppercase">Created</th>
+            <th class="px-4 py-3 font-display text-[10px] tracking-display text-brand-grey uppercase">Sort</th>
             <th class="px-4 py-3" />
           </tr>
         </thead>
@@ -110,8 +110,8 @@
             </td>
             <td class="px-4 py-3"><Badge variant="secondary">{{ typeOf(c) }}</Badge></td>
             <td class="px-4 py-3"><span class="font-semibold text-white">{{ countFor(c) }}</span></td>
-            <td class="px-4 py-3"><StatusChip :status="countFor(c) > 0 ? 'active' : 'dormant'" size="sm" /></td>
-            <td class="px-4 py-3 text-brand-grey">{{ shortDate(c.created) }}</td>
+            <td class="px-4 py-3"><StatusChip :status="(c.status || 'active') === 'active' ? 'active' : 'inactive'" size="sm" /></td>
+            <td class="px-4 py-3 text-brand-grey">{{ c.sort_order ?? '—' }}</td>
             <td class="px-4 py-3 text-right"><AdminActionsMenu :items="actionsFor(c)" /></td>
           </tr>
         </tbody>
@@ -136,11 +136,24 @@
           </div>
         </div>
         <Input v-model="form.name" label="Category Name" placeholder="e.g. Adventure" />
-        <Input v-model="form.slug" label="Slug" placeholder="adventure" />
+        <SlugField v-model="form.slug" :title="form.name" path="/motorcycles/" :was-published="!!editingId" label="URL Slug" />
         <div>
           <label class="mb-1.5 block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Description</label>
           <textarea v-model="form.description" rows="4" class="input-field rounded-xl resize-none" placeholder="What belongs in this category?" />
         </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="mb-1.5 block text-[10px] font-display tracking-[0.2em] text-brand-grey uppercase">Status</label>
+            <AdminSelect v-model="form.status">
+              <option value="active" class="bg-brand-black">Active</option>
+              <option value="inactive" class="bg-brand-black">Inactive</option>
+            </AdminSelect>
+          </div>
+          <Input v-model="form.sort_order" label="Sort Order" type="number" placeholder="0" />
+        </div>
+        <p v-if="form.status === 'inactive'" class="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-400">
+          Inactive categories are hidden from the public catalog but keep their product mappings.
+        </p>
       </div>
       <template #footer>
         <Button variant="ghost" @click="closeDrawer">Cancel</Button>
@@ -151,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { Tags, Package, Bike, Boxes, Plus, Pencil, Trash2, Tag, Zap, Route, Shield, Mountain, Compass, Wrench, Timer, PawPrint } from 'lucide-vue-next'
+import { Tags, Package, Bike, Boxes, Plus, Pencil, Trash2, Tag, Zap, Route, Shield, Mountain, Compass, Wrench, Timer, PawPrint, CheckCircle2, Eye, EyeOff } from 'lucide-vue-next'
 import { usePB } from '~/composables/usePocketBase'
 import { useToast } from '~/composables/useToast'
 import { useConfirm } from '~/composables/useConfirm'
@@ -173,7 +186,7 @@ const search = ref('')
 const typeFilter = ref('')
 const statusFilter = ref('')
 const view = ref<'grid' | 'table'>('grid')
-const form = ref({ name: '', slug: '', description: '', icon: 'tag' })
+const form = ref({ name: '', slug: '', description: '', icon: 'tag', status: 'active', sort_order: '0' })
 const productCounts = ref<Record<string, number>>({})
 const mappedCats = ref<string[]>([])
 
@@ -189,6 +202,7 @@ const iconOptions = [
   { name: 'wrench', cmp: Wrench },
   { name: 'timer', cmp: Timer },
   { name: 'paw', cmp: PawPrint },
+  { name: 'bike', cmp: Bike },
 ]
 
 const iconMap: Record<string, any> = Object.fromEntries(iconOptions.map(i => [i.name, i.cmp]))
@@ -196,7 +210,8 @@ const iconMap: Record<string, any> = Object.fromEntries(iconOptions.map(i => [i.
 const categories = computed(() => store.categories)
 const storeLoading = computed(() => !store.ready)
 
-const productCats = computed(() => Object.values(productCounts.value).filter(c => c > 0).length)
+const activeCount = computed(() => categories.value.filter(c => (c.status || 'active') === 'active').length)
+const mappedCatsCount = computed(() => mappedCats.value.length)
 const totalProducts = computed(() => Object.values(productCounts.value).reduce((a, b) => a + b, 0))
 
 const filtered = computed(() => {
@@ -204,8 +219,7 @@ const filtered = computed(() => {
   return categories.value.filter(c => {
     if (q && !`${c.name} ${c.slug} ${c.description}`.toLowerCase().includes(q)) return false
     if (typeFilter.value && typeOf(c) !== typeFilter.value) return false
-    if (statusFilter.value === 'active' && countFor(c) <= 0) return false
-    if (statusFilter.value === 'dormant' && countFor(c) > 0) return false
+    if (statusFilter.value && (c.status || 'active') !== statusFilter.value) return false
     return true
   })
 })
@@ -223,44 +237,57 @@ function countFor(c: any): number {
 }
 
 function actionsFor(c: any) {
+  const active = (c.status || 'active') === 'active'
   return [
     { label: 'Edit', icon: Pencil, onClick: () => openEdit(c) },
+    { label: active ? 'Deactivate' : 'Activate', icon: active ? EyeOff : Eye, onClick: () => toggleStatus(c) },
     { label: 'Delete', icon: Trash2, danger: true, onClick: () => confirmDelete(c) },
   ]
 }
 
 function openCreate() {
   editingId.value = null
-  form.value = { name: '', slug: '', description: '', icon: 'tag' }
+  form.value = { name: '', slug: '', description: '', icon: 'tag', status: 'active', sort_order: '0' }
   drawerOpen.value = true
 }
 
 function openEdit(c: any) {
   editingId.value = c.id
-  form.value = { name: c.name, slug: c.slug || '', description: c.description || '', icon: c.icon || 'tag' }
+  form.value = { name: c.name, slug: c.slug || '', description: c.description || '', icon: c.icon || 'tag', status: c.status || 'active', sort_order: c.sort_order?.toString() || '0' }
   drawerOpen.value = true
 }
 
 function closeDrawer() { drawerOpen.value = false }
 
 async function save() {
-  if (!form.value.name.trim()) { toast.add({ type: 'error', title: 'Category name is required' }); return }
+  if (!form.value.name.trim()) { toast.add({ type: 'error', title: 'Category name is required' }); useAudio().playError(); return }
   saving.value = true
   try {
-    const payload: any = { name: form.value.name.trim(), description: form.value.description }
-    const slug = form.value.slug || form.value.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    payload.slug = slug
+    const payload: any = { name: form.value.name.trim(), description: form.value.description, icon: form.value.icon, status: form.value.status, sort_order: form.value.sort_order || '0' }
+    if (form.value.slug) payload.slug = form.value.slug
     if (editingId.value) {
       await pb.collection('categories').update(editingId.value, payload)
       toast.add({ type: 'success', title: 'Category updated' })
+      useAudio().playSuccess()
     } else {
       await pb.collection('categories').create(payload)
       toast.add({ type: 'success', title: 'Category created' })
+      useAudio().playSuccess()
     }
     closeDrawer()
     await loadCounts()
-  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save', message: e?.message }) }
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to save', message: e?.message }); useAudio().playError() }
   finally { saving.value = false }
+}
+
+async function toggleStatus(c: any) {
+  const next = (c.status || 'active') === 'active' ? 'inactive' : 'active'
+  try {
+    await pb.collection('categories').update(c.id, { status: next })
+    c.status = next
+    toast.add({ type: 'success', title: next === 'active' ? 'Category activated' : 'Category deactivated' })
+    useAudio().playSuccess()
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to update', message: e?.message }); useAudio().playError() }
 }
 
 async function confirmDelete(c: any) {
@@ -269,7 +296,8 @@ async function confirmDelete(c: any) {
   try {
     await pb.collection('categories').delete(c.id)
     toast.add({ type: 'success', title: 'Category deleted' })
-  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message }) }
+    useAudio().playSuccess()
+  } catch (e: any) { toast.add({ type: 'error', title: 'Failed to delete', message: e?.message }); useAudio().playError() }
 }
 
 async function loadCounts() {
@@ -294,11 +322,6 @@ async function loadCounts() {
     for (const p of ap as any[]) if (p.type) counts[p.type] = (counts[p.type] || 0) + 1
     productCounts.value = counts
   } catch { /* counts optional */ }
-}
-
-function shortDate(d: string) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 onMounted(async () => {

@@ -177,18 +177,27 @@ import {
 import { useAuthStore } from '~/stores/auth'
 import { useWishlist } from '~/composables/useWishlist'
 import { usePB } from '~/composables/usePocketBase'
+import { useCatalogStore } from '~/stores/catalog'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; 'open-search': [] }>()
 
 const auth = useAuthStore()
 const wishlist = useWishlist()
+const catalog = useCatalogStore()
 const route = useRoute()
 const expanded = ref<string[]>([])
 
-const BIKE_TYPES = ['Sport', 'Adventure', 'Touring', 'Naked', 'Cruiser', 'Dirt', 'Scooter', 'Electric']
-const ACCESSORY_CATEGORIES = ['Helmets', 'Gloves', 'Covers', 'Locks', 'Bags', 'Tools', 'Electronics', 'Lighting', 'Other']
-const APPAREL_TYPES = ['T-Shirts', 'Jackets', 'Hoodies', 'Caps', 'Gloves', 'Pants', 'Vests', 'Other']
+const FALLBACK_BIKE_TYPES = ['Sport', 'Adventure', 'Touring', 'Naked', 'Cruiser', 'Dirt', 'Scooter', 'Electric']
+const FALLBACK_ACCESSORY = ['Helmets', 'Gloves', 'Covers', 'Locks', 'Bags', 'Tools', 'Electronics', 'Lighting', 'Other']
+const FALLBACK_APPAREL = ['T-Shirts', 'Jackets', 'Hoodies', 'Caps', 'Gloves', 'Pants', 'Vests', 'Other']
+
+const BIKE_TYPES = computed(() => {
+  const names = catalog.activeCategories.map(c => c.name)
+  return names.length ? names : FALLBACK_BIKE_TYPES
+})
+const ACCESSORY_CATEGORIES = computed(() => catalog.accessoryCategories.length ? catalog.accessoryCategories : FALLBACK_ACCESSORY)
+const APPAREL_TYPES = computed(() => catalog.apparelTypes.length ? catalog.apparelTypes : FALLBACK_APPAREL)
 
 const notificationsRoute = computed(() => (auth.userRole === 'admin' ? '/dashboard/notifications' : '/dashboard/my-notifications'))
 const settingsRoute = computed(() => (auth.userRole === 'admin' ? '/dashboard/settings' : '/dashboard/my-settings'))

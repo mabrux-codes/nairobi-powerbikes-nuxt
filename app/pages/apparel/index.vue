@@ -162,29 +162,31 @@ const enquiryOpen = ref(false)
 const enquiryItem = ref<any>(null)
 
 const PAGE_SIZE = 8
-const KNOWN_TYPES = ['T-Shirts', 'Jackets', 'Hoodies', 'Caps', 'Gloves', 'Pants', 'Vests', 'Other']
+const FALLBACK_TYPES = ['T-Shirts', 'Jackets', 'Hoodies', 'Caps', 'Gloves', 'Pants', 'Vests', 'Other']
 const KNOWN_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']
 
 const visible = computed(() => filterAndSort(store.apparel))
+
+const knownTypes = computed(() => {
+  const types = store.apparelTypes
+  return types.length ? types : FALLBACK_TYPES
+})
 
 const categoryChips = computed(() => {
   const counts = new Map<string, number>()
   for (const a of store.apparel) {
     if (a.type) counts.set(a.type, (counts.get(a.type) || 0) + 1)
   }
-  if (!counts.size) return KNOWN_TYPES.map(t => ({ label: t, count: 0 }))
-  return [...counts.entries()].map(([label, count]) => ({ label, count }))
+  return knownTypes.value.map(t => ({ label: t, count: counts.get(t) || 0 }))
 })
 
 const filterOptions = computed(() => {
-  const types = new Set<string>(KNOWN_TYPES)
-  for (const a of store.apparel) if (a.type) types.add(a.type)
   const colors = new Set<string>()
   for (const a of store.apparel) if (a.color) colors.add(a.color)
   return {
     brands: [] as any[],
     types: [] as string[],
-    categories: [...types],
+    categories: [...knownTypes.value],
     sizes: KNOWN_SIZES,
     colors: [...colors],
   }

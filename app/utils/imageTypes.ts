@@ -20,6 +20,10 @@ export const APPAREL_IMAGE_CATEGORIES = [
   'Jacket', 'Trousers', 'Gloves', 'Boots', 'Helmet', 'Riding Suit', 'Casual Wear',
 ]
 
+export const BRANCH_IMAGE_CATEGORIES = [
+  'Exterior', 'Showroom', 'Service Bay', 'Team', 'Parking', 'Accessories Area',
+]
+
 export function buildImageItems(
   record: any,
   field = 'images',
